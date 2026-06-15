@@ -11,8 +11,14 @@ type AdminCatalogEditorProps = {
 
 export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) {
   const [catalog, setCatalog] = useState(initialCatalog);
-  const visibleCount = useMemo(
-    () => catalog.moments.filter((moment) => moment.status !== "hidden").length,
+  const availableCount = useMemo(
+    () =>
+      catalog.moments.filter((moment) => moment.status === "available").length,
+    [catalog.moments]
+  );
+  const unavailableCount = useMemo(
+    () =>
+      catalog.moments.filter((moment) => moment.status !== "available").length,
     [catalog.moments]
   );
 
@@ -59,20 +65,32 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
   }
 
   return (
-    <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-4 py-4 sm:px-6 lg:py-8">
-      <header className="mb-5 rounded-lg bg-white p-5 shadow-soft ring-1 ring-terra-moss/20">
+    <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
+      <header className="sticky top-0 z-30 mb-5 rounded-lg bg-white/95 p-5 shadow-soft ring-1 ring-terra-moss/20 backdrop-blur">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-black uppercase tracking-[0.20em] text-terra-clay">
               Terra Viva Admin
             </p>
-            <h1 className="mt-1 text-3xl font-black text-terra-ink">
+            <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
               Editor de catalogo diario
             </h1>
             <p className="mt-2 text-base font-bold text-terra-ink/65">
-              {catalog.title} · {catalog.moments.length} momentos ·{" "}
-              {visibleCount} visibles
+              {catalog.title}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
+                Total: {catalog.moments.length}
+              </span>
+              <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
+                Disponibles: {availableCount}
+              </span>
+              <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-black text-stone-700 ring-1 ring-stone-500/20">
+                <span className="sm:hidden">No disp.</span>
+                <span className="hidden sm:inline">No disponibles</span>:{" "}
+                {unavailableCount}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -97,7 +115,7 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
               className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
               href={assetPath(`/catalog/${catalog.date}/`)}
             >
-              Ver publico
+              Vista de Cliente
             </a>
           </div>
         </div>
@@ -116,7 +134,7 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
               {video.title}
             </h2>
             <p className="mt-1 text-sm font-bold text-terra-ink/65">
-              Video proto local · reemplazar por carga real despues
+              Video proto local - reemplazar por carga real despues
             </p>
           </article>
         ))}

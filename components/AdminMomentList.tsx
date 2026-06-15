@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { TreeMoment, TreeMomentStatus } from "@/lib/catalogTypes";
 import { formatTimestamp } from "@/lib/time";
 import { StatusBadge } from "./StatusBadge";
@@ -16,10 +17,20 @@ const statusOptions: TreeMomentStatus[] = [
   "hidden"
 ];
 
+const statusLabels: Record<TreeMomentStatus, string> = {
+  available: "Disponible",
+  reserved: "Apartado",
+  sold: "Vendido",
+  hidden: "Oculto"
+};
+
 export function AdminMomentList({
   moments,
   onChangeMoment
 }: AdminMomentListProps) {
+  const [expandedMomentId, setExpandedMomentId] = useState<string | null>(null);
+  const [previewMoment, setPreviewMoment] = useState<TreeMoment | null>(null);
+
   if (moments.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-terra-moss/50 bg-white p-6 text-center">
@@ -28,116 +39,254 @@ export function AdminMomentList({
     );
   }
 
-  return (
-    <div className="space-y-3">
-      {moments.map((moment) => (
-        <article
-          className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-terra-moss/20"
-          key={moment.id}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xl font-black text-terra-ink">
-                Árbol #{moment.treeNumber.toString().padStart(2, "0")}
-              </p>
-              <p className="text-sm font-bold text-terra-ink/60">
-                {formatTimestamp(moment.timestampSeconds)}
-              </p>
-            </div>
-            <StatusBadge compact status={moment.status} />
-          </div>
+  function setAvailability(moment: TreeMoment, isAvailable: boolean) {
+    onChangeMoment({
+      ...moment,
+      status: isAvailable ? "available" : "hidden"
+    });
+  }
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <label className="space-y-1">
-              <span className="text-sm font-bold text-terra-ink/70">
-                Numero
-              </span>
-              <input
-                className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
-                min={1}
-                onChange={(event) =>
-                  onChangeMoment({
-                    ...moment,
-                    treeNumber: Number(event.target.value) || moment.treeNumber
-                  })
-                }
-                type="number"
-                value={moment.treeNumber}
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-sm font-bold text-terra-ink/70">
-                Timestamp
-              </span>
-              <input
-                className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
-                min={0}
-                onChange={(event) =>
-                  onChangeMoment({
-                    ...moment,
-                    timestampSeconds:
-                      Number(event.target.value) || moment.timestampSeconds
-                  })
-                }
-                type="number"
-                value={moment.timestampSeconds}
-              />
-            </label>
-            <label className="space-y-1 sm:col-span-2 lg:col-span-1">
-              <span className="text-sm font-bold text-terra-ink/70">
-                Seccion
-              </span>
-              <input
-                className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
-                onChange={(event) =>
-                  onChangeMoment({
-                    ...moment,
-                    sectionLabel: event.target.value
-                  })
-                }
-                type="text"
-                value={moment.sectionLabel}
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-sm font-bold text-terra-ink/70">
-                Estado
-              </span>
-              <select
-                className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
-                onChange={(event) =>
-                  onChangeMoment({
-                    ...moment,
-                    status: event.target.value as TreeMomentStatus
-                  })
-                }
-                value={moment.status}
+  return (
+    <>
+      <section className="overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
+        <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_44px] items-center gap-2 border-b border-terra-moss/15 bg-terra-paper px-2 py-3 text-xs font-black uppercase text-terra-ink/65 sm:grid-cols-[96px_116px_minmax(180px,1fr)_72px] sm:px-3 sm:text-sm sm:tracking-[0.10em]">
+          <span>#</span>
+          <span>
+            <span className="sm:hidden">Foto</span>
+            <span className="hidden sm:inline">Miniatura</span>
+          </span>
+          <span>Disponible</span>
+          <span className="text-center">Editar</span>
+        </div>
+
+        <div className="divide-y divide-terra-moss/15">
+          {moments.map((moment) => {
+            const isExpanded = expandedMomentId === moment.id;
+            const isAvailable = moment.status === "available";
+
+            return (
+              <article className="bg-white" key={moment.id}>
+                <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_44px] items-center gap-2 px-2 py-3 sm:grid-cols-[96px_116px_minmax(180px,1fr)_72px] sm:px-3">
+                  <div>
+                    <p className="text-base font-black text-terra-ink sm:text-lg">
+                      #{moment.treeNumber.toString().padStart(2, "0")}
+                    </p>
+                    <p className="text-xs font-bold text-terra-ink/55">
+                      {formatTimestamp(moment.timestampSeconds)}
+                    </p>
+                  </div>
+
+                  <button
+                    aria-label={`Agrandar arbol ${moment.treeNumber}`}
+                    className="h-14 w-20 overflow-hidden rounded-md bg-terra-paper shadow-sm ring-1 ring-terra-moss/20 focus:outline-none focus:ring-2 focus:ring-terra-clay sm:h-20 sm:w-24"
+                    onClick={() => setPreviewMoment(moment)}
+                    type="button"
+                  >
+                    <span
+                      className="block h-full w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url(${moment.thumbnailUrl})` }}
+                    />
+                  </button>
+
+                  <label className="flex min-h-14 items-center gap-2 rounded-lg bg-terra-paper/70 px-2 py-2 sm:gap-3 sm:px-3">
+                    <input
+                      aria-label={`Disponible arbol ${moment.treeNumber}`}
+                      checked={isAvailable}
+                      className="h-7 w-7 shrink-0 accent-terra-leaf"
+                      onChange={(event) =>
+                        setAvailability(moment, event.target.checked)
+                      }
+                      type="checkbox"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black text-terra-ink sm:text-base">
+                        Disponible
+                      </span>
+                      <span className="hidden text-xs font-bold text-terra-ink/55 sm:block">
+                        {isAvailable
+                          ? "Visible para clientas"
+                          : "No aparece al cliente"}
+                      </span>
+                    </span>
+                  </label>
+
+                  <button
+                    aria-expanded={isExpanded}
+                    aria-label={`Editar arbol ${moment.treeNumber}`}
+                    className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-terra-moss/30 bg-white text-terra-ink shadow-sm transition hover:bg-terra-paper sm:h-11 sm:w-11"
+                    onClick={() =>
+                      setExpandedMomentId(isExpanded ? null : moment.id)
+                    }
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.4"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {isExpanded ? (
+                  <AdminMomentAdvancedEditor
+                    moment={moment}
+                    onChangeMoment={onChangeMoment}
+                  />
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {previewMoment ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-terra-ink/75 p-4"
+          role="dialog"
+        >
+          <div className="w-full max-w-2xl rounded-lg bg-white p-4 shadow-soft">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                  Vista ampliada
+                </p>
+                <h2 className="text-2xl font-black text-terra-ink">
+                  &Aacute;rbol #
+                  {previewMoment.treeNumber.toString().padStart(2, "0")}
+                </h2>
+              </div>
+              <button
+                className="min-h-11 rounded-lg border border-terra-moss/30 px-4 text-base font-black text-terra-ink"
+                onClick={() => setPreviewMoment(null)}
+                type="button"
               >
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 sm:col-span-2 lg:col-span-1">
-              <span className="text-sm font-bold text-terra-ink/70">Notas</span>
-              <input
-                className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
-                onChange={(event) =>
-                  onChangeMoment({
-                    ...moment,
-                    notes: event.target.value
-                  })
-                }
-                placeholder="Opcional"
-                type="text"
-                value={moment.notes || ""}
-              />
-            </label>
+                Cerrar
+              </button>
+            </div>
+            <img
+              alt={`Miniatura ampliada del arbol ${previewMoment.treeNumber}`}
+              className="max-h-[72vh] w-full rounded-lg object-contain"
+              src={previewMoment.thumbnailUrl}
+            />
           </div>
-        </article>
-      ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function AdminMomentAdvancedEditor({
+  moment,
+  onChangeMoment
+}: {
+  moment: TreeMoment;
+  onChangeMoment: (moment: TreeMoment) => void;
+}) {
+  return (
+    <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
+          Edicion avanzada
+        </p>
+        <StatusBadge compact status={moment.status} />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="space-y-1">
+          <span className="text-sm font-bold text-terra-ink/70">Numero</span>
+          <input
+            className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
+            min={1}
+            onChange={(event) =>
+              onChangeMoment({
+                ...moment,
+                treeNumber: Number(event.target.value) || moment.treeNumber
+              })
+            }
+            type="number"
+            value={moment.treeNumber}
+          />
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-sm font-bold text-terra-ink/70">
+            Timestamp
+          </span>
+          <input
+            className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
+            min={0}
+            onChange={(event) =>
+              onChangeMoment({
+                ...moment,
+                timestampSeconds:
+                  Number(event.target.value) || moment.timestampSeconds
+              })
+            }
+            type="number"
+            value={moment.timestampSeconds}
+          />
+        </label>
+
+        <label className="space-y-1 sm:col-span-2 lg:col-span-1">
+          <span className="text-sm font-bold text-terra-ink/70">Seccion</span>
+          <input
+            className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
+            onChange={(event) =>
+              onChangeMoment({
+                ...moment,
+                sectionLabel: event.target.value
+              })
+            }
+            type="text"
+            value={moment.sectionLabel}
+          />
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-sm font-bold text-terra-ink/70">Estado</span>
+          <select
+            className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
+            onChange={(event) =>
+              onChangeMoment({
+                ...moment,
+                status: event.target.value as TreeMomentStatus
+              })
+            }
+            value={moment.status}
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {statusLabels[status]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1 sm:col-span-2 lg:col-span-1">
+          <span className="text-sm font-bold text-terra-ink/70">Notas</span>
+          <input
+            className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
+            onChange={(event) =>
+              onChangeMoment({
+                ...moment,
+                notes: event.target.value
+              })
+            }
+            placeholder="Opcional"
+            type="text"
+            value={moment.notes || ""}
+          />
+        </label>
+      </div>
     </div>
   );
 }
