@@ -1,0 +1,132 @@
+import type {
+  CatalogDay,
+  CatalogVideo,
+  TreeMoment,
+  TreeMomentStatus
+} from "./catalogTypes";
+
+const catalogId = "catalog-2026-06-14";
+
+const protoInventoryVideoUrl = "/videos/terra-viva-proto-inventory.mp4";
+
+const videos: CatalogVideo[] = [
+  {
+    id: "video-mueble-1",
+    catalogDayId: catalogId,
+    title: "Proto inventario - recorrido 1",
+    sectionLabel: "Mueble 1",
+    url: protoInventoryVideoUrl,
+    durationSeconds: 175,
+    order: 1
+  },
+  {
+    id: "video-repisa-central",
+    catalogDayId: catalogId,
+    title: "Proto inventario - repisa central",
+    sectionLabel: "Repisa central",
+    url: protoInventoryVideoUrl,
+    durationSeconds: 175,
+    order: 2
+  },
+  {
+    id: "video-mesa-chica",
+    catalogDayId: catalogId,
+    title: "Proto inventario - piezas especiales",
+    sectionLabel: "Mesa chica",
+    url: protoInventoryVideoUrl,
+    durationSeconds: 175,
+    order: 3
+  }
+];
+
+const sections = [
+  "Mueble 1 · Repisa superior",
+  "Mueble 1 · Repisa media",
+  "Repisa central · Lado izquierdo",
+  "Repisa central · Lado derecho",
+  "Mesa chica · Piezas especiales"
+];
+
+const statuses: TreeMomentStatus[] = [
+  "available",
+  "available",
+  "available",
+  "reserved",
+  "available",
+  "sold"
+];
+
+const videoIds = videos.map((video) => video.id);
+
+const moments: TreeMoment[] = Array.from({ length: 27 }, (_, index) => {
+  const treeNumber = index + 1;
+  const videoId = videoIds[Math.floor(index / 9)] || videoIds[0];
+  const timestampSeconds = 6 + index * 6;
+
+  return {
+    id: `moment-${treeNumber.toString().padStart(2, "0")}`,
+    catalogDayId: catalogId,
+    videoId,
+    treeNumber,
+    timestampSeconds,
+    thumbnailUrl: `/thumbnails/proto/tree-${treeNumber
+      .toString()
+      .padStart(2, "0")}.jpg`,
+    sectionLabel: sections[index % sections.length],
+    status: statuses[index % statuses.length],
+    notes:
+      index % 7 === 0
+        ? "Pieza con brillo marcado; confirmar disponibilidad antes de apartar."
+        : undefined,
+    crop:
+      index % 5 === 0
+        ? {
+            x: 20,
+            y: 14,
+            width: 58,
+            height: 70
+          }
+        : undefined
+  };
+});
+
+export const mockCatalogDays: CatalogDay[] = [
+  {
+    id: catalogId,
+    date: "2026-06-14",
+    title: "Catalogo Terra Viva - 14 de junio",
+    status: "published",
+    videos,
+    moments
+  },
+  {
+    id: "catalog-2026-06-13",
+    date: "2026-06-13",
+    title: "Catalogo Terra Viva - borrador anterior",
+    status: "draft",
+    videos: videos.map((video) => ({
+      ...video,
+      catalogDayId: "catalog-2026-06-13"
+    })),
+    moments: moments.slice(0, 8).map((moment) => ({
+      ...moment,
+      catalogDayId: "catalog-2026-06-13"
+    }))
+  }
+];
+
+export function getCatalogByDate(date: string): CatalogDay | undefined {
+  return mockCatalogDays.find((catalog) => catalog.date === date);
+}
+
+export function getLatestPublishedCatalog(): CatalogDay | undefined {
+  return mockCatalogDays
+    .filter((catalog) => catalog.status === "published")
+    .sort((left, right) => right.date.localeCompare(left.date))[0];
+}
+
+export function getLatestCatalogForAdmin(): CatalogDay {
+  return [...mockCatalogDays].sort((left, right) =>
+    right.date.localeCompare(left.date)
+  )[0];
+}

@@ -1,0 +1,13 @@
+<svg width="640" height="420" viewBox="0 0 640 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="420" rx="28" fill="#F7EFE1"/>
+  <rect x="44" y="44" width="552" height="332" rx="24" fill="#FFFDF7" stroke="#D8C7A7" stroke-width="4"/>
+  <path d="M320 86C278 130 214 148 192 208C171 266 223 319 320 319C417 319 469 266 448 208C426 148 362 130 320 86Z" fill="#426B4F"/>
+  <path d="M320 86C346 134 365 190 365 255C365 287 347 319 320 319C293 319 275 287 275 255C275 190 294 134 320 86Z" fill="#6F8A5F"/>
+  <circle cx="266" cy="176" r="17" fill="#B14F63"/>
+  <circle cx="356" cy="158" r="15" fill="#B66B48"/>
+  <circle cx="391" cy="228" r="18" fill="#E7B75F"/>
+  <circle cx="252" cy="248" r="18" fill="#D9D2C0"/>
+  <path d="M282 333H358L377 365H263L282 333Z" fill="#B66B48"/>
+  <path d="M302 318H338V335H302V318Z" fill="#7B523C"/>
+  <text x="320" y="398" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#24312B">Terra Viva</text>
+</svg>
