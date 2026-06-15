@@ -6,6 +6,12 @@ export function getVisibleMoments(catalog: CatalogDay): TreeMoment[] {
     .sort((left, right) => left.treeNumber - right.treeNumber);
 }
 
+export function getPublicMoments(catalog: CatalogDay): TreeMoment[] {
+  return catalog.moments
+    .filter((moment) => moment.status !== "hidden" && moment.status !== "sold")
+    .sort((left, right) => left.treeNumber - right.treeNumber);
+}
+
 export function getVideoForMoment(
   catalog: CatalogDay,
   moment: TreeMoment

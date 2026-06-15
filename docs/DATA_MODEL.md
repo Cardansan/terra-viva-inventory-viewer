@@ -47,6 +47,13 @@ Representa un árbol seleccionable dentro de un video.
 - `draft`: catalogo no publicado.
 - `published`: catalogo visible para clientas.
 
+### Visibilidad publica actual
+
+- `available` y `reserved` se mantienen en la experiencia publica, sin mostrar etiqueta de estado a la clienta.
+- `sold` se conserva en admin, pero se filtra completamente de la vista publica.
+- `hidden` se filtra completamente de la vista publica.
+- `treeNumber` es el numero interno/admin. La vista publica puede mostrar una numeracion continua calculada despues de filtrar vendidos y ocultos.
+
 ## Campos futuros
 
 - `stoneType`: cuarzo rosa, amatista, citrino, jade, etc.

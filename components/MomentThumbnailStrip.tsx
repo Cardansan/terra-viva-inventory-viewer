@@ -32,12 +32,13 @@ export function MomentThumbnailStrip({
         </span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2">
-        {moments.map((moment) => {
+        {moments.map((moment, index) => {
           const isSelected = moment.id === selectedMomentId;
+          const displayNumber = index + 1;
 
           return (
             <button
-              aria-label={`Seleccionar arbol ${moment.treeNumber}`}
+              aria-label={`Seleccionar arbol ${displayNumber}`}
               className={`min-w-[132px] rounded-lg bg-white p-2 text-left shadow-sm ring-2 transition ${
                 isSelected
                   ? "ring-terra-clay"
@@ -52,7 +53,7 @@ export function MomentThumbnailStrip({
                 style={{ backgroundImage: `url(${moment.thumbnailUrl})` }}
               >
                 <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-sm font-black text-terra-ink">
-                  #{moment.treeNumber.toString().padStart(2, "0")}
+                  #{displayNumber.toString().padStart(2, "0")}
                 </span>
               </div>
             </button>

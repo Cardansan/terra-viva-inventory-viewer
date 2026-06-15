@@ -13,25 +13,32 @@ export function getWhatsAppNumber(): string {
 export function buildWhatsAppMessage(
   catalog: CatalogDay,
   video: CatalogVideo | undefined,
-  moment: TreeMoment
+  moment: TreeMoment,
+  displayTreeNumber = moment.treeNumber
 ): string {
   return [
-    "Hola, me interesa este árbol de Terra Viva:",
-    `Árbol #${moment.treeNumber.toString().padStart(2, "0")}`,
-    `Catálogo: ${catalog.date}`,
+    "Hola, me interesa este \u00e1rbol de Terra Viva:",
+    `\u00c1rbol #${displayTreeNumber.toString().padStart(2, "0")}`,
+    `Cat\u00e1logo: ${catalog.date}`,
     `Video: ${video?.title || moment.sectionLabel}`,
     `Tiempo: ${formatTimestamp(moment.timestampSeconds)}`,
-    "¿Sigue disponible?"
+    "\u00bfSigue disponible?"
   ].join("\n");
 }
 
 export function buildWhatsAppUrl(
   catalog: CatalogDay,
   video: CatalogVideo | undefined,
-  moment: TreeMoment
+  moment: TreeMoment,
+  displayTreeNumber?: number
 ): string {
   const number = getWhatsAppNumber();
-  const message = buildWhatsAppMessage(catalog, video, moment);
+  const message = buildWhatsAppMessage(
+    catalog,
+    video,
+    moment,
+    displayTreeNumber
+  );
 
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

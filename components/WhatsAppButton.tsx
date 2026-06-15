@@ -7,14 +7,20 @@ type WhatsAppButtonProps = {
   catalog: CatalogDay;
   video: CatalogVideo | undefined;
   moment: TreeMoment;
+  displayTreeNumber?: number;
 };
 
-export function WhatsAppButton({ catalog, video, moment }: WhatsAppButtonProps) {
-  const href = buildWhatsAppUrl(catalog, video, moment);
+export function WhatsAppButton({
+  catalog,
+  video,
+  moment,
+  displayTreeNumber
+}: WhatsAppButtonProps) {
+  const href = buildWhatsAppUrl(catalog, video, moment, displayTreeNumber);
 
   return (
     <a
-      className="flex min-h-16 w-full items-center justify-center rounded-lg bg-[#1f8f4d] px-5 text-center text-xl font-black text-white shadow-soft transition hover:bg-[#187a40]"
+      className="flex min-h-16 w-full items-center justify-center rounded-lg bg-[#1f8f4d] px-3 text-center text-base font-black leading-tight text-white shadow-soft transition hover:bg-[#187a40] sm:text-xl"
       href={href}
       rel="noreferrer"
       target="_blank"

@@ -18,3 +18,17 @@ export function parseTimestampToSeconds(value: string): number {
   const [minutes, seconds] = trimmed.split(":").map(Number);
   return (minutes || 0) * 60 + (seconds || 0);
 }
+
+export function formatCatalogDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return date;
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(year, month - 1, day));
+}

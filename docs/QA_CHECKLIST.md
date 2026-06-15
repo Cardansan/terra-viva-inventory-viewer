@@ -52,3 +52,16 @@ Revisado despues de cargar `public/videos/terra-viva-proto-inventory.mp4`.
 - [x] CTA de WhatsApp visible cerca de la seleccion principal en movil.
 
 Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No son deteccion automatica ni revision precisa de disponibilidad.
+
+## Checks UX publico actuales
+
+- [x] WhatsApp es la accion mas prominente.
+- [x] `Ver video de este arbol` se ve como accion secundaria.
+- [x] El boton grande de Play ya no aparece sobre el visor.
+- [x] `admin login` esta en el footer y se ve discreto.
+- [x] `Catalogo actualizado` aparece en el footer.
+- [x] `Compartir catalogo` aparece abajo y no compite con WhatsApp.
+- [x] Momentos `sold` no aparecen en contador publico, navegacion ni galeria.
+- [x] Momentos `sold` siguen existiendo para admin.
+- [x] La numeracion publica es continua despues de filtrar vendidos.
+- [x] Galeria publica no muestra etiquetas de estado ni timestamps.

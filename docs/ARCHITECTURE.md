@@ -51,3 +51,13 @@ Se mantendran maximo 3 dias activos para controlar almacenamiento y mantener cos
 - Tailwind CSS para iterar rapido y mantener una UI mobile-first.
 - Datos mock separados para evitar hardcodear reglas en componentes.
 - WhatsApp y formato de tiempo viven en `/lib` para ser probables puntos de prueba.
+- `getPublicMoments` vive en `lib/videoMoments.ts` y centraliza la regla de vista publica: excluir `hidden` y `sold`.
+- `CatalogViewer` calcula la numeracion publica por posicion visible, no por `treeNumber` interno.
+- `ShareCatalogButton` usa Web Share API si existe y cae a clipboard si no esta disponible.
+
+## Iteracion UX publica
+
+- La vista publica muestra imagen/momento, navegacion, WhatsApp, accion secundaria de video y galeria.
+- El reproductor ya no muestra un boton principal de Play sobre el video.
+- `Ver video de este arbol` dispara reproduccion del clip del momento como accion secundaria.
+- El acceso `/admin` se conserva, pero el link publico ahora es `admin login` al fondo.

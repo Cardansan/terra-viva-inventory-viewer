@@ -6,14 +6,18 @@ import type { CatalogVideo, TreeMoment } from "@/lib/catalogTypes";
 type VideoMomentPlayerProps = {
   video: CatalogVideo | undefined;
   moment: TreeMoment;
+  playRequest: number;
 };
 
 const momentClipSeconds = 3;
 
-export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
+export function VideoMomentPlayer({
+  video,
+  moment,
+  playRequest
+}: VideoMomentPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [hasVideoError, setHasVideoError] = useState(false);
 
   useEffect(() => {
@@ -25,6 +29,12 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
     seekToMoment(moment);
   }, [moment.id, moment.timestampSeconds, video?.id]);
 
+  useEffect(() => {
+    if (playRequest > 0) {
+      void playMomentClip();
+    }
+  }, [isMounted, playRequest, video?.id]);
+
   function seekToMoment(nextMoment: TreeMoment) {
     const element = videoRef.current;
 
@@ -34,7 +44,6 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
 
     element.currentTime = Math.max(0, nextMoment.timestampSeconds);
     element.pause();
-    setIsPlaying(false);
   }
 
   function getMomentStart(): number {
@@ -45,29 +54,17 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
     return getMomentStart() + momentClipSeconds;
   }
 
-  async function togglePlayback() {
+  async function playMomentClip() {
     const element = videoRef.current;
 
     if (!element) {
       return;
     }
 
-    if (element.paused) {
-      const start = getMomentStart();
-      const end = getMomentEnd();
+    const start = getMomentStart();
 
-      if (element.currentTime < start || element.currentTime >= end) {
-        element.currentTime = start;
-      }
-
-      await element.play();
-      setIsPlaying(true);
-      return;
-    }
-
-    element.pause();
-    element.currentTime = getMomentStart();
-    setIsPlaying(false);
+    element.currentTime = start;
+    await element.play();
   }
 
   function keepPlaybackInsideMoment() {
@@ -93,8 +90,6 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
             muted
             onError={() => setHasVideoError(true)}
             onLoadedMetadata={() => seekToMoment(moment)}
-            onPause={() => setIsPlaying(false)}
-            onPlay={() => setIsPlaying(true)}
             onTimeUpdate={keepPlaybackInsideMoment}
             poster={moment.thumbnailUrl}
             playsInline
@@ -110,18 +105,6 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
             }}
           />
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-3 pt-12">
-          <div className="grid grid-cols-1">
-            <button
-              aria-label={isPlaying ? "Pausar video" : "Reproducir video"}
-              className="min-h-14 rounded-lg bg-terra-clay px-5 text-lg font-black text-white shadow-soft transition hover:bg-[#9f5a3e]"
-              onClick={togglePlayback}
-              type="button"
-            >
-              {isPlaying ? "Pausar video" : "Play"}
-            </button>
-          </div>
-        </div>
       </div>
     </section>
   );

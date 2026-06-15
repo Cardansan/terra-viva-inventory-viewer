@@ -17,6 +17,14 @@ Rutas principales:
 - `/catalog/2026-06-14` muestra la vista publica mock.
 - `/admin` muestra el editor local mock.
 
+## Flujo publico actual
+
+- WhatsApp es la accion principal.
+- `Ver video de este arbol` es una accion secundaria debajo de WhatsApp.
+- La galeria publica filtra momentos `sold` y `hidden`.
+- La numeracion publica es continua para la clienta aunque existan vendidos internos.
+- El footer muestra `Catalogo actualizado`, `Compartir catalogo` y el link discreto `admin login`.
+
 ## Scripts
 
 - `npm run dev`: servidor local de desarrollo.

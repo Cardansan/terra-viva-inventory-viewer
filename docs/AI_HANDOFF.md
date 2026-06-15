@@ -56,3 +56,13 @@ No implementar IA compleja de detección de objetos ni prometer detección perfe
 ## Como continuar rapido
 
 Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.tsx` para entender el flujo publico. Si el trabajo es de admin, lee `components/AdminCatalogEditor.tsx` y `components/AdminMomentList.tsx`. Si el trabajo es backend, empieza por `lib/catalogTypes.ts` y reemplaza gradualmente el mock con un repositorio.
+
+## Iteracion UX vigente
+
+- La vista publica usa `getPublicMoments` en `lib/videoMoments.ts`.
+- `sold` y `hidden` no aparecen para clientas; admin conserva todos los momentos.
+- La numeracion publica se calcula por posicion visible.
+- WhatsApp es el CTA principal y recibe el numero publico.
+- `Ver video de este arbol` es una accion secundaria debajo de WhatsApp.
+- `ShareCatalogButton` maneja Web Share API y fallback a clipboard.
+- `admin login` debe permanecer discreto al fondo mientras no exista login real.
