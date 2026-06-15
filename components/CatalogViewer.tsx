@@ -1,20 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
 import { assetPath } from "@/lib/assets";
+import {
+  buildSelectionUrl,
+  decodeSelectionFromQuery,
+  getPublicTreeNumber,
+  getSelectedMoments,
+  getSelectionStorageKey,
+  isMomentSelected,
+  pruneSelectionToPublicMoments,
+  removeMomentFromSelection,
+  toggleMomentSelection
+} from "@/lib/selection";
 import { formatCatalogDate } from "@/lib/time";
 import {
   getAdjacentMoment,
   getMomentPosition,
   getPublicMoments,
-  getVideoForMoment,
+  getVideoForMoment
 } from "@/lib/videoMoments";
+import { buildWhatsAppUrlForSelection } from "@/lib/whatsapp";
+import { AddToSelectionButton } from "./AddToSelectionButton";
 import { MomentNavigator } from "./MomentNavigator";
 import { MomentThumbnailStrip } from "./MomentThumbnailStrip";
+import { SelectionPanel } from "./SelectionPanel";
+import { SelectionSummary } from "./SelectionSummary";
+import { SendSelectionWhatsAppButton } from "./SendSelectionWhatsAppButton";
 import { ShareCatalogButton } from "./ShareCatalogButton";
 import { VideoMomentPlayer } from "./VideoMomentPlayer";
-import { WhatsAppButton } from "./WhatsAppButton";
 
 type CatalogViewerProps = {
   catalog: CatalogDay;
@@ -25,10 +40,70 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
   const [selectedMomentId, setSelectedMomentId] = useState(
     visibleMoments[0]?.id || ""
   );
+  const [selectedMomentIds, setSelectedMomentIds] = useState<string[]>([]);
   const [playRequest, setPlayRequest] = useState(0);
+  const [selectionNotice, setSelectionNotice] = useState("");
+  const [hasLoadedSelection, setHasLoadedSelection] = useState(false);
   const selectedMoment =
     visibleMoments.find((moment) => moment.id === selectedMomentId) ||
     visibleMoments[0];
+
+  useEffect(() => {
+    const storageKey = getSelectionStorageKey(catalog);
+    const queryIds = decodeSelectionFromQuery(
+      new URLSearchParams(window.location.search).get("selection")
+    );
+
+    if (queryIds.length > 0) {
+      const result = pruneSelectionToPublicMoments(queryIds, visibleMoments);
+
+      setSelectedMomentIds(result.selectedIds);
+      window.localStorage.setItem(storageKey, JSON.stringify(result.selectedIds));
+      setSelectionNotice(
+        result.missingCount > 0
+          ? "Algunos arboles de esta seleccion ya no estan disponibles."
+          : "Estas viendo una seleccion compartida."
+      );
+
+      if (result.selectedIds[0]) {
+        setSelectedMomentId(result.selectedIds[0]);
+      }
+
+      setHasLoadedSelection(true);
+      return;
+    }
+
+    const storedSelection = window.localStorage.getItem(storageKey);
+
+    if (!storedSelection) {
+      setHasLoadedSelection(true);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedSelection);
+      const storedIds = Array.isArray(parsed) ? parsed : [];
+      const result = pruneSelectionToPublicMoments(storedIds, visibleMoments);
+
+      setSelectedMomentIds(result.selectedIds);
+      window.localStorage.setItem(storageKey, JSON.stringify(result.selectedIds));
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+
+    setHasLoadedSelection(true);
+  }, [catalog, visibleMoments]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hasLoadedSelection) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      getSelectionStorageKey(catalog),
+      JSON.stringify(selectedMomentIds)
+    );
+  }, [catalog, hasLoadedSelection, selectedMomentIds]);
 
   if (!selectedMoment) {
     return (
@@ -54,6 +129,22 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
   const currentLabel = `\u00c1rbol ${displayTreeNumber
     .toString()
     .padStart(2, "0")} de ${visibleMoments.length}`;
+  const selectedMoments = getSelectedMoments(selectedMomentIds, visibleMoments);
+  const publicPathPrefix = assetPath("").replace(/\/$/, "");
+  const currentMomentIsSelected = isMomentSelected(
+    selectedMomentIds,
+    selectedMoment.id
+  );
+  const selectionUrl = buildSelectionUrl(catalog, selectedMomentIds, {
+    origin: typeof window !== "undefined" ? window.location.origin : "",
+    pathPrefix: publicPathPrefix
+  });
+  const selectionWhatsAppUrl = buildWhatsAppUrlForSelection(
+    catalog,
+    selectedMoments,
+    visibleMoments,
+    selectionUrl
+  );
 
   function selectAdjacent(direction: "previous" | "next") {
     const nextMoment = getAdjacentMoment(
@@ -65,6 +156,22 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     if (nextMoment) {
       setSelectedMomentId(nextMoment.id);
     }
+  }
+
+  function toggleCurrentMomentSelection() {
+    setSelectionNotice("");
+    setSelectedMomentIds((current) =>
+      toggleMomentSelection(current, selectedMoment)
+    );
+  }
+
+  function removeSelectedMoment(momentId: string) {
+    setSelectionNotice("");
+    setSelectedMomentIds((current) => removeMomentFromSelection(current, momentId));
+  }
+
+  function selectMomentFromThumbnail(momentId: string) {
+    setSelectedMomentId(momentId);
   }
 
   return (
@@ -95,11 +202,19 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             onNext={() => selectAdjacent("next")}
             onPrevious={() => selectAdjacent("previous")}
           />
-          <WhatsAppButton
-            catalog={catalog}
-            displayTreeNumber={displayTreeNumber}
-            moment={selectedMoment}
-            video={selectedVideo}
+          <SelectionSummary count={selectedMomentIds.length} />
+          {selectionNotice ? (
+            <p className="rounded-lg bg-white/80 p-3 text-center text-sm font-bold text-terra-ink/70 ring-1 ring-terra-moss/15">
+              {selectionNotice}
+            </p>
+          ) : null}
+          <AddToSelectionButton
+            isSelected={currentMomentIsSelected}
+            onToggle={toggleCurrentMomentSelection}
+          />
+          <SendSelectionWhatsAppButton
+            href={selectionWhatsAppUrl}
+            selectedCount={selectedMomentIds.length}
           />
           <button
             className="min-h-11 w-full rounded-lg border border-terra-moss/30 bg-white/80 px-4 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper"
@@ -108,13 +223,19 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
           >
             Ver video de este &aacute;rbol
           </button>
+          <SelectionPanel
+            onRemove={removeSelectedMoment}
+            publicMoments={visibleMoments}
+            selectedMoments={selectedMoments}
+          />
         </section>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
           <MomentThumbnailStrip
             moments={visibleMoments}
-            onSelectMoment={setSelectedMomentId}
+            onSelectMoment={selectMomentFromThumbnail}
             selectedMomentId={selectedMoment.id}
+            selectedMomentIds={selectedMomentIds}
           />
         </aside>
       </div>

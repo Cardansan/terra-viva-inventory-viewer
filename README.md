@@ -1,6 +1,6 @@
 # Terra Viva Inventory Viewer
 
-Web app mobile-first para convertir videos de inventario de árboles de cuarzo Terra Viva en un catálogo navegable por momentos. El MVP usa datos mock y video proto: la clienta navega por "Árbol #", ve estado, miniatura, timestamp interno y envía el árbol seleccionado por WhatsApp.
+Web app mobile-first para convertir videos de inventario de arboles de cuarzo Terra Viva en un catalogo navegable por momentos. El MVP usa datos mock y video proto: la clienta navega por "Arbol #", agrega uno o varios arboles a `Mi seleccion` y envia la seleccion por WhatsApp.
 
 ## Como correr localmente
 
@@ -19,7 +19,12 @@ Rutas principales:
 
 ## Flujo publico actual
 
-- WhatsApp es la accion principal.
+- La clienta puede agregar uno o varios arboles a `Mi seleccion`.
+- `Agregar a mi seleccion` es la accion principal al revisar cada arbol.
+- `Enviar seleccion por WhatsApp` aparece cuando hay al menos un arbol elegido.
+- El mensaje de WhatsApp incluye todos los numeros publicos seleccionados y un link compartible.
+- Las selecciones compartidas usan `?selection=moment-03,moment-08` y se cargan al abrir el link.
+- La seleccion local se guarda en `localStorage` con la llave `selection:terra-viva:YYYY-MM-DD`.
 - `Ver video de este arbol` es una accion secundaria debajo de WhatsApp.
 - La galeria publica filtra momentos `sold` y `hidden`.
 - La numeracion publica es continua para la clienta aunque existan vendidos internos.
@@ -91,3 +96,15 @@ Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 - Publicacion/despublicacion persistente.
 - Telefono real de WhatsApp en `.env`.
 - QA con videos reales y dispositivos moviles.
+## Seleccion multiple
+
+La vista publica permite que una clienta elija varios arboles antes de escribir por WhatsApp.
+
+- `Agregar a mi seleccion` agrega el arbol visible.
+- `Quitar de mi seleccion` lo remueve.
+- `Mi seleccion` muestra la lista elegida y permite quitar piezas.
+- `Enviar seleccion por WhatsApp` aparece solo cuando hay al menos un arbol elegido.
+- El mensaje incluye todos los numeros publicos seleccionados y un link compartible.
+- El link compartible usa `?selection=moment-03,moment-08`.
+- La seleccion local se guarda por fecha en `localStorage` con la llave `selection:terra-viva:YYYY-MM-DD`.
+- Si una URL trae `selection`, esa seleccion tiene prioridad sobre `localStorage`.

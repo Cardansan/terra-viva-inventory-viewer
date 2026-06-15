@@ -65,3 +65,16 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] Momentos `sold` siguen existiendo para admin.
 - [x] La numeracion publica es continua despues de filtrar vendidos.
 - [x] Galeria publica no muestra etiquetas de estado ni timestamps.
+## Checks seleccion multiple
+
+- [x] `Agregar a mi seleccion` agrega el arbol actual.
+- [x] `Quitar de mi seleccion` remueve el arbol actual.
+- [x] El contador muestra singular y plural correctamente.
+- [x] `Enviar seleccion por WhatsApp` aparece solo con seleccion no vacia.
+- [x] El mensaje de WhatsApp lista uno o varios arboles seleccionados.
+- [x] El mensaje de WhatsApp incluye un solo link de seleccion compartible.
+- [x] Abrir `?selection=moment-03,moment-08` precarga la seleccion.
+- [x] La URL compartida tiene prioridad sobre `localStorage`.
+- [x] La seleccion local persiste por fecha de catalogo.
+- [x] IDs vendidos, ocultos o inexistentes se ignoran en seleccion publica.
+- [x] `Mi seleccion` permite quitar arboles sin romper el momento actual.

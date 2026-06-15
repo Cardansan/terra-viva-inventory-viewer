@@ -2,7 +2,7 @@
 
 ## Que hace la app
 
-Terra Viva Inventory Viewer convierte videos de inventario de árboles de cuarzo en un catálogo navegable por momentos. La clienta no tiene que pausar manualmente: elige por número de árbol, ve estado y manda un mensaje de WhatsApp con catálogo, video y timestamp.
+Terra Viva Inventory Viewer convierte videos de inventario de arboles de cuarzo en un catalogo navegable por momentos. La clienta no tiene que pausar manualmente: elige por numero de arbol, arma `Mi seleccion` y manda un mensaje de WhatsApp con todos los arboles elegidos.
 
 ## Archivos para leer primero
 
@@ -62,7 +62,14 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - La vista publica usa `getPublicMoments` en `lib/videoMoments.ts`.
 - `sold` y `hidden` no aparecen para clientas; admin conserva todos los momentos.
 - La numeracion publica se calcula por posicion visible.
-- WhatsApp es el CTA principal y recibe el numero publico.
+- WhatsApp se envia desde la seleccion multiple y recibe todos los numeros publicos elegidos.
 - `Ver video de este arbol` es una accion secundaria debajo de WhatsApp.
 - `ShareCatalogButton` maneja Web Share API y fallback a clipboard.
 - `admin login` debe permanecer discreto al fondo mientras no exista login real.
+## Seleccion multiple vigente
+
+- La vista publica usa seleccion multiple: `Mi seleccion`, `Agregar a mi seleccion`, `Quitar de mi seleccion` y `Enviar seleccion por WhatsApp`.
+- `lib/selection.ts` contiene helpers para URL `selection`, localStorage, poda de IDs y numeracion publica.
+- La URL `?selection=moment-03,moment-08` precarga una seleccion compartida y tiene prioridad sobre localStorage.
+- WhatsApp recibe todos los numeros publicos seleccionados y un link a la seleccion.
+- No usar la palabra `carrito`; la convencion del producto es `Mi seleccion`.

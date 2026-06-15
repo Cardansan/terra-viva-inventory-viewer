@@ -65,3 +65,12 @@ Representa un árbol seleccionable dentro de un video.
 - `availabilityUpdatedAt`: fecha de ultima revision.
 - `sourceFrameUrl`: frame original extraido del video.
 - `spotlightCrop`: recorte manual para destacar el árbol.
+## Seleccion publica
+
+La seleccion multiple no cambia el modelo principal todavia. En el cliente se representa como una lista de IDs de `TreeMoment`.
+
+- Fuente URL: `?selection=moment-03,moment-08`.
+- Fuente local: `localStorage` con llave `selection:terra-viva:YYYY-MM-DD`.
+- La URL tiene prioridad sobre `localStorage`.
+- Antes de renderizar o enviar por WhatsApp, la lista se poda contra los momentos publicos visibles.
+- Los IDs vendidos u ocultos se ignoran en vista publica, aunque sigan existiendo en admin.

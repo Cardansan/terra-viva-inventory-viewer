@@ -14,7 +14,7 @@
 3. `CatalogViewer` filtra momentos ocultos y mantiene el momento seleccionado.
 4. `VideoMomentPlayer` ejecuta `seekToMoment` al cambiar de momento.
 5. `MomentNavigator` cambia al árbol anterior o siguiente.
-6. `WhatsAppButton` genera el link `wa.me` con el mensaje del árbol seleccionado.
+6. `SendSelectionWhatsAppButton` genera el link `wa.me` con todos los arboles seleccionados.
 
 ## Flujo admin
 
@@ -61,3 +61,12 @@ Se mantendran maximo 3 dias activos para controlar almacenamiento y mantener cos
 - El reproductor ya no muestra un boton principal de Play sobre el video.
 - `Ver video de este arbol` dispara reproduccion del clip del momento como accion secundaria.
 - El acceso `/admin` se conserva, pero el link publico ahora es `admin login` al fondo.
+## Seleccion multiple publica
+
+- `lib/selection.ts` concentra helpers puros para agregar, quitar, podar IDs no visibles y construir URLs compartibles.
+- `CatalogViewer` mantiene `selectedMomentIds` y los sincroniza con `localStorage`.
+- La URL compartible usa `?selection=moment-03,moment-08` con IDs estables de `TreeMoment`.
+- Si la URL trae `selection`, tiene prioridad sobre `localStorage`.
+- Si no hay query param, la app restaura `localStorage` con llave `selection:terra-viva:YYYY-MM-DD`.
+- `pruneSelectionToPublicMoments` evita que momentos `sold` o `hidden` entren a la seleccion publica.
+- `SendSelectionWhatsAppButton` genera un mensaje unico con todos los arboles seleccionados.
