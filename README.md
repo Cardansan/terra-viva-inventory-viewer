@@ -70,7 +70,9 @@ Mas adelante las miniaturas deben extraerse automaticamente con `ffmpeg` y guard
 - `components/`: UI del visor, navegacion, miniaturas, WhatsApp y admin.
 - `lib/`: tipos, mock data y funciones puras de tiempo, WhatsApp y momentos.
 - `public/`: assets placeholder.
-- `docs/`: arquitectura, modelo de datos, roadmap, QA y handoff para IA.
+- `docs/`: arquitectura, modelo de datos, roadmap, QA, despliegue y handoff para IA.
+
+Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Falta para produccion
 
