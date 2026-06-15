@@ -67,6 +67,22 @@ export function VideoMomentPlayer({
     await element.play();
   }
 
+  async function toggleVideoPlayback() {
+    const element = videoRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    if (element.paused) {
+      await playMomentClip();
+      return;
+    }
+
+    element.pause();
+    element.currentTime = getMomentStart();
+  }
+
   function keepPlaybackInsideMoment() {
     const element = videoRef.current;
 
@@ -85,12 +101,14 @@ export function VideoMomentPlayer({
       <div className="relative aspect-[9/16] max-h-[68vh] min-h-[420px] w-full bg-terra-ink sm:aspect-[4/3] sm:max-h-[640px] sm:min-h-0 lg:aspect-video">
         {isMounted && video && !hasVideoError ? (
           <video
+            aria-label="Pausar o reproducir video de este arbol"
             ref={videoRef}
             className="h-full w-full object-contain"
             muted
             onError={() => setHasVideoError(true)}
             onLoadedMetadata={() => seekToMoment(moment)}
             onTimeUpdate={keepPlaybackInsideMoment}
+            onClick={() => void toggleVideoPlayback()}
             poster={moment.thumbnailUrl}
             playsInline
             preload="metadata"
