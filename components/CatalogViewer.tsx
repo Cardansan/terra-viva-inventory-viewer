@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
+import { assetPath } from "@/lib/assets";
 import { formatCatalogDate } from "@/lib/time";
 import {
   getAdjacentMoment,
@@ -124,7 +125,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
         <ShareCatalogButton title={catalog.title} />
         <a
           className="inline-flex text-xs font-bold lowercase text-terra-ink/45 underline-offset-4 hover:text-terra-ink hover:underline"
-          href="/admin"
+          href={assetPath("/admin/")}
         >
           admin login
         </a>

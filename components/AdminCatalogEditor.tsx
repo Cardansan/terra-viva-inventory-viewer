@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CatalogDay, CatalogStatus, TreeMoment } from "@/lib/catalogTypes";
+import { assetPath } from "@/lib/assets";
 import { AdminMomentList } from "./AdminMomentList";
 
 type AdminCatalogEditorProps = {
@@ -94,7 +95,7 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
             </select>
             <a
               className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
-              href={`/catalog/${catalog.date}`}
+              href={assetPath(`/catalog/${catalog.date}/`)}
             >
               Ver publico
             </a>
