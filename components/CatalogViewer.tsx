@@ -2,16 +2,13 @@
 
 import { useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
-import { formatTimestamp } from "@/lib/time";
 import {
   getAdjacentMoment,
-  getMomentPosition,
   getVideoForMoment,
   getVisibleMoments
 } from "@/lib/videoMoments";
 import { MomentNavigator } from "./MomentNavigator";
 import { MomentThumbnailStrip } from "./MomentThumbnailStrip";
-import { StatusBadge } from "./StatusBadge";
 import { VideoMomentPlayer } from "./VideoMomentPlayer";
 import { WhatsAppButton } from "./WhatsAppButton";
 
@@ -35,7 +32,9 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-terra-clay">
             Terra Viva
           </p>
-          <h1 className="mt-3 text-3xl font-bold">Catálogo sin árboles</h1>
+          <h1 className="mt-3 text-3xl font-bold">
+            Cat&aacute;logo sin &aacute;rboles
+          </h1>
           <p className="mt-3 text-lg text-terra-ink/75">
             Este catalogo existe, pero todavia no tiene momentos visibles.
           </p>
@@ -45,8 +44,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
   }
 
   const selectedVideo = getVideoForMoment(catalog, selectedMoment);
-  const selectedIndex = getMomentPosition(visibleMoments, selectedMoment.id);
-  const currentLabel = `Árbol ${selectedMoment.treeNumber
+  const currentLabel = `\u00c1rbol ${selectedMoment.treeNumber
     .toString()
     .padStart(2, "0")} de ${visibleMoments.length}`;
 
@@ -70,7 +68,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             Terra Viva
           </p>
           <h1 className="mt-1 text-2xl font-black text-terra-ink sm:text-4xl">
-            Catálogo de Árboles
+            Cat&aacute;logo de &Aacute;rboles
           </h1>
           <p className="mt-1 text-base font-bold text-terra-ink/65">
             {catalog.date}
@@ -92,55 +90,14 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             onNext={() => selectAdjacent("next")}
             onPrevious={() => selectAdjacent("previous")}
           />
-          <div className="lg:hidden">
-            <WhatsAppButton
-              catalog={catalog}
-              moment={selectedMoment}
-              video={selectedVideo}
-            />
-          </div>
-          <section className="rounded-lg bg-white/90 p-4 shadow-soft ring-1 ring-terra-moss/20">
-            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-lg font-black text-terra-ink">
-                  {selectedMoment.sectionLabel}
-                </p>
-                <p className="mt-1 text-base font-bold text-terra-ink/65">
-                  {selectedVideo?.title || "Video placeholder"} ·{" "}
-                  {formatTimestamp(selectedMoment.timestampSeconds)}
-                </p>
-              </div>
-              <div className="shrink-0">
-                <StatusBadge status={selectedMoment.status} />
-              </div>
-            </div>
-            {selectedMoment.notes ? (
-              <p className="mt-3 rounded-md bg-terra-paper p-3 text-base text-terra-ink/80">
-                {selectedMoment.notes}
-              </p>
-            ) : null}
-          </section>
+          <WhatsAppButton
+            catalog={catalog}
+            moment={selectedMoment}
+            video={selectedVideo}
+          />
         </section>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <section className="rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-terra-clay">
-              Seleccion actual
-            </p>
-            <p className="mt-2 text-4xl font-black text-terra-ink">
-              #{selectedMoment.treeNumber.toString().padStart(2, "0")}
-            </p>
-            <p className="mt-1 text-base font-bold text-terra-ink/65">
-              {selectedIndex + 1} de {visibleMoments.length}
-            </p>
-            <div className="mt-4">
-              <WhatsAppButton
-                catalog={catalog}
-                moment={selectedMoment}
-                video={selectedVideo}
-              />
-            </div>
-          </section>
           <MomentThumbnailStrip
             moments={visibleMoments}
             onSelectMoment={setSelectedMomentId}

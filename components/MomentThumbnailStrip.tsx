@@ -1,8 +1,6 @@
 "use client";
 
 import type { TreeMoment } from "@/lib/catalogTypes";
-import { formatTimestamp } from "@/lib/time";
-import { StatusBadge } from "./StatusBadge";
 
 type MomentThumbnailStripProps = {
   moments: TreeMoment[];
@@ -18,17 +16,19 @@ export function MomentThumbnailStrip({
   if (moments.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-terra-moss/50 bg-white/70 p-5 text-center text-terra-ink/75">
-        No hay árboles visibles en este catálogo.
+        No hay &aacute;rboles visibles en este cat&aacute;logo.
       </div>
     );
   }
 
   return (
-    <section aria-label="Miniaturas de árboles" className="space-y-3">
+    <section aria-label="Miniaturas de arboles" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-black text-terra-ink">Todos los Árboles</h2>
+        <h2 className="text-xl font-black text-terra-ink">
+          Todos los &Aacute;rboles
+        </h2>
         <span className="text-sm font-bold text-terra-ink/65">
-          {moments.length} visibles
+          {moments.length}
         </span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -37,8 +37,8 @@ export function MomentThumbnailStrip({
 
           return (
             <button
-              aria-label={`Seleccionar árbol ${moment.treeNumber}`}
-              className={`min-w-[142px] rounded-lg bg-white p-2 text-left shadow-sm ring-2 transition ${
+              aria-label={`Seleccionar arbol ${moment.treeNumber}`}
+              className={`min-w-[132px] rounded-lg bg-white p-2 text-left shadow-sm ring-2 transition ${
                 isSelected
                   ? "ring-terra-clay"
                   : "ring-transparent hover:ring-terra-moss/40"
@@ -54,12 +54,6 @@ export function MomentThumbnailStrip({
                 <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-sm font-black text-terra-ink">
                   #{moment.treeNumber.toString().padStart(2, "0")}
                 </span>
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-bold text-terra-ink">
-                  {formatTimestamp(moment.timestampSeconds)}
-                </span>
-                <StatusBadge compact status={moment.status} />
               </div>
             </button>
           );
