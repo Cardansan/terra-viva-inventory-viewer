@@ -4,10 +4,11 @@ import type {
   TreeMoment,
   TreeMomentStatus
 } from "./catalogTypes";
+import { assetPath } from "./assets";
 
 const catalogId = "catalog-2026-06-14";
 
-const protoInventoryVideoUrl = "/videos/terra-viva-proto-inventory.mp4";
+const protoInventoryVideoUrl = assetPath("/videos/terra-viva-proto-inventory.mp4");
 
 const videos: CatalogVideo[] = [
   {
@@ -69,9 +70,9 @@ const moments: TreeMoment[] = Array.from({ length: 27 }, (_, index) => {
     videoId,
     treeNumber,
     timestampSeconds,
-    thumbnailUrl: `/thumbnails/proto/tree-${treeNumber
+    thumbnailUrl: assetPath(`/thumbnails/proto/tree-${treeNumber
       .toString()
-      .padStart(2, "0")}.jpg`,
+      .padStart(2, "0")}.jpg`),
     sectionLabel: sections[index % sections.length],
     status: statuses[index % statuses.length],
     notes:

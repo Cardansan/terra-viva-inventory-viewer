@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { CatalogViewer } from "@/components/CatalogViewer";
-import { getCatalogByDate } from "@/lib/mockCatalogData";
+import { getCatalogByDate, mockCatalogDays } from "@/lib/mockCatalogData";
 
 type CatalogPageProps = {
   params: {
     date: string;
   };
 };
+
+export function generateStaticParams() {
+  return mockCatalogDays.map((catalog) => ({
+    date: catalog.date
+  }));
+}
+
+export const dynamicParams = false;
 
 export default function CatalogPage({ params }: CatalogPageProps) {
   const catalog = getCatalogByDate(params.date);
