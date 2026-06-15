@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CatalogDay, CatalogStatus, TreeMoment } from "@/lib/catalogTypes";
+import type { CatalogDay, TreeMoment } from "@/lib/catalogTypes";
 import { assetPath } from "@/lib/assets";
 import { AdminMomentList } from "./AdminMomentList";
 
@@ -28,39 +28,6 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
       moments: current.moments.map((moment) =>
         moment.id === updatedMoment.id ? updatedMoment : moment
       )
-    }));
-  }
-
-  function updateStatus(status: CatalogStatus) {
-    setCatalog((current) => ({
-      ...current,
-      status
-    }));
-  }
-
-  function addManualMoment() {
-    const nextNumber =
-      Math.max(0, ...catalog.moments.map((moment) => moment.treeNumber)) + 1;
-    const firstVideo = catalog.videos[0];
-
-    if (!firstVideo) {
-      return;
-    }
-
-    const nextMoment: TreeMoment = {
-      id: `local-moment-${Date.now()}`,
-      catalogDayId: catalog.id,
-      videoId: firstVideo.id,
-      treeNumber: nextNumber,
-      timestampSeconds: 0,
-      thumbnailUrl: "/placeholder-tree.svg",
-      sectionLabel: firstVideo.sectionLabel,
-      status: "available"
-    };
-
-    setCatalog((current) => ({
-      ...current,
-      moments: [...current.moments, nextMoment]
     }));
   }
 
@@ -93,24 +60,6 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              className="min-h-12 rounded-lg bg-terra-leaf px-5 text-base font-black text-white"
-              onClick={addManualMoment}
-              type="button"
-            >
-              Agregar momento
-            </button>
-            <select
-              aria-label="Estado de publicacion"
-              className="min-h-12 rounded-lg border border-terra-moss/30 bg-terra-paper px-4 font-bold"
-              onChange={(event) =>
-                updateStatus(event.target.value as CatalogStatus)
-              }
-              value={catalog.status}
-            >
-              <option value="draft">Borrador</option>
-              <option value="published">Publicado</option>
-            </select>
             <a
               className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
               href={assetPath(`/catalog/${catalog.date}/`)}
