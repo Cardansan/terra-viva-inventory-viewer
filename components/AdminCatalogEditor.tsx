@@ -70,25 +70,6 @@ export function AdminCatalogEditor({ initialCatalog }: AdminCatalogEditorProps) 
         </div>
       </header>
 
-      <section className="mb-5 grid gap-3 md:grid-cols-3">
-        {catalog.videos.map((video) => (
-          <article
-            className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-terra-moss/20"
-            key={video.id}
-          >
-            <p className="text-sm font-bold uppercase tracking-[0.12em] text-terra-clay">
-              Video {video.order}
-            </p>
-            <h2 className="mt-1 text-lg font-black text-terra-ink">
-              {video.title}
-            </h2>
-            <p className="mt-1 text-sm font-bold text-terra-ink/65">
-              Video proto local - reemplazar por carga real despues
-            </p>
-          </article>
-        ))}
-      </section>
-
       <AdminMomentList moments={catalog.moments} onChangeMoment={updateMoment} />
     </main>
   );
