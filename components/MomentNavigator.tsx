@@ -19,7 +19,7 @@ export function MomentNavigator({
       >
         ‹
       </button>
-      <div className="min-w-0 rounded-lg bg-white px-2 py-3 text-center shadow-soft ring-1 ring-terra-moss/20 sm:px-3">
+      <div className="min-w-0 px-1 py-2 text-center sm:px-3">
         <p className="break-words text-xl font-black leading-tight text-terra-ink sm:text-3xl">
           {currentLabel}
         </p>
