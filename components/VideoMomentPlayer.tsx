@@ -12,10 +12,16 @@ const momentClipSeconds = 3;
 
 export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasVideoError, setHasVideoError] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setHasVideoError(false);
     seekToMoment(moment);
   }, [moment.id, moment.timestampSeconds, video?.id]);
 
@@ -80,7 +86,7 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
   return (
     <section className="min-w-0 overflow-hidden rounded-lg bg-terra-ink shadow-soft">
       <div className="relative aspect-[9/16] max-h-[68vh] min-h-[420px] w-full bg-terra-ink sm:aspect-[4/3] sm:max-h-[640px] sm:min-h-0 lg:aspect-video">
-        {video && !hasVideoError ? (
+        {isMounted && video && !hasVideoError ? (
           <video
             ref={videoRef}
             className="h-full w-full object-contain"
@@ -96,14 +102,13 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
             src={video.url}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[url('/placeholder-tree.svg')] bg-cover bg-center p-6 text-center">
-            <div className="rounded-lg bg-white/90 p-4 text-terra-ink shadow-soft">
-              <p className="text-lg font-black">Vista placeholder</p>
-              <p className="mt-1 text-sm">
-                El catalogo sigue funcionando aunque el video no cargue.
-              </p>
-            </div>
-          </div>
+          <div
+            aria-label="Vista previa del arbol seleccionado"
+            className="h-full w-full bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${moment.thumbnailUrl})`
+            }}
+          />
         )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-3 pt-12">
           <div className="grid grid-cols-1">
