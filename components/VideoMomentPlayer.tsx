@@ -49,11 +49,11 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
 
   return (
     <section className="min-w-0 overflow-hidden rounded-lg bg-terra-ink shadow-soft">
-      <div className="relative h-[280px] w-full bg-terra-ink sm:aspect-[4/3] sm:h-auto">
+      <div className="relative aspect-[9/16] max-h-[68vh] min-h-[420px] w-full bg-terra-ink sm:aspect-[4/3] sm:max-h-[640px] sm:min-h-0 lg:aspect-video">
         {video && !hasVideoError ? (
           <video
             ref={videoRef}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
             muted
             onError={() => setHasVideoError(true)}
             onPause={() => setIsPlaying(false)}
@@ -76,24 +76,26 @@ export function VideoMomentPlayer({ video, moment }: VideoMomentPlayerProps) {
         <div className="absolute left-3 top-3 rounded-full bg-white/95 px-4 py-2 text-base font-black text-terra-ink shadow">
           {formatTimestamp(moment.timestampSeconds)}
         </div>
-      </div>
-      <div className="flex flex-col items-stretch justify-between gap-3 bg-white p-3 sm:flex-row sm:items-center">
-        <button
-          aria-label={isPlaying ? "Pausar video" : "Reproducir video"}
-          className="min-h-14 w-full rounded-lg bg-terra-clay px-5 text-lg font-black text-white transition hover:bg-[#9f5a3e] sm:flex-1"
-          onClick={togglePlayback}
-          type="button"
-        >
-          {isPlaying ? "Pausa clara" : "Play"}
-        </button>
-        <button
-          aria-label="Regresar al momento seleccionado"
-          className="min-h-14 w-full rounded-lg border border-terra-moss/40 bg-terra-paper px-4 text-base font-bold text-terra-ink sm:w-auto"
-          onClick={() => seekToMoment(moment)}
-          type="button"
-        >
-          Ver momento
-        </button>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-3 pt-12">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <button
+              aria-label={isPlaying ? "Pausar video" : "Reproducir video"}
+              className="min-h-14 rounded-lg bg-terra-clay px-5 text-lg font-black text-white shadow-soft transition hover:bg-[#9f5a3e]"
+              onClick={togglePlayback}
+              type="button"
+            >
+              {isPlaying ? "Pausa clara" : "Play"}
+            </button>
+            <button
+              aria-label="Regresar al momento seleccionado"
+              className="min-h-14 rounded-lg border border-white/70 bg-white/95 px-4 text-base font-black text-terra-ink shadow-soft"
+              onClick={() => seekToMoment(moment)}
+              type="button"
+            >
+              Ver momento
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   );

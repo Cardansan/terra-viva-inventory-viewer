@@ -4,8 +4,8 @@ const githubPagesBasePath = "/terra-viva-inventory-viewer";
 
 const nextConfig = {
   reactStrictMode: true,
-  output: "export",
-  trailingSlash: true,
+  output: isGithubPages ? "export" : undefined,
+  trailingSlash: isGithubPages ? true : undefined,
   images: {
     unoptimized: true
   },
