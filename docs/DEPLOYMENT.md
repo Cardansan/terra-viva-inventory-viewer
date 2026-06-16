@@ -9,6 +9,7 @@ Terra Viva Inventory Viewer is currently ready for two free deployment paths.
 - Visibility: private
 - Static build: supported through `next.config.mjs`
 - GitHub Pages workflow: `.github/workflows/deploy-github-pages.yml`
+- Build runtime: Node 20, declared in `package.json` and `.nvmrc`.
 
 ## Option A: GitHub Pages
 
@@ -29,6 +30,7 @@ https://Cardansan.github.io/terra-viva-inventory-viewer/
 The workflow builds with:
 
 ```text
+Node 20
 GITHUB_PAGES=true
 NEXT_PUBLIC_BASE_PATH=/terra-viva-inventory-viewer
 ```

@@ -1,5 +1,16 @@
 # Roadmap
 
+## Backlog inmediato
+
+- Configurar y mantener el WhatsApp real `+52 222 618 1133` en `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER`.
+- Persistencia real de catalogos, backups y restauraciones.
+- Subida de videos desde admin.
+- Guardar videos en Drive por fecha.
+- Reemplazar videos cargados antes de publicar.
+- Procesamiento con `ffmpeg`.
+- Pantalla de aprobacion antes de publicar.
+- Publicacion, retencion y restauracion persistentes.
+
 ## Fase 1: mock catalogo navegable
 
 - Vista publica mobile-first.

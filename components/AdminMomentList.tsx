@@ -8,6 +8,7 @@ import { StatusBadge } from "./StatusBadge";
 type AdminMomentListProps = {
   moments: TreeMoment[];
   onChangeMoment: (moment: TreeMoment) => void;
+  readOnly?: boolean;
 };
 
 const statusOptions: TreeMomentStatus[] = [
@@ -26,7 +27,8 @@ const statusLabels: Record<TreeMomentStatus, string> = {
 
 export function AdminMomentList({
   moments,
-  onChangeMoment
+  onChangeMoment,
+  readOnly = false
 }: AdminMomentListProps) {
   const [expandedMomentId, setExpandedMomentId] = useState<string | null>(null);
   const [previewMoment, setPreviewMoment] = useState<TreeMoment | null>(null);
@@ -55,8 +57,8 @@ export function AdminMomentList({
             <span className="sm:hidden">Foto</span>
             <span className="hidden sm:inline">Miniatura</span>
           </span>
-          <span>Disponible</span>
-          <span className="text-center">Editar</span>
+          <span>{readOnly ? "Estado" : "Disponible"}</span>
+          <span className="text-center">{readOnly ? "Ver" : "Editar"}</span>
         </div>
 
         <div className="divide-y divide-terra-moss/15">
@@ -88,31 +90,42 @@ export function AdminMomentList({
                     />
                   </button>
 
-                  <label className="flex min-h-14 items-center gap-2 rounded-lg bg-terra-paper/70 px-2 py-2 sm:gap-3 sm:px-3">
-                    <input
-                      aria-label={`Disponible arbol ${moment.treeNumber}`}
-                      checked={isAvailable}
-                      className="h-7 w-7 shrink-0 accent-terra-leaf"
-                      onChange={(event) =>
-                        setAvailability(moment, event.target.checked)
-                      }
-                      type="checkbox"
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-black text-terra-ink sm:text-base">
-                        Disponible
+                  {readOnly ? (
+                    <div className="flex min-h-14 flex-col justify-center gap-1 rounded-lg bg-terra-paper/70 px-2 py-2 sm:px-3">
+                      <StatusBadge compact status={moment.status} />
+                      <span className="truncate text-xs font-bold text-terra-ink/55">
+                        {moment.sectionLabel}
                       </span>
-                      <span className="hidden text-xs font-bold text-terra-ink/55 sm:block">
-                        {isAvailable
-                          ? "Visible para clientas"
-                          : "No aparece al cliente"}
+                    </div>
+                  ) : (
+                    <label className="flex min-h-14 items-center gap-2 rounded-lg bg-terra-paper/70 px-2 py-2 sm:gap-3 sm:px-3">
+                      <input
+                        aria-label={`Disponible arbol ${moment.treeNumber}`}
+                        checked={isAvailable}
+                        className="h-7 w-7 shrink-0 accent-terra-leaf"
+                        onChange={(event) =>
+                          setAvailability(moment, event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-black text-terra-ink sm:text-base">
+                          Disponible
+                        </span>
+                        <span className="hidden text-xs font-bold text-terra-ink/55 sm:block">
+                          {isAvailable
+                            ? "Visible para clientas"
+                            : "No aparece al cliente"}
+                        </span>
                       </span>
-                    </span>
-                  </label>
+                    </label>
+                  )}
 
                   <button
                     aria-expanded={isExpanded}
-                    aria-label={`Editar arbol ${moment.treeNumber}`}
+                    aria-label={`${
+                      readOnly ? "Ver detalles del" : "Editar"
+                    } arbol ${moment.treeNumber}`}
                     className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-terra-moss/30 bg-white text-terra-ink shadow-sm transition hover:bg-terra-paper sm:h-11 sm:w-11"
                     onClick={() =>
                       setExpandedMomentId(isExpanded ? null : moment.id)
@@ -139,6 +152,7 @@ export function AdminMomentList({
                   <AdminMomentAdvancedEditor
                     moment={moment}
                     onChangeMoment={onChangeMoment}
+                    readOnly={readOnly}
                   />
                 ) : null}
               </article>
@@ -186,11 +200,53 @@ export function AdminMomentList({
 
 function AdminMomentAdvancedEditor({
   moment,
-  onChangeMoment
+  onChangeMoment,
+  readOnly
 }: {
   moment: TreeMoment;
   onChangeMoment: (moment: TreeMoment) => void;
+  readOnly: boolean;
 }) {
+  if (readOnly) {
+    return (
+      <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
+            Detalles del backup
+          </p>
+          <StatusBadge compact status={moment.status} />
+        </div>
+
+        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
+            <dt className="font-bold text-terra-ink/60">Numero</dt>
+            <dd className="mt-1 font-black text-terra-ink">
+              #{moment.treeNumber.toString().padStart(2, "0")}
+            </dd>
+          </div>
+          <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
+            <dt className="font-bold text-terra-ink/60">Timestamp</dt>
+            <dd className="mt-1 font-black text-terra-ink">
+              {formatTimestamp(moment.timestampSeconds)}
+            </dd>
+          </div>
+          <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
+            <dt className="font-bold text-terra-ink/60">Seccion</dt>
+            <dd className="mt-1 font-black text-terra-ink">
+              {moment.sectionLabel}
+            </dd>
+          </div>
+          <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
+            <dt className="font-bold text-terra-ink/60">Notas</dt>
+            <dd className="mt-1 font-black text-terra-ink">
+              {moment.notes || "Sin notas"}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

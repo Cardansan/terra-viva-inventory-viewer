@@ -2,7 +2,7 @@ import type { CatalogDay, CatalogVideo, TreeMoment } from "./catalogTypes";
 import { getPublicTreeNumber } from "./selection";
 import { formatCatalogDate, formatTimestamp } from "./time";
 
-const DEFAULT_WHATSAPP_NUMBER = "5212220000000";
+const DEFAULT_WHATSAPP_NUMBER = "5212226181133";
 
 export function getWhatsAppNumber(): string {
   return (

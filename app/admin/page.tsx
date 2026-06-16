@@ -1,8 +1,13 @@
 import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
-import { getLatestCatalogForAdmin } from "@/lib/mockCatalogData";
+import { getAdminCatalogHistory } from "@/lib/mockCatalogData";
 
 export default function AdminPage() {
-  const catalog = getLatestCatalogForAdmin();
+  const { activeCatalog, backupCatalogs } = getAdminCatalogHistory();
 
-  return <AdminCatalogEditor initialCatalog={catalog} />;
+  return (
+    <AdminCatalogEditor
+      initialActiveCatalog={activeCatalog}
+      initialBackupCatalogs={backupCatalogs}
+    />
+  );
 }

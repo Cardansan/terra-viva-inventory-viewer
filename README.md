@@ -89,12 +89,12 @@ Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Falta para produccion
 
+- Confirmar que produccion use `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER=5212226181133`.
 - Persistencia real con Supabase Postgres.
 - Login protegido para admin.
 - Subida o registro de videos desde Google Drive.
 - Extraccion real de miniaturas con `ffmpeg`.
 - Publicacion/despublicacion persistente.
-- Telefono real de WhatsApp en `.env`.
 - QA con videos reales y dispositivos moviles.
 ## Seleccion multiple
 
