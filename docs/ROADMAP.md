@@ -18,6 +18,66 @@
 13. Definir instalador minimo para laptop de mama: `.bat`, acceso directo o ejecutable que corra el publicador sin abrir Codex.
 14. Documentar procedimiento de recuperacion: restaurar desde `public/catalog`, Drive Procesados o git history.
 
+## Roadmap de independencia operativa
+
+Estas fases definen como pasar de un flujo asistido por Carlos a uno que mama pueda operar sola, sin pagar backend ni exponer ninguna laptop a internet.
+
+### Fase A: laptop de Carlos, publicacion semi-manual
+
+Objetivo: validar el flujo completo con la menor infraestructura posible.
+
+Flujo:
+
+```text
+Drive Inbox -> script/publicador -> GitHub Pages
+```
+
+- Mama sube videos a `Terra Viva/Inbox - Videos por publicar`.
+- Carlos prende su laptop cuando ella avisa que ya subio videos.
+- Carlos corre el publicador por script local o GitHub Action con self-hosted runner.
+- El publicador toma videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera catalogo estatico, miniaturas y `current-catalog.json`.
+- El publicador mueve los videos usados a `Terra Viva/Procesados/YYYY-MM-DD` solo despues de una publicacion exitosa.
+- La depuracion de Drive queda en modo seguro: conservar catalogo activo + dos backups funcionales; mandar a papelera lo anterior solo con `dry-run` revisado y `trash_old=true`.
+
+Criterio para avanzar: el flujo publica varios catalogos reales sin depender de Codex, sin romper la app publica y sin perder archivos.
+
+### Fase B: laptop de mama, publicador instalable
+
+Objetivo: que mama pueda publicar sin esperar a Carlos.
+
+Flujo:
+
+```text
+Doble clic -> procesa Drive Inbox -> publica en GitHub Pages
+```
+
+- Reutilizar el mismo script de la Fase A.
+- Instalar dependencias en la laptop de mama: Node/pnpm o ejecutable empaquetado, Git, ffmpeg y autenticacion Drive/GitHub seguras.
+- Crear un lanzador minimo: `.bat`, acceso directo o ejecutable simple.
+- Usar configuracion local ignorada por git, por ejemplo `terra-viva.publisher.local.json`.
+- El lanzador debe mostrar estados entendibles: buscando videos, generando miniaturas, publicando, moviendo procesados, terminado o error.
+- No exigir que mama use terminal, GitHub Actions, Codex ni carpetas por dia.
+
+Criterio para avanzar: mama puede publicar un catalogo completo con un doble clic y entender si termino bien o si hubo error.
+
+### Fase C: app movil publicadora, solo si la laptop se vuelve friccion real
+
+Objetivo: evaluar una app movil instalada solo si operar desde laptop sigue siendo molesto.
+
+Flujo posible:
+
+```text
+App movil -> selecciona/procesa videos -> genera catalogo -> publica
+```
+
+- Mantener esta fase como posibilidad, no como plan base.
+- Considerarla si mama no quiere usar laptop, si la preparacion desde Drive/laptop tarda demasiado o si el negocio necesita publicar con mas frecuencia.
+- Evaluar primero Android, porque instalar y probar fuera de tienda es mas simple que en iOS.
+- Evitar PWA pura para procesamiento pesado de video si los videos crecen: navegador movil puede ser fragil con memoria, bateria, bloqueo de pantalla y archivos grandes.
+- Resolver antes la pregunta de publicacion segura: la app movil necesita subir resultados a Drive/GitHub o a un intermediario seguro; no guardar secretos sensibles en una web publica.
+
+Criterio para iniciar: la laptop ya demostro ser una friccion real. Si la laptop funciona bien, no construir app movil.
+
 ## Fase 1: mock catalogo navegable
 
 - Vista publica mobile-first.
@@ -60,7 +120,7 @@
 ## Fase 6: crops/manual spotlight
 
 - Herramienta de recorte manual.
-- Destacar el árbol correcto dentro de una repisa con muchas piezas.
+- Destacar el arbol correcto dentro de una repisa con muchas piezas.
 - Guardar crop en `TreeMoment`.
 
 ## Fase 7: filtros por piedra/alambre/base/tamano
