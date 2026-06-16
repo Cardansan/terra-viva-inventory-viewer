@@ -73,6 +73,7 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - La URL `?selection=moment-03,moment-08` precarga una seleccion compartida y tiene prioridad sobre localStorage.
 - WhatsApp recibe todos los numeros publicos seleccionados y un link a la seleccion.
 - Cuando se abre una URL con `selection`, la vista queda en modo revision: banner `Seleccion actual del cliente/a`, solo miniaturas seleccionadas y sin controles para modificar o reenviar la seleccion.
+- Leer `docs/TREE_IDENTIFICATION.md` antes de cambiar como se numeran o identifican arboles en links/WhatsApp.
 - No usar la palabra `carrito`; la convencion del producto es `Mi seleccion`.
 
 ## Persistencia admin MVP
