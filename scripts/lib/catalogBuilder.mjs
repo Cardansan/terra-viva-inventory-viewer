@@ -58,6 +58,63 @@ export function buildCatalogFromVideos({ date, driveVideos, usePlaceholderMedia 
   };
 }
 
+export function mergeAdminCatalogWithDriveVideos({
+  adminCatalog,
+  date,
+  driveVideos,
+  usePlaceholderMedia
+}) {
+  const generatedCatalog = buildCatalogFromVideos({
+    date,
+    driveVideos,
+    usePlaceholderMedia
+  });
+
+  const videos = generatedCatalog.videos.map((video, index) => {
+    const adminVideo = adminCatalog.videos[index];
+
+    if (!adminVideo) {
+      return video;
+    }
+
+    return {
+      ...adminVideo,
+      catalogDayId: generatedCatalog.id,
+      url: video.url,
+      durationSeconds: video.durationSeconds,
+      order: index + 1,
+      title: adminVideo.title || video.title,
+      sectionLabel: adminVideo.sectionLabel || video.sectionLabel
+    };
+  });
+
+  const fallbackVideoId = videos[0]?.id || generatedCatalog.videos[0]?.id || "";
+  const adminVideoIdToOrder = new Map(
+    adminCatalog.videos.map((video, index) => [video.id, index])
+  );
+
+  const moments = adminCatalog.moments.map((moment) => {
+    const videoOrder = adminVideoIdToOrder.get(moment.videoId) ?? 0;
+    const orderedVideo = videos[videoOrder];
+
+    return {
+      ...moment,
+      catalogDayId: generatedCatalog.id,
+      videoId: orderedVideo?.id || fallbackVideoId,
+      sectionLabel: orderedVideo?.sectionLabel || moment.sectionLabel
+    };
+  });
+
+  return {
+    ...adminCatalog,
+    id: generatedCatalog.id,
+    date,
+    status: "published",
+    videos,
+    moments
+  };
+}
+
 export async function writeCatalogJson({ catalog, projectRoot }) {
   const catalogDir = path.join(projectRoot, "public", "catalog", catalog.date);
   await mkdir(path.join(catalogDir, "thumbnails"), { recursive: true });

@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogDay, TreeMoment } from "@/lib/catalogTypes";
 import { assetPath } from "@/lib/assets";
 import {
   createInitialAdminCatalogVersions,
+  getCatalogTransferPayload,
+  isCatalogDay,
   loadAdminCatalogVersions,
   saveAdminCatalogVersions,
+  stripUtf8Bom,
   type AdminCatalogVersion
 } from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
@@ -35,6 +38,8 @@ export function AdminCatalogEditor({
     initialActiveCatalog.id
   );
   const [hasLoadedStoredVersions, setHasLoadedStoredVersions] = useState(false);
+  const [transferNotice, setTransferNotice] = useState("");
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeVersion = versions.find((version) => version.role === "active");
   const selectedVersion =
@@ -152,6 +157,82 @@ export function AdminCatalogEditor({
     setSelectedCatalogId(catalogId);
   }
 
+  function exportActiveCatalog() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const payload = getCatalogTransferPayload(activeCatalog);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json"
+    });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = `terra-viva-catalogo-${activeCatalog.date}.json`;
+    link.click();
+
+    window.URL.revokeObjectURL(downloadUrl);
+    setTransferNotice("Catalogo guardado en un archivo.");
+  }
+
+  function openImportPicker() {
+    importInputRef.current?.click();
+  }
+
+  async function importCatalogFile(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const rawValue = stripUtf8Bom(await file.text());
+      const parsed = JSON.parse(rawValue) as
+        | { catalog?: unknown }
+        | CatalogDay
+        | unknown;
+      const nextCatalog =
+        parsed && typeof parsed === "object" && "catalog" in parsed
+          ? parsed.catalog
+          : parsed;
+
+      if (!isCatalogDay(nextCatalog)) {
+        throw new Error("El archivo no tiene un catalogo valido.");
+      }
+
+      setVersions((currentVersions) => {
+        const currentActive =
+          currentVersions.find((version) => version.role === "active") ??
+          currentVersions[0];
+        const remainingBackups = currentVersions.filter(
+          (version) => version.role === "backup"
+        );
+
+        const nextBackupVersions = currentActive
+          ? [{ catalog: currentActive.catalog, role: "backup" as const }]
+          : [];
+
+        return [
+          {
+            catalog: nextCatalog,
+            role: "active" as const
+          },
+          ...nextBackupVersions,
+          ...remainingBackups
+        ].slice(0, 3);
+      });
+      setSelectedCatalogId(nextCatalog.id);
+      setTransferNotice("Catalogo cargado en este navegador.");
+    } catch (error) {
+      setTransferNotice(
+        error instanceof Error
+          ? error.message
+          : "No se pudo abrir el catalogo guardado."
+      );
+    }
+  }
+
   return (
     <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
       <header className="sticky top-0 z-30 mb-5 rounded-lg bg-white/95 p-5 shadow-soft ring-1 ring-terra-moss/20 backdrop-blur">
@@ -184,14 +265,40 @@ export function AdminCatalogEditor({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
+              onClick={exportActiveCatalog}
+              type="button"
+            >
+              Guardar catalogo
+            </button>
+            <button
+              className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
+              onClick={openImportPicker}
+              type="button"
+            >
+              Abrir catalogo guardado
+            </button>
             <a
               className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
               href={assetPath(`/catalog/${activeCatalog.date}/`)}
             >
               Vista de Cliente
             </a>
+            <input
+              accept="application/json"
+              className="hidden"
+              onChange={(event) => importCatalogFile(event.target.files?.[0] || null)}
+              ref={importInputRef}
+              type="file"
+            />
           </div>
         </div>
+        {transferNotice ? (
+          <p className="mt-3 text-sm font-bold text-terra-ink/65">
+            {transferNotice}
+          </p>
+        ) : null}
       </header>
 
       <AdminVideoUploadPanel />

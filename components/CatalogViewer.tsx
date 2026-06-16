@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
+import { loadActiveAdminCatalog } from "@/lib/adminCatalogPersistence";
 import { assetPath } from "@/lib/assets";
 import {
   buildSelectionUrl,
@@ -36,7 +37,11 @@ type CatalogViewerProps = {
 };
 
 export function CatalogViewer({ catalog }: CatalogViewerProps) {
-  const visibleMoments = useMemo(() => getPublicMoments(catalog), [catalog]);
+  const [resolvedCatalog, setResolvedCatalog] = useState(catalog);
+  const visibleMoments = useMemo(
+    () => getPublicMoments(resolvedCatalog),
+    [resolvedCatalog]
+  );
   const [selectedMomentId, setSelectedMomentId] = useState(
     visibleMoments[0]?.id || ""
   );
@@ -51,7 +56,28 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     visibleMoments[0];
 
   useEffect(() => {
-    const storageKey = getSelectionStorageKey(catalog);
+    setResolvedCatalog(loadActiveAdminCatalog(catalog));
+
+    function syncCatalogFromAdminStorage(event: StorageEvent) {
+      if (
+        event.key !== "terra-viva:admin-catalog-history:v1" &&
+        event.key !== null
+      ) {
+        return;
+      }
+
+      setResolvedCatalog(loadActiveAdminCatalog(catalog));
+    }
+
+    window.addEventListener("storage", syncCatalogFromAdminStorage);
+
+    return () => {
+      window.removeEventListener("storage", syncCatalogFromAdminStorage);
+    };
+  }, [catalog]);
+
+  useEffect(() => {
+    const storageKey = getSelectionStorageKey(resolvedCatalog);
     const queryIds = decodeSelectionFromQuery(
       new URLSearchParams(window.location.search).get("selection")
     );
@@ -95,7 +121,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     }
 
     setHasLoadedSelection(true);
-  }, [catalog, visibleMoments]);
+  }, [resolvedCatalog, visibleMoments]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !hasLoadedSelection) {
@@ -103,10 +129,10 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     }
 
     window.localStorage.setItem(
-      getSelectionStorageKey(catalog),
+      getSelectionStorageKey(resolvedCatalog),
       JSON.stringify(selectedMomentIds)
     );
-  }, [catalog, hasLoadedSelection, selectedMomentIds]);
+  }, [resolvedCatalog, hasLoadedSelection, selectedMomentIds]);
 
   if (!selectedMoment) {
     return (
@@ -126,7 +152,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     );
   }
 
-  const selectedVideo = getVideoForMoment(catalog, selectedMoment);
+  const selectedVideo = getVideoForMoment(resolvedCatalog, selectedMoment);
   const selectedMoments = getSelectedMoments(selectedMomentIds, visibleMoments);
   const activeMoments =
     isViewingSharedSelection && selectedMoments.length > 0
@@ -154,12 +180,12 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     selectedMomentIds,
     selectedMoment.id
   );
-  const selectionUrl = buildSelectionUrl(catalog, selectedMomentIds, {
+  const selectionUrl = buildSelectionUrl(resolvedCatalog, selectedMomentIds, {
     origin: typeof window !== "undefined" ? window.location.origin : "",
     pathPrefix: publicPathPrefix
   });
   const selectionWhatsAppUrl = buildWhatsAppUrlForSelection(
-    catalog,
+    resolvedCatalog,
     selectedMoments,
     visibleMoments,
     selectionUrl
@@ -206,7 +232,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             Cat&aacute;logo de &Aacute;rboles
           </h1>
           <p className="mt-1 text-base font-bold text-terra-ink/65">
-            {catalog.date}
+            {resolvedCatalog.date}
           </p>
         </div>
       </header>
@@ -290,7 +316,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
       </div>
       <footer className="mt-8 space-y-4 pb-6 text-center">
         <p className="text-sm font-bold text-terra-ink/60">
-          Cat&aacute;logo actualizado: {formatCatalogDate(catalog.date)}
+          Cat&aacute;logo actualizado: {formatCatalogDate(resolvedCatalog.date)}
         </p>
         <ShareCatalogButton title={catalog.title} />
         <a

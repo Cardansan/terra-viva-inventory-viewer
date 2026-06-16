@@ -11,6 +11,10 @@ on:
         description: "Optional catalog date YYYY-MM-DD"
         required: false
         type: string
+      catalog_input_file:
+        description: "Optional local catalog file exported from admin"
+        required: false
+        type: string
       lookback_hours:
         description: "Only publish videos uploaded in the last N hours"
         required: true
@@ -84,6 +88,10 @@ jobs:
 
           if ("${{ inputs.catalog_date }}" -ne "") {
             $publishArgs += @("--date", "${{ inputs.catalog_date }}")
+          }
+
+          if ("${{ inputs.catalog_input_file }}" -ne "") {
+            $publishArgs += @("--catalog-input-file", "${{ inputs.catalog_input_file }}")
           }
 
           node @publishArgs

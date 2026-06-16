@@ -2,7 +2,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildCatalogFromVideos, updateCurrentCatalogJson, writeCatalogJson } from "./lib/catalogBuilder.mjs";
+import {
+  buildCatalogFromVideos,
+  mergeAdminCatalogWithDriveVideos,
+  updateCurrentCatalogJson,
+  writeCatalogJson
+} from "./lib/catalogBuilder.mjs";
 import { isDriveVideo, isWithinLookback, sortDriveVideos } from "./lib/dateFilters.mjs";
 import { ensureProcessedFolder, listInboxVideos, moveFileToProcessed } from "./lib/driveClient.mjs";
 import { generateThumbnailsForVideo } from "./lib/ffmpegThumbnails.mjs";
@@ -50,6 +55,21 @@ async function readLocalConfig() {
   }
 }
 
+async function readAdminCatalogFile(filePath) {
+  if (!filePath) {
+    return null;
+  }
+
+  const rawValue = await readFile(path.resolve(projectRoot, filePath), "utf8");
+  const parsed = JSON.parse(rawValue.replace(/^\uFEFF/, ""));
+
+  if (parsed && typeof parsed === "object" && parsed.catalog) {
+    return parsed.catalog;
+  }
+
+  return parsed;
+}
+
 function getLocalDateString() {
   const now = new Date();
   const offsetMs = now.getTimezoneOffset() * 60 * 1000;
@@ -81,6 +101,7 @@ async function main() {
   const moveProcessed = toBoolean(cli["move-processed"], Boolean(config.moveProcessed));
   const trashOld = toBoolean(cli["trash-old"], Boolean(config.trashOld));
   const usePlaceholderMedia = toBoolean(cli["use-placeholder-media"], false);
+  const adminCatalogFile = cli["catalog-input-file"] || config.catalogInputFile || "";
   const now = new Date();
 
   if (!driveFolderId && !usePlaceholderMedia) {
@@ -93,6 +114,11 @@ async function main() {
   console.log(`Dry-run: ${dryRun}`);
   console.log(`Mover procesados: ${moveProcessed}`);
   console.log(`Depurar antiguos: ${trashOld}`);
+  console.log(
+    adminCatalogFile
+      ? `Catalogo admin cargado desde: ${adminCatalogFile}`
+      : "Catalogo admin: no especificado"
+  );
 
   const inboxFiles = usePlaceholderMedia
     ? makePlaceholderDriveVideos(now)
@@ -111,11 +137,28 @@ async function main() {
     console.log(`${index + 1}. ${file.name} - ${file.createdTime || file.modifiedTime}`);
   });
 
-  const catalog = buildCatalogFromVideos({ date, driveVideos: recentVideos, usePlaceholderMedia });
+  const adminCatalog = await readAdminCatalogFile(adminCatalogFile);
+  const catalog = adminCatalog
+    ? mergeAdminCatalogWithDriveVideos({
+        adminCatalog,
+        date,
+        driveVideos: recentVideos,
+        usePlaceholderMedia
+      })
+    : buildCatalogFromVideos({
+        date,
+        driveVideos: recentVideos,
+        usePlaceholderMedia
+      });
 
   if (dryRun) {
     console.log("Dry-run: no se escribiran catalogos ni se moveran archivos.");
     console.log(`Se generarian ${catalog.moments.length} momentos con IDs estables.`);
+    console.log(
+      adminCatalog
+        ? "Se usaria el catalogo guardado del admin como base de publicacion."
+        : "Se generaria un catalogo nuevo desde los videos del Inbox."
+    );
   } else {
     await generateThumbnailsForVideo({ dryRun, usePlaceholderMedia });
     const catalogPath = await writeCatalogJson({ catalog, projectRoot });

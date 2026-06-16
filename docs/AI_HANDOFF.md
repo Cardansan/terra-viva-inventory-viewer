@@ -80,7 +80,8 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 
 - `lib/adminCatalogPersistence.ts` guarda el historial admin en `localStorage`.
 - El admin conserva catalogo activo + backups mock y permite restaurar un backup localmente.
-- Esto sobrevive refresh y deploy en el mismo navegador, pero no reemplaza un flujo de publicacion JSON compartible.
+- `AdminCatalogEditor` ya puede guardar el catalogo activo en un archivo y abrirlo en otro navegador/laptop.
+- Esto sobrevive refresh y permite mover trabajo entre dispositivos, pero todavia no reemplaza la publicacion automatica del estado admin al catalogo publico.
 
 ## Carga de videos admin MVP
 

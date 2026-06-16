@@ -117,7 +117,7 @@ Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 ## Falta para produccion
 
 - Confirmar que produccion use `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER=5212226181133`.
-- Export/import de catalogos JSON para persistencia compartible sin backend.
+- Publicar el JSON exportado/importado del admin dentro del pipeline para que el estado viaje entre dispositivos automaticamente.
 - Login protegido o flujo local controlado para admin.
 - Autenticacion Drive robusta para el publicador.
 - Extraccion real de miniaturas con `ffmpeg`.
@@ -136,3 +136,12 @@ La vista publica permite que una clienta elija varios arboles antes de escribir 
 - El link compartible usa `?selection=moment-03,moment-08`.
 - La seleccion local se guarda por fecha en `localStorage` con la llave `selection:terra-viva:YYYY-MM-DD`.
 - Si una URL trae `selection`, esa seleccion tiene prioridad sobre `localStorage`.
+
+## Transferencia de catalogos admin
+
+El admin ya puede exportar el catalogo activo a un archivo JSON e importarlo en otro navegador o laptop.
+
+- `Guardar catalogo` descarga el catalogo activo a un archivo.
+- `Abrir catalogo guardado` reemplaza el catalogo activo local por el archivo seleccionado.
+- Esto permite mover el trabajo entre dispositivos sin backend pagado.
+- Todavia falta integrar ese JSON exportado al pipeline de publicacion para que la web publica se actualice automaticamente para todas las clientas.
