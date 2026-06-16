@@ -54,4 +54,4 @@ No secrets are required for the current mock MVP.
 
 - The current video is stored in `public/videos/terra-viva-proto-inventory.mp4`.
 - If the repo becomes public, that video becomes public too.
-- For production, move videos to Supabase Storage, Cloudinary, Google Drive, or another storage layer instead of committing new videos to Git.
+- For production, keep real videos in Google Drive and publish static catalog JSON/assets through GitHub Pages. Do not add Supabase Storage, Cloudinary, or another paid storage layer unless volume clearly justifies the fixed cost.

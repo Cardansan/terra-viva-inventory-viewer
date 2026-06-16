@@ -9,8 +9,8 @@
 
 ## Flujo publico
 
-1. `/` busca el catalogo publicado mas reciente en `mockCatalogData`.
-2. `/catalog/[date]` carga el catalogo mock por fecha.
+1. `/` busca el catalogo publicado mas reciente en `lib/catalogRepository.ts`.
+2. `/catalog/[date]` carga un catalogo generado desde `public/catalog/YYYY-MM-DD/catalog.json` o cae al mock por fecha.
 3. `CatalogViewer` filtra momentos ocultos y mantiene el momento seleccionado.
 4. `VideoMomentPlayer` ejecuta `seekToMoment` al cambiar de momento.
 5. `MomentNavigator` cambia al árbol anterior o siguiente.
@@ -23,26 +23,38 @@
 3. `AdminMomentList` permite cambiar numero, timestamp, seccion, estado y notas.
 4. Los cambios no persisten en el MVP; son una maqueta funcional de la UI de revision.
 
+## Estrategia sin suscripciones
+
+El plan base evita servicios pagados durante los siguientes anos mientras el volumen sea manejable:
+
+- GitHub Pages sirve la web publica.
+- Google Drive guarda videos crudos y procesados.
+- La laptop local corre el publicador y ffmpeg solo cuando se necesita publicar.
+- Los catalogos publicados son JSON estaticos en `public/catalog`.
+- Git history y Drive Procesados funcionan como respaldo operativo.
+
+Esta decision reduce costo fijo y evita operar un backend 24/7. La consecuencia aceptada es que la publicacion sigue siendo semi-manual.
+
 ## Integracion futura
 
-- Supabase Postgres reemplazara `mockCatalogData.ts` con tablas `catalog_days`, `catalog_videos` y `tree_moments`.
-- Google Drive sera la carpeta de entrada gratuita inicial para videos crudos del dia.
-- Supabase Storage podra guardar videos procesados y miniaturas cuando el producto necesite backend integrado.
-- Cloudinary queda como alternativa futura si se requieren transforms/optimizacion avanzada de media.
-- Un worker procesara videos, extraera frames con `ffmpeg` y creara candidatos de `TreeMoment`.
+- Google Drive es la carpeta de entrada gratuita para videos crudos del dia.
+- `scripts/publish-catalog.mjs` reemplaza por ahora la necesidad de backend.
+- Un worker local procesara videos, extraera frames con `ffmpeg` y creara candidatos de `TreeMoment`.
+- Supabase, Cloudinary u otro backend quedan fuera del plan base y solo se reconsideran si el negocio necesita multiusuario real, pagos, reservas automaticas o volumen alto.
 - La deteccion inicial debe enfocarse en pausas o estabilidad de video, no en deteccion perfecta de objetos.
 
 ## Estrategia de videos
 
 El repositorio no debe ser la bodega de videos reales. Para el MVP se permite un video proto como fixture temporal, pero el flujo real sera:
 
-1. Mama sube videos a Google Drive en `Terra Viva/Catalogos/YYYY-MM-DD/videos`.
-2. Admin registra manualmente el archivo o link de Drive.
-3. Worker descarga/procesa el video con `ffmpeg`.
-4. El sistema genera miniaturas y candidatos de momentos.
-5. Admin revisa, corrige estados y publica el catalogo.
+1. Mama sube videos a Google Drive en `Terra Viva/Inbox - Videos por publicar`.
+2. Carlos prende la laptop y ejecuta el publicador local o el workflow self-hosted.
+3. `scripts/publish-catalog.mjs` toma videos de las ultimas 24 horas y genera catalogo estatico.
+4. El worker futuro descarga/procesa video con `ffmpeg`.
+5. El sistema genera miniaturas y candidatos de momentos.
+6. Admin revisa, corrige estados y publica el catalogo.
 
-Se mantendran maximo 3 dias activos para controlar almacenamiento y mantener costo cero.
+Se mantendran activo + dos backups funcionales para controlar almacenamiento y mantener costo cero.
 
 ## Decisiones tecnicas
 
@@ -54,6 +66,8 @@ Se mantendran maximo 3 dias activos para controlar almacenamiento y mantener cos
 - `getPublicMoments` vive en `lib/videoMoments.ts` y centraliza la regla de vista publica: excluir `hidden` y `sold`.
 - `CatalogViewer` calcula la numeracion publica por posicion visible, no por `treeNumber` interno.
 - `ShareCatalogButton` usa Web Share API si existe y cae a clipboard si no esta disponible.
+- `catalogRepository.ts` permite que Next lea catalogos generados sin romper el mock actual.
+- El pipeline Drive-first vive en `scripts/` para no acoplar credenciales ni procesamiento a la UI.
 
 ## Iteracion UX publica
 

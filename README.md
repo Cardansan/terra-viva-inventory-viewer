@@ -37,6 +37,31 @@ Rutas principales:
 - `npm run start`: sirve el build.
 - `npm run lint`: lint con Next.
 - `npm run typecheck`: validacion TypeScript estricta.
+- `npm run publish:catalog`: publicador Drive-first para generar catalogos estaticos.
+
+## Publicacion Drive-first
+
+El pipeline operativo evita Supabase y Apps Script. Mama sube videos a:
+
+```text
+Terra Viva / Inbox - Videos por publicar
+```
+
+El publicador toma los videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera `public/catalog/YYYY-MM-DD/catalog.json` y actualiza `public/catalog/current-catalog.json`.
+
+Prueba local segura:
+
+```bash
+npm run publish:catalog -- --use-placeholder-media --dry-run true
+```
+
+Documentos relacionados:
+
+- [`docs/PUBLISHING_PIPELINE.md`](docs/PUBLISHING_PIPELINE.md)
+- [`docs/DRIVE_INBOX_WORKFLOW.md`](docs/DRIVE_INBOX_WORKFLOW.md)
+- [`docs/SELF_HOSTED_RUNNER.md`](docs/SELF_HOSTED_RUNNER.md)
+- [`docs/RETENTION_POLICY.md`](docs/RETENTION_POLICY.md)
+- [`docs/COST_FREE_OPERATING_MODEL.md`](docs/COST_FREE_OPERATING_MODEL.md)
 
 ## Video proto y miniaturas
 
@@ -50,32 +75,34 @@ Tambien incluye 27 miniaturas extraidas con `ffmpeg` en:
 
 Estas miniaturas son solo una prueba de experiencia: los timestamps están distribuidos manualmente y no representan detección perfecta de árboles.
 
-## Estrategia de almacenamiento de videos
+## Estrategia sin suscripciones
 
-Para mantener el costo mensual en cero durante el MVP, los videos reales diarios no deben subirse al repositorio. La estrategia inicial es:
+Para mantener el costo mensual en cero durante los siguientes anos, los videos reales diarios no deben subirse al repositorio. La estrategia base es:
 
 - Google Drive como carpeta de entrada temporal para videos crudos.
-- Maximo 3 dias de videos activos.
-- GitHub solo para codigo, documentacion, screenshots y fixtures temporales.
+- GitHub Pages como hosting publico gratis.
+- GitHub como historial de codigo y catalogos JSON publicados.
+- Laptop local como worker temporal para publicar.
+- Activo + dos backups funcionales en Drive.
 - `ffmpeg` para extraer miniaturas y frames desde los videos descargados.
-- Supabase queda como siguiente paso para metadata, login admin, catalogos publicados y estados persistentes.
+- Sin Supabase, Apps Script, Cloudinary ni servidor propio como plan base.
 
-Convencion propuesta de Drive:
+Convencion vigente de Drive:
 
 ```text
 Terra Viva/
-  Catalogos/
+  Inbox - Videos por publicar/
+  Procesados/
     YYYY-MM-DD/
-      videos/
 ```
 
-El archivo `public/videos/terra-viva-proto-inventory.mp4` se mantiene solo como fixture temporal para que el demo funcione sin pasos externos. Los videos reales futuros deben vivir en Drive o, mas adelante, en Supabase Storage.
+El archivo `public/videos/terra-viva-proto-inventory.mp4` se mantiene solo como fixture temporal para que el demo funcione sin pasos externos. Los videos reales futuros deben vivir en Drive.
 
 ## Reemplazar videos placeholder
 
-Los videos mock viven en `lib/mockCatalogData.ts`. Cambia `protoInventoryVideoUrl` o las URLs dentro de `videos` por archivos reales publicados en Supabase Storage, Cloudinary, Drive exportado o `public/videos/...`.
+Los videos mock viven en `lib/mockCatalogData.ts`. El publicador futuro generara `public/catalog/YYYY-MM-DD/catalog.json` desde Drive Inbox.
 
-Mas adelante las miniaturas deben extraerse automaticamente con `ffmpeg` y guardarse en Storage.
+Mas adelante las miniaturas deben extraerse automaticamente con `ffmpeg` y guardarse como assets estaticos o en Drive segun convenga.
 
 ## Organizacion
 
@@ -90,12 +117,13 @@ Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 ## Falta para produccion
 
 - Confirmar que produccion use `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER=5212226181133`.
-- Persistencia real con Supabase Postgres.
-- Login protegido para admin.
-- Subida o registro de videos desde Google Drive.
+- Export/import de catalogos JSON para persistencia compartible sin backend.
+- Login protegido o flujo local controlado para admin.
+- Autenticacion Drive robusta para el publicador.
 - Extraccion real de miniaturas con `ffmpeg`.
 - Publicacion/despublicacion persistente.
 - QA con videos reales y dispositivos moviles.
+- Reconsiderar backend pagado solo cuando el volumen lo justifique.
 ## Seleccion multiple
 
 La vista publica permite que una clienta elija varios arboles antes de escribir por WhatsApp.

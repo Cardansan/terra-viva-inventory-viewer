@@ -1,14 +1,15 @@
 const DRIVE_ROOT_FOLDER = "Terra Viva";
-const DRIVE_CATALOGS_FOLDER = "Catalogos";
+const DRIVE_INBOX_FOLDER = "Inbox - Videos por publicar";
+const DRIVE_PROCESSED_FOLDER = "Procesados";
 
-export function getDriveCatalogFolderPath(date: string): string {
-  return [DRIVE_ROOT_FOLDER, DRIVE_CATALOGS_FOLDER, date].join("/");
+export function getDriveInboxFolderPath(): string {
+  return [DRIVE_ROOT_FOLDER, DRIVE_INBOX_FOLDER].join("/");
 }
 
-export function getDriveCatalogVideosFolderPath(date: string): string {
-  return [getDriveCatalogFolderPath(date), "videos"].join("/");
+export function getDriveProcessedRootPath(): string {
+  return [DRIVE_ROOT_FOLDER, DRIVE_PROCESSED_FOLDER].join("/");
 }
 
 export function getDriveCatalogProcessedFolderPath(date: string): string {
-  return [getDriveCatalogFolderPath(date), "procesados"].join("/");
+  return [getDriveProcessedRootPath(), date].join("/");
 }

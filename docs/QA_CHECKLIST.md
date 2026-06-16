@@ -78,3 +78,24 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] La seleccion local persiste por fecha de catalogo.
 - [x] IDs vendidos, ocultos o inexistentes se ignoran en seleccion publica.
 - [x] `Mi seleccion` permite quitar arboles sin romper el momento actual.
+
+## Checks pipeline Drive-first
+
+- [ ] Con dry-run, lista videos de ultimas 24 horas sin modificar Drive.
+- [ ] Ignora videos mas viejos que `lookbackHours`.
+- [ ] Ordena videos por `createdTime` ascendente.
+- [ ] Usa `modifiedTime` si falta `createdTime`.
+- [ ] Genera IDs estables `moment-YYYY-MM-DD-001`.
+- [ ] Genera `public/catalog/YYYY-MM-DD/catalog.json` valido.
+- [ ] Actualiza `public/catalog/current-catalog.json`.
+- [ ] La app puede leer catalogo generado y caer al mock si no existe.
+- [ ] No mueve archivos si falla publicacion.
+- [ ] Mueve solo archivos usados si publicacion fue exitosa.
+- [ ] Crea `Procesados/YYYY-MM-DD` si no existe.
+- [ ] No manda nada a papelera si `trash_old=false`.
+- [ ] En dry-run muestra que mandaria a papelera.
+- [ ] No depura activo ni dos backups.
+- [ ] `/admin` sigue funcionando.
+- [ ] No se guardan credenciales en frontend.
+- [ ] No se exponen puertos.
+- [ ] El flujo operativo no requiere Supabase, Apps Script, Cloudinary ni servidor propio.

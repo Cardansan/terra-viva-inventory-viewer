@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLatestPublishedCatalog } from "@/lib/mockCatalogData";
+import { getLatestPublishedCatalog } from "@/lib/catalogRepository";
 
 export default function HomePage() {
   const catalog = getLatestPublishedCatalog();

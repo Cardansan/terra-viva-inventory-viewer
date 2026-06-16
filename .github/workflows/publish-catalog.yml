@@ -1,0 +1,111 @@
+name: Publish catalog from Drive Inbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      drive_folder_id:
+        description: "Google Drive folder ID for Terra Viva / Inbox - Videos por publicar"
+        required: true
+        type: string
+      catalog_date:
+        description: "Optional catalog date YYYY-MM-DD"
+        required: false
+        type: string
+      lookback_hours:
+        description: "Only publish videos uploaded in the last N hours"
+        required: true
+        default: "24"
+        type: string
+      dry_run:
+        description: "Preview without writing, moving, or committing"
+        required: true
+        default: true
+        type: boolean
+      move_processed:
+        description: "Move used videos to Procesados/YYYY-MM-DD after success"
+        required: true
+        default: true
+        type: boolean
+      trash_old:
+        description: "Trash processed folders older than active + two backups"
+        required: true
+        default: false
+        type: boolean
+      use_placeholder_media:
+        description: "Use local placeholder media for pipeline testing"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: [self-hosted, terra-viva-publisher]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify ffmpeg
+        if: ${{ !inputs.use_placeholder_media }}
+        run: ffmpeg -version
+
+      - name: Publish catalog
+        env:
+          GOOGLE_DRIVE_ACCESS_TOKEN: ${{ secrets.GOOGLE_DRIVE_ACCESS_TOKEN }}
+        shell: pwsh
+        run: |
+          $publishArgs = @(
+            "scripts/publish-catalog.mjs",
+            "--drive-folder-id", "${{ inputs.drive_folder_id }}",
+            "--lookback-hours", "${{ inputs.lookback_hours }}",
+            "--dry-run", "${{ inputs.dry_run }}",
+            "--move-processed", "${{ inputs.move_processed }}",
+            "--trash-old", "${{ inputs.trash_old }}",
+            "--use-placeholder-media", "${{ inputs.use_placeholder_media }}"
+          )
+
+          if ("${{ inputs.catalog_date }}" -ne "") {
+            $publishArgs += @("--date", "${{ inputs.catalog_date }}")
+          }
+
+          node @publishArgs
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build static site
+        run: pnpm build
+        env:
+          GITHUB_PAGES: "true"
+          NEXT_PUBLIC_BASE_PATH: /terra-viva-inventory-viewer
+
+      - name: Commit generated catalog
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "terra-viva-publisher"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/catalog
+          if git diff --cached --quiet; then
+            echo "No generated catalog changes to commit."
+          else
+            git commit -m "Publish Terra Viva catalog"
+            git push origin main
+          fi

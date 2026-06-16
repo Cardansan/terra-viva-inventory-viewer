@@ -1,0 +1,7 @@
+{
+  "driveFolderId": "DRIVE_INBOX_FOLDER_ID",
+  "lookbackHours": 24,
+  "moveProcessed": true,
+  "trashOld": false,
+  "catalogDateMode": "today"
+}

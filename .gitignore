@@ -16,6 +16,9 @@ dist/
 # local env
 .env
 .env*.local
+terra-viva.publisher.local.json
+.credentials/
+.tmp/
 
 # logs
 npm-debug.log*

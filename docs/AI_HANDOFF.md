@@ -36,11 +36,11 @@ Los contratos principales estan en `lib/catalogTypes.ts`:
 - `CatalogStatus`
 - `TreeMomentStatus`
 
-## Donde agregar integracion real
+## Donde agregar integracion real sin suscripciones
 
-- Repositorios o queries Supabase: crear `lib/catalogRepository.ts`.
+- Catalogos generados: `lib/catalogRepository.ts` ya lee `public/catalog/YYYY-MM-DD/catalog.json`.
 - Google Drive como entrada inicial de videos: crear `lib/driveInput.ts`.
-- Storage futuro: crear `lib/mediaStorage.ts` para Supabase Storage o Cloudinary si se adopta despues.
+- Media futura: mantener Drive + assets estaticos antes de considerar Storage pagado.
 - Worker de video: crear carpeta futura `workers/` o servicio externo.
 - WhatsApp: mantener `lib/whatsapp.ts`.
 - Extraccion y deteccion de momentos: crear `lib/videoProcessing/` cuando existan videos reales.
@@ -80,11 +80,26 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 
 - `lib/adminCatalogPersistence.ts` guarda el historial admin en `localStorage`.
 - El admin conserva catalogo activo + backups mock y permite restaurar un backup localmente.
-- Esto sobrevive refresh y deploy en el mismo navegador, pero no reemplaza Supabase ni login real.
+- Esto sobrevive refresh y deploy en el mismo navegador, pero no reemplaza un flujo de publicacion JSON compartible.
 
 ## Carga de videos admin MVP
 
 - `AdminVideoUploadPanel` permite seleccionar hasta 3 videos localmente y validar tipo/tamano.
 - El panel queda colapsado por defecto para no distraer de la lista de arboles.
-- Todavia no sube archivos a Google Drive, Supabase ni Storage; es preparacion UI para la siguiente fase.
-- `lib/drivePaths.ts` centraliza la convencion `Terra Viva/Catalogos/YYYY-MM-DD/videos`.
+- Todavia no sube archivos a Google Drive; es preparacion UI para la siguiente fase.
+- `lib/drivePaths.ts` centraliza la convencion `Terra Viva/Inbox - Videos por publicar` y `Terra Viva/Procesados/YYYY-MM-DD`.
+
+## Pipeline Drive-first 24h
+
+- El prompt vigente cambio el flujo a `Terra Viva / Inbox - Videos por publicar`.
+- Mama no crea carpetas por dia.
+- `scripts/publish-catalog.mjs` toma videos subidos en las ultimas 24 horas y ordena por `createdTime`/`modifiedTime`.
+- Salidas generadas: `public/catalog/YYYY-MM-DD/catalog.json`, `public/catalog/YYYY-MM-DD/thumbnails/` y `public/catalog/current-catalog.json`.
+- IDs estables nuevos: `moment-YYYY-MM-DD-001`.
+- `lib/catalogRepository.ts` lee catalogos generados en build time y cae a `mockCatalogData` si no existen.
+- Workflow manual: `.github/workflows/publish-catalog.yml`, pensado para runner self-hosted con etiqueta `terra-viva-publisher`.
+- Config local futura: `terra-viva.publisher.local.json`, ignorado por git; ejemplo en `terra-viva.publisher.example.json`.
+- Retencion: activo + dos backups funcionales; depuracion real debe empezar con `--trash-old false` y dry-run.
+- No implementar Supabase, Apps Script, laptop expuesta a internet ni puertos abiertos para este flujo.
+- La direccion de producto es operar sin suscripciones mientras GitHub Pages + Drive + laptop publisher sean suficientes.
+- Pendiente real: credenciales Drive robustas y thumbnails con ffmpeg conectados end-to-end.

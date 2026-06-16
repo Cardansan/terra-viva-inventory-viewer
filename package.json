@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "publish:catalog": "node scripts/publish-catalog.mjs"
   },
   "dependencies": {
     "next": "14.2.35",
