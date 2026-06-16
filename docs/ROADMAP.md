@@ -8,7 +8,7 @@
 3. Hecho: agregar iconos claros a `Compartir catalogo` y `Enviar seleccion por WhatsApp`.
 4. Hecho: cambiar el CTA de WhatsApp para mostrar la cantidad antes de enviar, por ejemplo `Enviar seleccion por WhatsApp (3 arboles)`.
 5. Hecho: mejorar links compartidos de seleccion; cuando se abre `?selection=...`, muestra banner `Seleccion actual del cliente/a`, renderiza solo los arboles seleccionados y oculta la galeria completa del catalogo.
-6. Subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro.
+6. En progreso: subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro; ya existe panel local de preparacion, pendiente guardar en backend/Drive.
 7. Guardar videos en Google Drive por fecha usando la estructura `Terra Viva/Catalogos/YYYY-MM-DD/`.
 8. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
 9. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.

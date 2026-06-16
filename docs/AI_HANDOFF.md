@@ -80,3 +80,9 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - `lib/adminCatalogPersistence.ts` guarda el historial admin en `localStorage`.
 - El admin conserva catalogo activo + backups mock y permite restaurar un backup localmente.
 - Esto sobrevive refresh y deploy en el mismo navegador, pero no reemplaza Supabase ni login real.
+
+## Carga de videos admin MVP
+
+- `AdminVideoUploadPanel` permite seleccionar hasta 3 videos localmente y validar tipo/tamano.
+- El panel queda colapsado por defecto para no distraer de la lista de arboles.
+- Todavia no sube archivos a Google Drive, Supabase ni Storage; es preparacion UI para la siguiente fase.

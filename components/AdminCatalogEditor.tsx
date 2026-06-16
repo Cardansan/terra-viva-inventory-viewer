@@ -10,6 +10,7 @@ import {
   type AdminCatalogVersion
 } from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
+import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
 type AdminCatalogEditorProps = {
   initialActiveCatalog: CatalogDay;
@@ -192,6 +193,8 @@ export function AdminCatalogEditor({
           </div>
         </div>
       </header>
+
+      <AdminVideoUploadPanel />
 
       <section className="mb-4 rounded-lg bg-white p-3 shadow-soft ring-1 ring-terra-moss/20">
         <div
