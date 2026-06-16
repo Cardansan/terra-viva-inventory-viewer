@@ -12,7 +12,7 @@
 7. En progreso: guardar videos en Google Drive por fecha usando la estructura `Terra Viva/Catalogos/YYYY-MM-DD/`; ya existe helper de rutas, pendiente conectar API/autenticacion de Drive.
 8. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
 9. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
-10. Retencion real de inventario: conservar catalogo activo + dos backups publicados y mandar lo antiguo a papelera.
+10. En progreso: retencion local de inventario conserva catalogo activo + dos backups en el admin MVP; pendiente papelera/backups reales en Supabase o Drive.
 
 ## Fase 1: mock catalogo navegable
 
