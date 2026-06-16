@@ -86,3 +86,4 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - `AdminVideoUploadPanel` permite seleccionar hasta 3 videos localmente y validar tipo/tamano.
 - El panel queda colapsado por defecto para no distraer de la lista de arboles.
 - Todavia no sube archivos a Google Drive, Supabase ni Storage; es preparacion UI para la siguiente fase.
+- `lib/drivePaths.ts` centraliza la convencion `Terra Viva/Catalogos/YYYY-MM-DD/videos`.

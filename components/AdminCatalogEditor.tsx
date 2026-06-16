@@ -194,7 +194,7 @@ export function AdminCatalogEditor({
         </div>
       </header>
 
-      <AdminVideoUploadPanel />
+      <AdminVideoUploadPanel catalogDate={activeCatalog.date} />
 
       <section className="mb-4 rounded-lg bg-white p-3 shadow-soft ring-1 ring-terra-moss/20">
         <div

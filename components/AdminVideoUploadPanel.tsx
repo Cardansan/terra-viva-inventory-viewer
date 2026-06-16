@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getDriveCatalogVideosFolderPath } from "@/lib/drivePaths";
 
 type StagedVideo = {
   id: string;
@@ -13,9 +14,16 @@ type StagedVideo = {
 const MAX_VIDEO_COUNT = 3;
 const MAX_VIDEO_SIZE_BYTES = 300 * 1024 * 1024;
 
-export function AdminVideoUploadPanel() {
+type AdminVideoUploadPanelProps = {
+  catalogDate: string;
+};
+
+export function AdminVideoUploadPanel({
+  catalogDate
+}: AdminVideoUploadPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [stagedVideos, setStagedVideos] = useState<StagedVideo[]>([]);
+  const targetDriveFolder = getDriveCatalogVideosFolderPath(catalogDate);
 
   const readyCount = useMemo(
     () => stagedVideos.filter((video) => video.status === "ready").length,
@@ -100,6 +108,9 @@ export function AdminVideoUploadPanel() {
             <span className="mt-1 block text-sm font-bold text-terra-ink/60">
               Maximo {MAX_VIDEO_COUNT} videos. En esta fase quedan preparados
               localmente; Drive/Supabase viene despues.
+            </span>
+            <span className="mt-2 block rounded-md bg-white px-3 py-2 text-xs font-bold text-terra-ink/55">
+              Carpeta futura: {targetDriveFolder}
             </span>
             <input
               accept="video/*"
