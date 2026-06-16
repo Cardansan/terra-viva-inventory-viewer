@@ -72,6 +72,7 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - `lib/selection.ts` contiene helpers para URL `selection`, localStorage, poda de IDs y numeracion publica.
 - La URL `?selection=moment-03,moment-08` precarga una seleccion compartida y tiene prioridad sobre localStorage.
 - WhatsApp recibe todos los numeros publicos seleccionados y un link a la seleccion.
+- Cuando se abre una URL con `selection`, la vista queda en modo revision: banner `Seleccion actual del cliente/a`, solo miniaturas seleccionadas y sin controles para modificar o reenviar la seleccion.
 - No usar la palabra `carrito`; la convencion del producto es `Mi seleccion`.
 
 ## Persistencia admin MVP

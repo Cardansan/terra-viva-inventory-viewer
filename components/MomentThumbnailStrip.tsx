@@ -4,15 +4,19 @@ import type { TreeMoment } from "@/lib/catalogTypes";
 
 type MomentThumbnailStripProps = {
   moments: TreeMoment[];
+  numberingMoments?: TreeMoment[];
   selectedMomentIds?: string[];
   selectedMomentId: string;
+  title?: string;
   onSelectMoment: (momentId: string) => void;
 };
 
 export function MomentThumbnailStrip({
   moments,
+  numberingMoments = moments,
   selectedMomentIds = [],
   selectedMomentId,
+  title = "Todos los \u00c1rboles",
   onSelectMoment
 }: MomentThumbnailStripProps) {
   if (moments.length === 0) {
@@ -26,9 +30,7 @@ export function MomentThumbnailStrip({
   return (
     <section aria-label="Miniaturas de arboles" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-black text-terra-ink">
-          Todos los &Aacute;rboles
-        </h2>
+        <h2 className="text-xl font-black text-terra-ink">{title}</h2>
         <span className="text-sm font-bold text-terra-ink/65">
           {moments.length}
         </span>
@@ -37,7 +39,10 @@ export function MomentThumbnailStrip({
         {moments.map((moment, index) => {
           const isSelected = moment.id === selectedMomentId;
           const isInSelection = selectedMomentIds.includes(moment.id);
-          const displayNumber = index + 1;
+          const publicIndex = numberingMoments.findIndex(
+            (numberingMoment) => numberingMoment.id === moment.id
+          );
+          const displayNumber = publicIndex >= 0 ? publicIndex + 1 : index + 1;
 
           return (
             <button

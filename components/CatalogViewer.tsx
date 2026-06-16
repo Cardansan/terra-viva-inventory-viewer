@@ -44,6 +44,8 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
   const [playRequest, setPlayRequest] = useState(0);
   const [selectionNotice, setSelectionNotice] = useState("");
   const [hasLoadedSelection, setHasLoadedSelection] = useState(false);
+  const [isViewingSharedSelection, setIsViewingSharedSelection] =
+    useState(false);
   const selectedMoment =
     visibleMoments.find((moment) => moment.id === selectedMomentId) ||
     visibleMoments[0];
@@ -62,8 +64,9 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
       setSelectionNotice(
         result.missingCount > 0
           ? "Algunos arboles de esta seleccion ya no estan disponibles."
-          : "Estas viendo una seleccion compartida."
+          : "Seleccion actual del cliente/a."
       );
+      setIsViewingSharedSelection(true);
 
       if (result.selectedIds[0]) {
         setSelectedMomentId(result.selectedIds[0]);
@@ -124,12 +127,28 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
   }
 
   const selectedVideo = getVideoForMoment(catalog, selectedMoment);
-  const selectedIndex = getMomentPosition(visibleMoments, selectedMoment.id);
-  const displayTreeNumber = selectedIndex + 1;
-  const currentLabel = `\u00c1rbol ${displayTreeNumber
+  const selectedMoments = getSelectedMoments(selectedMomentIds, visibleMoments);
+  const activeMoments =
+    isViewingSharedSelection && selectedMoments.length > 0
+      ? selectedMoments
+      : visibleMoments;
+  const selectedIndex = getMomentPosition(activeMoments, selectedMoment.id);
+  const displayTreeNumber = getPublicTreeNumber(
+    visibleMoments,
+    selectedMoment.id
+  );
+  const currentLabel = isViewingSharedSelection
+    ? `\u00c1rbol ${displayTreeNumber
+        .toString()
+        .padStart(2, "0")} \u00b7 selecci\u00f3n ${selectedIndex + 1} de ${
+        activeMoments.length
+      }`
+    : `\u00c1rbol ${displayTreeNumber
     .toString()
     .padStart(2, "0")} de ${visibleMoments.length}`;
-  const selectedMoments = getSelectedMoments(selectedMomentIds, visibleMoments);
+  const galleryMoments = isViewingSharedSelection
+    ? selectedMoments
+    : visibleMoments;
   const publicPathPrefix = assetPath("").replace(/\/$/, "");
   const currentMomentIsSelected = isMomentSelected(
     selectedMomentIds,
@@ -148,7 +167,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
 
   function selectAdjacent(direction: "previous" | "next") {
     const nextMoment = getAdjacentMoment(
-      visibleMoments,
+      activeMoments,
       selectedMoment.id,
       direction
     );
@@ -160,6 +179,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
 
   function toggleCurrentMomentSelection() {
     setSelectionNotice("");
+    setIsViewingSharedSelection(false);
     setSelectedMomentIds((current) =>
       toggleMomentSelection(current, selectedMoment)
     );
@@ -167,6 +187,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
 
   function removeSelectedMoment(momentId: string) {
     setSelectionNotice("");
+    setIsViewingSharedSelection(false);
     setSelectedMomentIds((current) => removeMomentFromSelection(current, momentId));
   }
 
@@ -203,19 +224,35 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             onPrevious={() => selectAdjacent("previous")}
           />
           <SelectionSummary count={selectedMomentIds.length} />
-          {selectionNotice ? (
+          {isViewingSharedSelection ? (
+            <section className="rounded-lg bg-green-50 p-4 text-center ring-1 ring-green-700/20">
+              <p className="text-base font-black text-green-900">
+                Selecci&oacute;n actual del cliente/a
+              </p>
+              {selectionNotice &&
+              selectionNotice !== "Seleccion actual del cliente/a." ? (
+                <p className="mt-1 text-sm font-bold text-green-900/70">
+                  {selectionNotice}
+                </p>
+              ) : null}
+            </section>
+          ) : selectionNotice ? (
             <p className="rounded-lg bg-white/80 p-3 text-center text-sm font-bold text-terra-ink/70 ring-1 ring-terra-moss/15">
               {selectionNotice}
             </p>
           ) : null}
-          <AddToSelectionButton
-            isSelected={currentMomentIsSelected}
-            onToggle={toggleCurrentMomentSelection}
-          />
-          <SendSelectionWhatsAppButton
-            href={selectionWhatsAppUrl}
-            selectedCount={selectedMomentIds.length}
-          />
+          {isViewingSharedSelection ? null : (
+            <>
+              <AddToSelectionButton
+                isSelected={currentMomentIsSelected}
+                onToggle={toggleCurrentMomentSelection}
+              />
+              <SendSelectionWhatsAppButton
+                href={selectionWhatsAppUrl}
+                selectedCount={selectedMomentIds.length}
+              />
+            </>
+          )}
           <button
             className="min-h-11 w-full rounded-lg border border-terra-moss/30 bg-white/80 px-4 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper"
             onClick={() => setPlayRequest((current) => current + 1)}
@@ -226,16 +263,28 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
           <SelectionPanel
             onRemove={removeSelectedMoment}
             publicMoments={visibleMoments}
+            readOnly={isViewingSharedSelection}
             selectedMoments={selectedMoments}
+            title={
+              isViewingSharedSelection
+                ? "Selecci\u00f3n del cliente/a"
+                : "Mi selecci\u00f3n"
+            }
           />
         </section>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
           <MomentThumbnailStrip
-            moments={visibleMoments}
+            moments={galleryMoments}
+            numberingMoments={visibleMoments}
             onSelectMoment={selectMomentFromThumbnail}
             selectedMomentId={selectedMoment.id}
             selectedMomentIds={selectedMomentIds}
+            title={
+              isViewingSharedSelection
+                ? "Selecci\u00f3n del cliente/a"
+                : "Todos los \u00c1rboles"
+            }
           />
         </aside>
       </div>

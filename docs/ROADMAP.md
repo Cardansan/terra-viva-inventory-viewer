@@ -5,9 +5,9 @@
 0. Hecho: configurar y mantener el WhatsApp real `+52 222 618 1133` en `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER`.
 1. En progreso: persistencia local MVP de catalogos, backups y restauraciones en `localStorage`; pendiente migrar a Supabase para persistencia compartida entre dispositivos.
 2. Login protegido para admin antes de permitir cambios reales de catalogo.
-3. Agregar iconos claros a `Compartir catalogo` y `Enviar seleccion por WhatsApp`.
-4. Cambiar el CTA de WhatsApp para mostrar la cantidad antes de enviar, por ejemplo `Enviar seleccion por WhatsApp (3 arboles)`.
-5. Mejorar links compartidos de seleccion: cuando se abra `?selection=...`, mostrar banner `Seleccion actual del cliente/a`, renderizar solo los arboles seleccionados y ocultar el preview/galeria de todos los arboles del catalogo.
+3. Hecho: agregar iconos claros a `Compartir catalogo` y `Enviar seleccion por WhatsApp`.
+4. Hecho: cambiar el CTA de WhatsApp para mostrar la cantidad antes de enviar, por ejemplo `Enviar seleccion por WhatsApp (3 arboles)`.
+5. Hecho: mejorar links compartidos de seleccion; cuando se abre `?selection=...`, muestra banner `Seleccion actual del cliente/a`, renderiza solo los arboles seleccionados y oculta la galeria completa del catalogo.
 6. Subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro.
 7. Guardar videos en Google Drive por fecha usando la estructura `Terra Viva/Catalogos/YYYY-MM-DD/`.
 8. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.

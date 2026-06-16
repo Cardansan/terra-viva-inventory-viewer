@@ -6,12 +6,14 @@ type SelectedMomentCardProps = {
   displayNumber: number;
   moment: TreeMoment;
   onRemove: (momentId: string) => void;
+  readOnly?: boolean;
 };
 
 export function SelectedMomentCard({
   displayNumber,
   moment,
-  onRemove
+  onRemove,
+  readOnly = false
 }: SelectedMomentCardProps) {
   return (
     <article className="flex min-w-0 items-center gap-3 rounded-lg bg-white p-2 shadow-sm ring-1 ring-terra-moss/20">
@@ -25,13 +27,15 @@ export function SelectedMomentCard({
         </p>
         <p className="text-sm font-bold text-terra-ink/55">Seleccionado</p>
       </div>
-      <button
-        className="min-h-10 rounded-lg border border-terra-moss/30 bg-terra-paper px-3 text-sm font-black text-terra-ink"
-        onClick={() => onRemove(moment.id)}
-        type="button"
-      >
-        Quitar
-      </button>
+      {readOnly ? null : (
+        <button
+          className="min-h-10 rounded-lg border border-terra-moss/30 bg-terra-paper px-3 text-sm font-black text-terra-ink"
+          onClick={() => onRemove(moment.id)}
+          type="button"
+        >
+          Quitar
+        </button>
+      )}
     </article>
   );
 }
