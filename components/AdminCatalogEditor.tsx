@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay, TreeMoment } from "@/lib/catalogTypes";
 import { assetPath } from "@/lib/assets";
+import {
+  createInitialAdminCatalogVersions,
+  loadAdminCatalogVersions,
+  saveAdminCatalogVersions,
+  type AdminCatalogVersion
+} from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
 
 type AdminCatalogEditorProps = {
@@ -10,25 +16,24 @@ type AdminCatalogEditorProps = {
   initialBackupCatalogs: CatalogDay[];
 };
 
-type AdminCatalogVersion = {
-  catalog: CatalogDay;
-  role: "active" | "backup";
-};
-
 export function AdminCatalogEditor({
   initialActiveCatalog,
   initialBackupCatalogs
 }: AdminCatalogEditorProps) {
-  const [versions, setVersions] = useState<AdminCatalogVersion[]>([
-    { catalog: initialActiveCatalog, role: "active" },
-    ...initialBackupCatalogs.map((catalog) => ({
-      catalog,
-      role: "backup" as const
-    }))
-  ]);
+  const initialVersions = useMemo(
+    () =>
+      createInitialAdminCatalogVersions(
+        initialActiveCatalog,
+        initialBackupCatalogs
+      ),
+    [initialActiveCatalog, initialBackupCatalogs]
+  );
+  const [versions, setVersions] =
+    useState<AdminCatalogVersion[]>(initialVersions);
   const [selectedCatalogId, setSelectedCatalogId] = useState(
     initialActiveCatalog.id
   );
+  const [hasLoadedStoredVersions, setHasLoadedStoredVersions] = useState(false);
 
   const activeVersion = versions.find((version) => version.role === "active");
   const selectedVersion =
@@ -60,6 +65,25 @@ export function AdminCatalogEditor({
   );
   const selectedUnavailableCount =
     selectedCatalog.moments.length - selectedAvailableCount;
+
+  useEffect(() => {
+    const storedVersions = loadAdminCatalogVersions(initialVersions);
+    const storedActiveVersion =
+      storedVersions.find((version) => version.role === "active") ??
+      storedVersions[0];
+
+    setVersions(storedVersions);
+    setSelectedCatalogId(storedActiveVersion.catalog.id);
+    setHasLoadedStoredVersions(true);
+  }, [initialVersions]);
+
+  useEffect(() => {
+    if (!hasLoadedStoredVersions) {
+      return;
+    }
+
+    saveAdminCatalogVersions(versions);
+  }, [hasLoadedStoredVersions, versions]);
 
   function updateMoment(updatedMoment: TreeMoment) {
     if (!isViewingActive) {
@@ -154,6 +178,9 @@ export function AdminCatalogEditor({
                 {unavailableCount}
               </span>
             </div>
+            <p className="mt-2 text-xs font-bold text-terra-ink/45">
+              Cambios guardados en este navegador.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a

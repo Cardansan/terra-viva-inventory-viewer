@@ -73,3 +73,9 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - La URL `?selection=moment-03,moment-08` precarga una seleccion compartida y tiene prioridad sobre localStorage.
 - WhatsApp recibe todos los numeros publicos seleccionados y un link a la seleccion.
 - No usar la palabra `carrito`; la convencion del producto es `Mi seleccion`.
+
+## Persistencia admin MVP
+
+- `lib/adminCatalogPersistence.ts` guarda el historial admin en `localStorage`.
+- El admin conserva catalogo activo + backups mock y permite restaurar un backup localmente.
+- Esto sobrevive refresh y deploy en el mismo navegador, pero no reemplaza Supabase ni login real.

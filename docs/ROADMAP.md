@@ -2,14 +2,14 @@
 
 ## Backlog inmediato
 
-- Configurar y mantener el WhatsApp real `+52 222 618 1133` en `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER`.
-- Persistencia real de catalogos, backups y restauraciones.
-- Subida de videos desde admin.
-- Guardar videos en Drive por fecha.
-- Reemplazar videos cargados antes de publicar.
-- Procesamiento con `ffmpeg`.
-- Pantalla de aprobacion antes de publicar.
-- Publicacion, retencion y restauracion persistentes.
+0. Hecho: configurar y mantener el WhatsApp real `+52 222 618 1133` en `NEXT_PUBLIC_TERRA_VIVA_WHATSAPP_NUMBER`.
+1. En progreso: persistencia local MVP de catalogos, backups y restauraciones en `localStorage`; pendiente migrar a Supabase para persistencia compartida entre dispositivos.
+2. Login protegido para admin antes de permitir cambios reales de catalogo.
+3. Subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro.
+4. Guardar videos en Google Drive por fecha usando la estructura `Terra Viva/Catalogos/YYYY-MM-DD/`.
+5. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
+6. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
+7. Retencion real de inventario: conservar catalogo activo + dos backups publicados y mandar lo antiguo a papelera.
 
 ## Fase 1: mock catalogo navegable
 
