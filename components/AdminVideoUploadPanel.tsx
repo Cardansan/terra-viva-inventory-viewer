@@ -14,7 +14,13 @@ type StagedVideo = {
 const MAX_VIDEO_COUNT = 3;
 const MAX_VIDEO_SIZE_BYTES = 300 * 1024 * 1024;
 
-export function AdminVideoUploadPanel() {
+type AdminVideoUploadPanelProps = {
+  embedded?: boolean;
+};
+
+export function AdminVideoUploadPanel({
+  embedded = false
+}: AdminVideoUploadPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [stagedVideos, setStagedVideos] = useState<StagedVideo[]>([]);
   const targetDriveFolder = getDriveInboxFolderPath();
@@ -73,7 +79,13 @@ export function AdminVideoUploadPanel() {
   }
 
   return (
-    <section className="mb-4 rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
+    <section
+      className={
+        embedded
+          ? "rounded-lg border border-terra-moss/20 bg-white/80"
+          : "mb-4 rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20"
+      }
+    >
       <button
         aria-expanded={isOpen}
         className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
@@ -81,9 +93,11 @@ export function AdminVideoUploadPanel() {
         type="button"
       >
         <span>
-          <span className="block text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-            Videos del dia
-          </span>
+          {!embedded ? (
+            <span className="block text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+              Videos del dia
+            </span>
+          ) : null}
           <span className="mt-1 block text-lg font-black text-terra-ink">
             Cargar videos para preparar catalogo
           </span>

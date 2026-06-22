@@ -15,7 +15,6 @@ import {
 } from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
 import { AdminDriveWorkflowPanel } from "./AdminDriveWorkflowPanel";
-import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
 type AdminCatalogEditorProps = {
   initialActiveCatalog: CatalogDay;
@@ -341,9 +340,6 @@ export function AdminCatalogEditor({
               {unavailableCount}
             </span>
           </div>
-          <p className="mt-2 text-xs font-bold text-terra-ink/45">
-            La revision principal sucede en esta lista. Las herramientas manuales quedan abajo para no estorbar en celular.
-          </p>
         </div>
         {transferNotice ? (
           <p className="mt-3 text-sm font-bold text-terra-ink/65">
@@ -356,8 +352,6 @@ export function AdminCatalogEditor({
         activeCatalog={activeCatalog}
         canPublishDraft={isDraftActive}
       />
-
-      <AdminVideoUploadPanel />
 
       <section className="mb-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -500,10 +494,10 @@ export function AdminCatalogEditor({
 
           {isViewingActive ? (
             <span
-              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-black uppercase tracking-[0.08em] text-white ${
+              className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-black uppercase tracking-[0.08em] ${
                 selectedCatalog.status === "draft"
-                  ? "bg-terra-clay"
-                  : "bg-terra-leaf"
+                  ? "bg-terra-paper text-terra-clay"
+                  : "bg-green-50 text-terra-leaf ring-1 ring-green-700/15"
               }`}
             >
               {selectedCatalog.status === "draft"
@@ -530,34 +524,42 @@ export function AdminCatalogEditor({
 
       <section className="mt-5 space-y-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
         <a
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper sm:w-auto"
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink sm:w-auto"
           href={publishedClientViewHref}
         >
-          Vista de Cliente
+          Volver a Vista de Cliente
         </a>
 
-        <details className="rounded-lg border border-terra-moss/20 bg-terra-paper/45 p-4">
-          <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-            Herramientas manuales
+        <details className="rounded-lg border border-terra-moss/20 bg-terra-paper/35">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+            <span>Developer Tools Carlos</span>
+            <span
+              aria-hidden="true"
+              className="text-base font-black text-terra-ink/55"
+            >
+              ▾
+            </span>
           </summary>
-          <p className="mt-3 text-sm font-bold text-terra-ink/60">
-            Estas opciones sirven como respaldo para mover una revision entre navegadores o laptops. No son necesarias para el uso diario desde el telefono.
-          </p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-              onClick={exportActiveCatalog}
-              type="button"
-            >
-              Guardar respaldo local
-            </button>
-            <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-              onClick={openImportPicker}
-              type="button"
-            >
-              Abrir respaldo local
-            </button>
+          <div className="border-t border-terra-moss/15 px-4 py-4">
+            <p className="text-sm font-bold text-terra-ink/60">
+              Estas opciones sirven como respaldo para mover una revision entre navegadores o laptops. No son necesarias para el uso diario desde el telefono.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                onClick={exportActiveCatalog}
+                type="button"
+              >
+                Guardar respaldo local
+              </button>
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                onClick={openImportPicker}
+                type="button"
+              >
+                Abrir respaldo local
+              </button>
+            </div>
           </div>
         </details>
         <input

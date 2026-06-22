@@ -12,6 +12,7 @@ import type {
   DrivePublisherStatus,
   PublisherOrderAction
 } from "@/lib/drivePublisherTypes";
+import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
 const STORAGE_KEY = "terra-viva:drive-access-token";
 const INBOX_ID_STORAGE_KEY = "terra-viva:drive-inbox-folder-id";
@@ -35,6 +36,7 @@ export function AdminDriveWorkflowPanel({
   const [draftInboxFolderId, setDraftInboxFolderId] = useState("");
   const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
   const [isEditingSession, setIsEditingSession] = useState(false);
+  const [isActionsHintOpen, setIsActionsHintOpen] = useState(false);
   const [isLoadingConfiguredSession, setIsLoadingConfiguredSession] =
     useState(true);
 
@@ -274,9 +276,6 @@ export function AdminDriveWorkflowPanel({
           <h2 className="mt-1 text-xl font-black text-terra-ink">
             Pedir procesamiento o publicacion desde esta web
           </h2>
-          <p className="mt-2 text-sm font-bold text-terra-ink/60">
-            Esta seccion deja una orden en Google Drive. La laptop publicadora la recoge, procesa y deja aqui el estado.
-          </p>
         </div>
       </div>
 
@@ -378,10 +377,26 @@ export function AdminDriveWorkflowPanel({
         </div>
 
         <div className="rounded-lg bg-terra-paper/60 p-4">
-          <p className="text-sm font-black text-terra-ink">Acciones</p>
-          <p className="mt-3 text-sm font-bold text-terra-ink/65">
-            El procesamiento toma todos los videos pendientes que sigan dentro del Inbox de Drive. Cuando un catalogo se publica bien, esos videos se mueven a `Procesados` para que no vuelvan a entrar en la siguiente corrida.
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-black text-terra-ink">Acciones</p>
+            <button
+              aria-expanded={isActionsHintOpen}
+              aria-label="Mostrar ayuda de Acciones"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-terra-moss/25 bg-white text-sm font-black text-terra-ink"
+              onClick={() => setIsActionsHintOpen((currentValue) => !currentValue)}
+              type="button"
+            >
+              i
+            </button>
+          </div>
+          {isActionsHintOpen ? (
+            <p className="mt-3 rounded-lg border border-terra-moss/20 bg-white px-3 py-3 text-sm font-bold text-terra-ink/65">
+              El procesamiento toma todos los videos pendientes que sigan dentro del Inbox de Drive. Cuando un catalogo se publica bien, esos videos se mueven a Procesados para que no vuelvan a entrar en la siguiente corrida.
+            </p>
+          ) : null}
+          <div className="mt-3">
+            <AdminVideoUploadPanel embedded />
+          </div>
           <div className="mt-3 space-y-2">
             <button
               className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-terra-clay px-5 text-base font-black text-white"

@@ -256,6 +256,16 @@ export function CatalogViewer({
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0 space-y-4">
+          {viewerMode === "draftReview" ? (
+            <section className="rounded-lg bg-[#ede7f6] px-4 py-4 text-center ring-1 ring-[#6b46a6]/20">
+              <p className="text-base font-black text-[#4b2e83]">
+                Borrador en revision
+              </p>
+              <p className="mt-1 text-sm font-bold text-[#4b2e83]/80">
+                Esta vista es interna para revisar antes de publicar.
+              </p>
+            </section>
+          ) : null}
           <VideoMomentPlayer
             moment={selectedMoment}
             playRequest={playRequest}
@@ -266,16 +276,7 @@ export function CatalogViewer({
             onNext={() => selectAdjacent("next")}
             onPrevious={() => selectAdjacent("previous")}
           />
-          {viewerMode === "draftReview" ? (
-            <section className="rounded-lg bg-terra-paper/80 p-4 text-center ring-1 ring-terra-clay/20">
-              <p className="text-base font-black text-terra-ink">
-                Borrador en revision
-              </p>
-              <p className="mt-1 text-sm font-bold text-terra-ink/65">
-                Esta vista es interna para revisar antes de publicar.
-              </p>
-            </section>
-          ) : (
+          {viewerMode === "draftReview" ? null : (
             <SelectionSummary count={selectedMomentIds.length} />
           )}
           {isViewingSharedSelection ? (
