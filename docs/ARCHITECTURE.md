@@ -40,6 +40,7 @@ Esto evita backend pagado, evita exponer la laptop a internet y prepara mejor la
 4. `/drafts/[date]` muestra un borrador especifico.
 5. `/drafts/current` muestra el borrador vigente para revision rapida.
 6. `CatalogViewer` en modo `draftReview` oculta compartir y WhatsApp para que el borrador sirva como revision interna antes de publicar.
+7. `CatalogViewer` en modo `public` puede sincronizar con estado admin solo si asi se solicita; las rutas publicadas y de borrador deben usar `syncWithAdminStorage={false}` para no mezclar estados locales con el catalogo compartido.
 
 ## Flujo admin
 
@@ -49,6 +50,7 @@ Esto evita backend pagado, evita exponer la laptop a internet y prepara mejor la
 4. El admin ya puede guardar el catalogo en un archivo y volverlo a abrir en otro navegador o laptop.
 5. El admin debe enlazar claramente al borrador online para revisarlo desde cualquier telefono.
 6. La siguiente evolucion correcta es que el admin deje una orden de `procesar` o `publicar` y que la laptop la recoja.
+7. En mobile, `Vista de Cliente` va al final de la pagina como accion normal; las herramientas manuales de respaldo quedan relegadas a un bloque secundario para no tapar la lista principal.
 
 ## Estrategia sin suscripciones
 
@@ -100,6 +102,7 @@ Se mantendran activo + dos backups funcionales para controlar almacenamiento y m
 - `catalogRepository.ts` ahora tambien distingue entre catalogo publicado, borradores por fecha y borrador actual.
 - El pipeline Drive-first vive en `scripts/` para no acoplar credenciales ni procesamiento a la UI.
 - En Windows/Fase B, el camino robusto es: Node arma el borrador y un manifest; PowerShell ejecuta `ffmpeg` y escribe thumbnails reales.
+- La generacion actual de momentos en borrador vive en `scripts/lib/catalogBuilder.mjs` y por ahora es muestreo temporal configurable, no deteccion por estabilidad.
 
 ## Iteracion UX publica
 

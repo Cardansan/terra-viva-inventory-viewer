@@ -14,6 +14,7 @@ import {
   type AdminCatalogVersion
 } from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
+import { AdminDriveWorkflowPanel } from "./AdminDriveWorkflowPanel";
 import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
 type AdminCatalogEditorProps = {
@@ -302,79 +303,47 @@ export function AdminCatalogEditor({
     return `Backup ${backupIndex}`;
   }
 
-  const selectedClientViewHref =
-    selectedCatalog.status === "draft"
-      ? assetPath("/drafts/current/")
-      : assetPath(`/catalog/${selectedCatalog.date}/`);
+  const publishedClientViewHref = assetPath(
+    `/catalog/${publishedVersion?.catalog.date || initialPublishedCatalog.date}/`
+  );
   const draftReviewHref = draftVersion
     ? assetPath("/drafts/current/")
     : undefined;
 
   return (
     <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
-      <header className="sticky top-0 z-30 mb-5 rounded-lg bg-white/95 p-5 shadow-soft ring-1 ring-terra-moss/20 backdrop-blur">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-black uppercase tracking-[0.20em] text-terra-clay">
-              Terra Viva Admin
-            </p>
-            <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
-              Editor de catalogo diario
-            </h1>
-            <p className="mt-2 text-base font-bold text-terra-ink/65">
-              {activeCatalog.title}
-            </p>
-            <p className="mt-2 text-sm font-bold text-terra-ink/55">
-              {isDraftActive
-                ? "Borrador en revision antes de publicar."
-                : "Catalogo publicado visible para clientas."}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
-                Total: {activeCatalog.moments.length}
-              </span>
-              <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
-                Disponibles: {availableCount}
-              </span>
-              <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-black text-stone-700 ring-1 ring-stone-500/20">
-                <span className="sm:hidden">No disp.</span>
-                <span className="hidden sm:inline">No disponibles</span>:{" "}
-                {unavailableCount}
-              </span>
-            </div>
-            <p className="mt-2 text-xs font-bold text-terra-ink/45">
-              Cambios locales de revision. La fuente compartida sigue siendo el archivo de aprobacion y los JSON generados.
-            </p>
+      <header className="mb-5 rounded-lg bg-white p-5 shadow-soft ring-1 ring-terra-moss/20">
+        <div className="min-w-0">
+          <p className="text-sm font-black uppercase tracking-[0.20em] text-terra-clay">
+            Terra Viva Admin
+          </p>
+          <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
+            Editor de catalogo diario
+          </h1>
+          <p className="mt-2 text-base font-bold text-terra-ink/65">
+            {activeCatalog.title}
+          </p>
+          <p className="mt-2 text-sm font-bold text-terra-ink/55">
+            {isDraftActive
+              ? "Borrador activo para revision antes de publicar."
+              : "Catalogo publicado visible para clientas."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
+              Total: {activeCatalog.moments.length}
+            </span>
+            <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
+              Disponibles: {availableCount}
+            </span>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-black text-stone-700 ring-1 ring-stone-500/20">
+              <span className="sm:hidden">No disp.</span>
+              <span className="hidden sm:inline">No disponibles</span>:{" "}
+              {unavailableCount}
+            </span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
-              onClick={exportActiveCatalog}
-              type="button"
-            >
-              Guardar catalogo
-            </button>
-            <button
-              className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
-              onClick={openImportPicker}
-              type="button"
-            >
-              Abrir catalogo guardado
-            </button>
-            <a
-              className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
-              href={selectedClientViewHref}
-            >
-              Vista de Cliente
-            </a>
-            <input
-              accept="application/json"
-              className="hidden"
-              onChange={(event) => importCatalogFile(event.target.files?.[0] || null)}
-              ref={importInputRef}
-              type="file"
-            />
-          </div>
+          <p className="mt-2 text-xs font-bold text-terra-ink/45">
+            La revision principal sucede en esta lista. Las herramientas manuales quedan abajo para no estorbar en celular.
+          </p>
         </div>
         {transferNotice ? (
           <p className="mt-3 text-sm font-bold text-terra-ink/65">
@@ -382,6 +351,11 @@ export function AdminCatalogEditor({
           </p>
         ) : null}
       </header>
+
+      <AdminDriveWorkflowPanel
+        activeCatalog={activeCatalog}
+        canPublishDraft={isDraftActive}
+      />
 
       <AdminVideoUploadPanel />
 
@@ -456,17 +430,17 @@ export function AdminCatalogEditor({
               >
                 Guardar aprobacion para publicar
               </button>
-              <div className="rounded-lg bg-terra-paper/70 p-3">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-terra-clay">
+              <details className="rounded-lg bg-terra-paper/70 p-3">
+                <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.12em] text-terra-clay">
                   Siguiente paso en la laptop
-                </p>
+                </summary>
                 <p className="mt-2 text-sm font-bold text-terra-ink/65">
                   Despues de guardar la aprobacion, corre el acceso directo o este comando en la laptop publicadora:
                 </p>
                 <code className="mt-2 block overflow-x-auto rounded-md bg-white p-3 text-xs font-bold text-terra-ink">
                   {buildPublishCommandHint()}
                 </code>
-              </div>
+              </details>
             </div>
           ) : null}
         </div>
@@ -553,6 +527,47 @@ export function AdminCatalogEditor({
         onChangeMoment={updateMoment}
         readOnly={!isViewingActive}
       />
+
+      <section className="mt-5 space-y-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
+        <a
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper sm:w-auto"
+          href={publishedClientViewHref}
+        >
+          Vista de Cliente
+        </a>
+
+        <details className="rounded-lg border border-terra-moss/20 bg-terra-paper/45 p-4">
+          <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+            Herramientas manuales
+          </summary>
+          <p className="mt-3 text-sm font-bold text-terra-ink/60">
+            Estas opciones sirven como respaldo para mover una revision entre navegadores o laptops. No son necesarias para el uso diario desde el telefono.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+              onClick={exportActiveCatalog}
+              type="button"
+            >
+              Guardar respaldo local
+            </button>
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+              onClick={openImportPicker}
+              type="button"
+            >
+              Abrir respaldo local
+            </button>
+          </div>
+        </details>
+        <input
+          accept="application/json"
+          className="hidden"
+          onChange={(event) => importCatalogFile(event.target.files?.[0] || null)}
+          ref={importInputRef}
+          type="file"
+        />
+      </section>
     </main>
   );
 }

@@ -62,7 +62,7 @@ export function CatalogViewer({
     visibleMoments[0];
 
   useEffect(() => {
-    if (!syncWithAdminStorage) {
+    if (viewerMode !== "public" || !syncWithAdminStorage) {
       setResolvedCatalog(catalog);
       return;
     }
@@ -85,7 +85,7 @@ export function CatalogViewer({
     return () => {
       window.removeEventListener("storage", syncCatalogFromAdminStorage);
     };
-  }, [catalog, syncWithAdminStorage]);
+  }, [catalog, syncWithAdminStorage, viewerMode]);
 
   useEffect(() => {
     const storageKey = getSelectionStorageKey(resolvedCatalog);
@@ -181,8 +181,8 @@ export function CatalogViewer({
         activeMoments.length
       }`
     : `\u00c1rbol ${displayTreeNumber
-    .toString()
-    .padStart(2, "0")} de ${visibleMoments.length}`;
+        .toString()
+        .padStart(2, "0")} de ${visibleMoments.length}`;
   const galleryMoments = isViewingSharedSelection
     ? selectedMoments
     : visibleMoments;
@@ -269,7 +269,7 @@ export function CatalogViewer({
           {viewerMode === "draftReview" ? (
             <section className="rounded-lg bg-terra-paper/80 p-4 text-center ring-1 ring-terra-clay/20">
               <p className="text-base font-black text-terra-ink">
-                Borrador en revisión
+                Borrador en revision
               </p>
               <p className="mt-1 text-sm font-bold text-terra-ink/65">
                 Esta vista es interna para revisar antes de publicar.

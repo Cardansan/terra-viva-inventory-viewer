@@ -1,0 +1,319 @@
+#!/usr/bin/env node
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
+import { getFile, updateDriveFileMetadata } from "./lib/driveClient.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "..");
+const localConfigPath = path.join(projectRoot, "terra-viva.publisher.local.json");
+
+function parseArgs(argv) {
+  const args = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+
+    if (!token.startsWith("--")) {
+      continue;
+    }
+
+    const key = token.slice(2);
+    const next = argv[index + 1];
+    const value = next && !next.startsWith("--") ? next : "true";
+    args[key] = value;
+
+    if (value === next) {
+      index += 1;
+    }
+  }
+
+  return args;
+}
+
+function toBoolean(value, defaultValue) {
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  return ["1", "true", "yes", "si"].includes(String(value).toLowerCase());
+}
+
+function getEmptyMailbox() {
+  return {
+    schema: "terra-viva-web-publisher/v1",
+    order: null,
+    status: null
+  };
+}
+
+function parseMailbox(description) {
+  if (!description) {
+    return getEmptyMailbox();
+  }
+
+  try {
+    const parsed = JSON.parse(description);
+
+    if (parsed.schema !== "terra-viva-web-publisher/v1") {
+      return getEmptyMailbox();
+    }
+
+    return {
+      schema: "terra-viva-web-publisher/v1",
+      order: parsed.order ?? null,
+      status: parsed.status ?? null
+    };
+  } catch {
+    return getEmptyMailbox();
+  }
+}
+
+async function readLocalConfig() {
+  try {
+    return JSON.parse(await readFile(localConfigPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function runPublisher(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, {
+      cwd: projectRoot,
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      stdout += text;
+      process.stdout.write(text);
+    });
+
+    child.stderr.on("data", (chunk) => {
+      const text = chunk.toString();
+      stderr += text;
+      process.stderr.write(text);
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+
+      reject(new Error(stderr || stdout || `Publisher exited with ${code}`));
+    });
+  });
+}
+
+function buildStatusPayload(order, state, message, result = undefined) {
+  const now = new Date().toISOString();
+  return {
+    orderId: order.id,
+    action: order.action,
+    state,
+    createdAt: order.createdAt,
+    updatedAt: now,
+    message,
+    result
+  };
+}
+
+async function readCatalogJson(relativePath) {
+  const raw = await readFile(path.join(projectRoot, relativePath), "utf8");
+  return JSON.parse(raw);
+}
+
+async function processOrder(order) {
+  if (order.action === "process_draft") {
+    await runPublisher([
+      "scripts/publish-catalog.mjs",
+      "--workflow",
+      "draft",
+      "--dry-run",
+      "false",
+      "--verbose",
+      "true",
+      "--thumbnail-mode",
+      "node"
+    ]);
+    const currentDraft = await readCatalogJson(
+      path.join("public", "catalog-drafts", "current-draft.json")
+    );
+    const draftCatalog = await readCatalogJson(
+      path.join("public", currentDraft.catalogPath.replace(/^\//, ""))
+    );
+    return {
+      catalogDate: draftCatalog.date,
+      momentCount: draftCatalog.moments.length,
+      draftReviewUrl: `/drafts/current/`
+    };
+  }
+
+  let approvalCatalog = order.approvalCatalog;
+
+  if (!approvalCatalog) {
+    const currentDraft = await readCatalogJson(
+      path.join("public", "catalog-drafts", "current-draft.json")
+    );
+    approvalCatalog = await readCatalogJson(
+      path.join("public", currentDraft.catalogPath.replace(/^\//, ""))
+    );
+  }
+
+  if (!approvalCatalog) {
+    throw new Error("No draft catalog was available to publish.");
+  }
+
+  const approvalsDir = path.join(projectRoot, "catalog-approvals");
+  await mkdir(approvalsDir, { recursive: true });
+  const approvalFilePath = path.join(
+    approvalsDir,
+    "current-approved-catalog.json"
+  );
+  await writeFile(
+    approvalFilePath,
+    `${JSON.stringify(
+      { savedAt: new Date().toISOString(), catalog: approvalCatalog },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+
+  await runPublisher([
+    "scripts/publish-catalog.mjs",
+    "--dry-run",
+    "false",
+    "--verbose",
+    "true",
+    "--catalog-input-file",
+    "catalog-approvals/current-approved-catalog.json"
+  ]);
+
+  const currentCatalog = await readCatalogJson(
+    path.join("public", "catalog", "current-catalog.json")
+  );
+  const publishedCatalog = await readCatalogJson(
+    path.join("public", currentCatalog.catalogPath.replace(/^\//, ""))
+  );
+
+  return {
+    catalogDate: publishedCatalog.date,
+    momentCount: publishedCatalog.moments.length,
+    publishedCatalogUrl: `/catalog/${publishedCatalog.date}/`
+  };
+}
+
+async function readMailbox(inboxFolderId) {
+  const file = await getFile(inboxFolderId);
+  return {
+    fileId: file.id,
+    mailbox: parseMailbox(file.description)
+  };
+}
+
+async function writeMailbox(inboxFolderId, mailbox) {
+  await updateDriveFileMetadata(inboxFolderId, {
+    description: JSON.stringify(mailbox, null, 2)
+  });
+}
+
+async function main() {
+  const cli = parseArgs(process.argv.slice(2));
+  const config = await readLocalConfig();
+
+  if (!process.env.GOOGLE_DRIVE_ACCESS_TOKEN && config.googleDriveAccessToken) {
+    process.env.GOOGLE_DRIVE_ACCESS_TOKEN = config.googleDriveAccessToken;
+  }
+  if (!process.env.TERRA_VIVA_FFMPEG_PATH && config.ffmpegPath) {
+    process.env.TERRA_VIVA_FFMPEG_PATH = config.ffmpegPath;
+  }
+
+  const once = toBoolean(cli.once, true);
+  const pollIntervalSeconds = Number(cli["poll-interval-seconds"] || 20);
+
+  if (!config.driveFolderId) {
+    throw new Error("Missing driveFolderId in terra-viva.publisher.local.json.");
+  }
+
+  async function handleQueueCycle() {
+    const { mailbox } = await readMailbox(config.driveFolderId);
+    const order = mailbox.order;
+
+    if (!order) {
+      console.log("No website publisher orders found.");
+      return false;
+    }
+
+    console.log(`Processing website order ${order.id} (${order.action})`);
+    await writeMailbox(config.driveFolderId, {
+      ...mailbox,
+      order,
+      status: buildStatusPayload(
+        order,
+        "running",
+        order.action === "process_draft"
+          ? "La laptop ya empezo a procesar el borrador."
+          : "La laptop ya empezo a publicar el borrador aprobado."
+      )
+    });
+
+    try {
+      const result = await processOrder(order);
+      await writeMailbox(config.driveFolderId, {
+        ...mailbox,
+        order: null,
+        status: buildStatusPayload(
+          order,
+          "succeeded",
+          order.action === "process_draft"
+            ? "El borrador termino bien y ya puede revisarse en linea."
+            : "La publicacion termino bien y ya quedo disponible para clientas.",
+          result
+        )
+      });
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown publisher error.";
+      await writeMailbox(config.driveFolderId, {
+        ...mailbox,
+        order: null,
+        status: buildStatusPayload(order, "failed", message)
+      });
+      throw error;
+    }
+  }
+
+  if (once) {
+    await handleQueueCycle();
+    return;
+  }
+
+  console.log(`Watching website publisher queue every ${pollIntervalSeconds}s...`);
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      await handleQueueCycle();
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, pollIntervalSeconds * 1000)
+    );
+  }
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});

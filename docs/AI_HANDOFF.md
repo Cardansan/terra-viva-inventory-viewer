@@ -47,7 +47,7 @@ Los contratos principales estan en `lib/catalogTypes.ts`:
 
 ## Estrategia de video actual
 
-El repo incluye `public/videos/terra-viva-proto-inventory.mp4` solo como fixture temporal. Los videos reales futuros no deben subirse a Git. La fuente gratuita inicial sera Google Drive con carpetas por fecha y maximo 3 dias activos.
+El repo incluye `public/videos/terra-viva-proto-inventory.mp4` solo como fixture temporal. Los videos reales futuros no deben subirse a Git. La fuente gratuita inicial sera Google Drive usando un Inbox raiz para pendientes y una carpeta `Procesados/YYYY-MM-DD` para lo ya publicado.
 
 ## Que NO hacer todavia
 
@@ -101,19 +101,21 @@ No asumir que GitHub Pages "ejecuta" procesos. La web solo muestra UI y mas adel
 - Todavia no sube archivos a Google Drive; es preparacion UI para la siguiente fase.
 - `lib/drivePaths.ts` centraliza la convencion `Terra Viva/Inbox - Videos por publicar` y `Terra Viva/Procesados/YYYY-MM-DD`.
 
-## Pipeline Drive-first 24h
+## Pipeline Drive-first por cola de pendientes
 
 - El prompt vigente cambio el flujo a `Terra Viva / Inbox - Videos por publicar`.
 - Mama no crea carpetas por dia.
 - El flujo correcto de Fase A ya no es "subir y publicar directo"; primero debe existir procesamiento de borrador y luego aprobacion.
-- `scripts/publish-catalog.mjs` toma videos subidos en las ultimas 24 horas y ordena por `createdTime`/`modifiedTime`.
+- `scripts/publish-catalog.mjs` toma todos los videos pendientes del Inbox raiz y los ordena por `createdTime`/`modifiedTime`.
 - `npm run process:catalog-draft` usa el mismo script con `--workflow draft` y escribe a `public/catalog-drafts/`.
 - El borrador actual debe abrirse en `/drafts/current`; borradores por fecha van en `/drafts/[date]`.
 - `CatalogViewer` ya tiene modo `draftReview` para ocultar acciones de clienta en rutas de borrador.
+- `CatalogViewer` no debe reutilizar `localStorage` admin en rutas publicadas ni de borrador; el catalogo compartido debe venir del JSON generado.
 - El publicador ya puede usar un catalogo guardado del admin como base de publicacion final.
 - Salidas generadas: `public/catalog/YYYY-MM-DD/catalog.json`, `public/catalog/YYYY-MM-DD/thumbnails/` y `public/catalog/current-catalog.json`.
 - Salidas de borrador: `public/catalog-drafts/YYYY-MM-DD/catalog.json` y `public/catalog-drafts/current-draft.json`.
 - IDs estables nuevos: `moment-YYYY-MM-DD-001`.
+- `CatalogVideo` ahora puede guardar `driveFileId` y `driveFileName` para que la publicacion final sepa exactamente que archivos mover a `Procesados/YYYY-MM-DD`.
 - `lib/catalogRepository.ts` lee catalogos generados en build time y cae a `mockCatalogData` si no existen.
 - `lib/catalogRepository.ts` tambien detecta borradores procesados y hace que admin los priorice.
 - Workflow manual: `.github/workflows/publish-catalog.yml`, pensado para runner self-hosted con etiqueta `terra-viva-publisher`.
@@ -125,3 +127,11 @@ No asumir que GitHub Pages "ejecuta" procesos. La web solo muestra UI y mas adel
 - Bloqueante real al 2026-06-19: falta completar un build/deploy limpio para que el borrador online quede visible en GitHub Pages y cerrar el flujo de aprobacion/publicacion final.
 - Shortcuts actuales en escritorio: `Terra Viva - Procesar borrador` y `Terra Viva - Publicar catalogo`.
 - Pendiente real: disparar la publicacion final desde un flujo mas amigable, credenciales Drive robustas de larga duracion y una corrida real con videos disponibles en Inbox.
+- La explicacion de por que solo salieron 9 momentos en la primera corrida ya esta documentada en `docs/PUBLISHING_PIPELINE.md`: el limite era hardcoded y no habia deteccion de estabilidad.
+- Los parametros nuevos de borrador viven en `terra-viva.publisher.example.json` y `scripts/publish-catalog.mjs`:
+  - `momentStartOffsetSeconds`
+  - `momentIntervalSeconds`
+  - `momentEndBufferSeconds`
+  - `minMomentsPerVideo`
+  - `maxMomentsPerVideo`
+- Antes de tocar deteccion avanzada, leer `docs/VIDEO_CAPTURE_GUIDELINES.md`.

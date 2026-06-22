@@ -1,10 +1,14 @@
 {
   "driveFolderId": "DRIVE_INBOX_FOLDER_ID",
-  "lookbackHours": 24,
   "moveProcessed": true,
   "trashOld": false,
   "catalogDateMode": "today",
   "nodePath": "C:/Program Files/nodejs/node.exe",
   "ffmpegPath": "C:/ffmpeg/bin/ffmpeg.exe",
-  "googleDriveAccessToken": "PON_AQUI_UN_TOKEN_TEMPORAL_SI_AUN_NO_HAY_OAUTH"
+  "googleDriveAccessToken": "PON_AQUI_UN_TOKEN_TEMPORAL_SI_AUN_NO_HAY_OAUTH",
+  "momentStartOffsetSeconds": 6,
+  "momentIntervalSeconds": 8,
+  "momentEndBufferSeconds": 12,
+  "minMomentsPerVideo": 6,
+  "maxMomentsPerVideo": 24
 }

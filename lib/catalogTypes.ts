@@ -17,6 +17,8 @@ export type CatalogVideo = {
   url: string;
   durationSeconds: number;
   order: number;
+  driveFileId?: string;
+  driveFileName?: string;
 };
 
 export type TreeMoment = {

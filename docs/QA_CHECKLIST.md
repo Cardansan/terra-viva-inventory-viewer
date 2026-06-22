@@ -65,6 +65,15 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] Momentos `sold` siguen existiendo para admin.
 - [x] La numeracion publica es continua despues de filtrar vendidos.
 - [x] Galeria publica no muestra etiquetas de estado ni timestamps.
+
+## Checks draft/public separation y admin mobile
+
+- [x] `/drafts/current` muestra mensaje de revision interna.
+- [x] `/catalog/[date]` publicado no muestra mensajes de borrador.
+- [x] El header admin ya no es sticky en mobile.
+- [x] `Vista de Cliente` ya no vive en la parte superior del admin.
+- [x] Las herramientas manuales de respaldo quedaron relegadas a una seccion secundaria.
+- [x] La lista de arboles vuelve a ser el centro del admin en celular.
 ## Checks seleccion multiple
 
 - [x] `Agregar a mi seleccion` agrega el arbol actual.
@@ -87,8 +96,8 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [ ] El admin prioriza el borrador procesado mas reciente sobre estado local viejo.
 - [ ] El admin muestra una pantalla de aprobacion antes de publicar.
 - [ ] En modo `draft` no se mueven archivos a `Procesados`.
-- [ ] Con dry-run, lista videos de ultimas 24 horas sin modificar Drive.
-- [ ] Ignora videos mas viejos que `lookbackHours`.
+- [ ] Con dry-run, lista todos los videos pendientes del Inbox raiz sin modificar Drive.
+- [ ] No depende de ventana de 24 horas ni de `lookbackHours`.
 - [ ] Ordena videos por `createdTime` ascendente.
 - [ ] Usa `modifiedTime` si falta `createdTime`.
 - [ ] Genera IDs estables `moment-YYYY-MM-DD-001`.
@@ -98,6 +107,7 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [ ] No mueve archivos si falla publicacion.
 - [ ] Mueve solo archivos usados si publicacion fue exitosa.
 - [ ] Crea `Procesados/YYYY-MM-DD` si no existe.
+- [ ] Despues de publicar, el Inbox raiz queda solo con videos aun no publicados.
 - [ ] No manda nada a papelera si `trash_old=false`.
 - [ ] En dry-run muestra que mandaria a papelera.
 - [ ] No depura activo ni dos backups.

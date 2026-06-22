@@ -1,14 +1,109 @@
-import { copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { sectionFromVideoName, titleFromVideoName, toCatalogId, toMomentId, toVideoId } from "./fileNaming.mjs";
 
-const DEFAULT_TREE_MOMENTS_PER_VIDEO = 9;
 const DEFAULT_VIDEO_DURATION_SECONDS = 175;
 const PLACEHOLDER_VIDEO_URL = "/videos/terra-viva-proto-inventory.mp4";
 const PLACEHOLDER_THUMBNAIL_URL = "/placeholder-tree.svg";
+const DEFAULT_MOMENT_GENERATION = Object.freeze({
+  startOffsetSeconds: 6,
+  intervalSeconds: 8,
+  endBufferSeconds: 12,
+  minMomentsPerVideo: 6,
+  maxMomentsPerVideo: 24
+});
 
 function getCatalogAssetBasePath(date, workflow = "publish") {
   return workflow === "draft" ? `/catalog-drafts/${date}` : `/catalog/${date}`;
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
+}
+
+function toPositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function normalizeMomentGenerationConfig(config = {}) {
+  const startOffsetSeconds = toPositiveNumber(
+    config.startOffsetSeconds,
+    DEFAULT_MOMENT_GENERATION.startOffsetSeconds
+  );
+  const intervalSeconds = toPositiveNumber(
+    config.intervalSeconds,
+    DEFAULT_MOMENT_GENERATION.intervalSeconds
+  );
+  const endBufferSeconds = toPositiveNumber(
+    config.endBufferSeconds,
+    DEFAULT_MOMENT_GENERATION.endBufferSeconds
+  );
+  const minMomentsPerVideo = Math.max(
+    1,
+    Math.round(
+      toPositiveNumber(
+        config.minMomentsPerVideo,
+        DEFAULT_MOMENT_GENERATION.minMomentsPerVideo
+      )
+    )
+  );
+  const maxMomentsPerVideo = Math.max(
+    minMomentsPerVideo,
+    Math.round(
+      toPositiveNumber(
+        config.maxMomentsPerVideo,
+        DEFAULT_MOMENT_GENERATION.maxMomentsPerVideo
+      )
+    )
+  );
+
+  return {
+    startOffsetSeconds,
+    intervalSeconds,
+    endBufferSeconds,
+    minMomentsPerVideo,
+    maxMomentsPerVideo
+  };
+}
+
+export function buildMomentTimestampsForVideo(durationSeconds, rawConfig = {}) {
+  const config = normalizeMomentGenerationConfig(rawConfig);
+  const effectiveDuration = Math.max(
+    durationSeconds || DEFAULT_VIDEO_DURATION_SECONDS,
+    config.startOffsetSeconds + 1
+  );
+  const adaptiveEndBufferSeconds = Math.min(
+    config.endBufferSeconds,
+    Math.max(2, effectiveDuration * 0.2)
+  );
+  const firstTimestamp = Math.min(
+    config.startOffsetSeconds,
+    Math.max(0, effectiveDuration - 1)
+  );
+  const lastTimestamp = Math.max(
+    firstTimestamp,
+    effectiveDuration - adaptiveEndBufferSeconds
+  );
+  const usableRange = Math.max(0, lastTimestamp - firstTimestamp);
+  const estimatedCount =
+    Math.floor(usableRange / config.intervalSeconds) + 1;
+  const maxFeasibleCount = Math.max(1, Math.floor(usableRange) + 1);
+  const count = clamp(
+    Math.max(estimatedCount, config.minMomentsPerVideo),
+    1,
+    Math.min(config.maxMomentsPerVideo, maxFeasibleCount)
+  );
+
+  if (count === 1) {
+    return [Math.round(firstTimestamp)];
+  }
+
+  const step = usableRange / (count - 1);
+
+  return Array.from({ length: count }, (_, index) =>
+    Math.round(firstTimestamp + step * index)
+  );
 }
 
 export function generateStableMomentIds(date, count) {
@@ -19,7 +114,8 @@ export function buildCatalogFromVideos({
   date,
   driveVideos,
   usePlaceholderMedia,
-  workflow = "publish"
+  workflow = "publish",
+  momentGeneration
 }) {
   const catalogDayId = toCatalogId(date);
   const assetBasePath = getCatalogAssetBasePath(date, workflow);
@@ -33,28 +129,37 @@ export function buildCatalogFromVideos({
       ? PLACEHOLDER_VIDEO_URL
       : file.webContentLink || file.webViewLink || PLACEHOLDER_VIDEO_URL,
     durationSeconds: Number(file.durationSeconds || DEFAULT_VIDEO_DURATION_SECONDS),
-    order: index + 1
+    order: index + 1,
+    driveFileId: file.id,
+    driveFileName: file.name
   }));
 
-  const totalMoments = Math.max(videos.length * DEFAULT_TREE_MOMENTS_PER_VIDEO, videos.length);
-  const stableIds = generateStableMomentIds(date, totalMoments);
+  const generatedMoments = videos.flatMap((video) =>
+    buildMomentTimestampsForVideo(video.durationSeconds, momentGeneration).map(
+      (timestampSeconds) => ({
+        video,
+        timestampSeconds
+      })
+    )
+  );
+  const stableIds = generateStableMomentIds(date, generatedMoments.length);
 
-  const moments = stableIds.map((id, index) => {
-    const video = videos[Math.floor(index / DEFAULT_TREE_MOMENTS_PER_VIDEO)] || videos[0];
+  const moments = generatedMoments.map(({ video, timestampSeconds }, index) => {
     const treeNumber = index + 1;
 
     return {
-      id,
+      id: stableIds[index],
       catalogDayId,
       videoId: video.id,
       treeNumber,
-      timestampSeconds: 6 + (index % DEFAULT_TREE_MOMENTS_PER_VIDEO) * 8,
+      timestampSeconds,
       thumbnailUrl: usePlaceholderMedia
         ? PLACEHOLDER_THUMBNAIL_URL
         : `${assetBasePath}/thumbnails/tree-${String(treeNumber).padStart(3, "0")}.jpg`,
       sectionLabel: video.sectionLabel,
       status: "available",
-      notes: "Generado automaticamente desde Drive Inbox; revisar disponibilidad en admin."
+      notes:
+        "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
     };
   });
 
@@ -73,13 +178,15 @@ export function mergeAdminCatalogWithDriveVideos({
   date,
   driveVideos,
   usePlaceholderMedia,
-  workflow = "publish"
+  workflow = "publish",
+  momentGeneration
 }) {
   const generatedCatalog = buildCatalogFromVideos({
     date,
     driveVideos,
     usePlaceholderMedia,
-    workflow
+    workflow,
+    momentGeneration
   });
   const assetBasePath = getCatalogAssetBasePath(date, workflow);
 
@@ -97,7 +204,9 @@ export function mergeAdminCatalogWithDriveVideos({
       durationSeconds: video.durationSeconds,
       order: index + 1,
       title: adminVideo.title || video.title,
-      sectionLabel: adminVideo.sectionLabel || video.sectionLabel
+      sectionLabel: adminVideo.sectionLabel || video.sectionLabel,
+      driveFileId: video.driveFileId,
+      driveFileName: video.driveFileName
     };
   });
 
@@ -233,6 +342,7 @@ export async function copyDraftThumbnailsToPublishedCatalog({
     "thumbnails"
   );
 
+  await rm(targetDir, { recursive: true, force: true });
   await mkdir(targetDir, { recursive: true });
 
   const entries = await readdir(sourceDir, { withFileTypes: true });

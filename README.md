@@ -49,7 +49,7 @@ El pipeline operativo evita Supabase y Apps Script. Mama sube videos a:
 Terra Viva / Inbox - Videos por publicar
 ```
 
-El publicador toma los videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera `public/catalog/YYYY-MM-DD/catalog.json` y actualiza `public/catalog/current-catalog.json`.
+El publicador toma todos los videos pendientes que sigan en la carpeta Inbox de Drive, los ordena por `createdTime`/`modifiedTime`, genera `public/catalog/YYYY-MM-DD/catalog.json` y actualiza `public/catalog/current-catalog.json`.
 
 Ahora existe tambien un paso formal de borrador:
 
@@ -159,7 +159,8 @@ Importante sobre Drive:
 - Tambien hace falta una credencial local de Drive; por ahora el lanzador acepta `googleDriveAccessToken` en ese archivo o `GOOGLE_DRIVE_ACCESS_TOKEN` en el entorno.
 - Si `ffmpeg` esta disponible, `Procesar borrador` ya genera thumbnails reales.
 - `Publicar catalogo` exige `catalogInputFile` para no publicar un catalogo no revisado.
-- El Inbox debe contener los videos directamente en esa carpeta; si estan dentro de otra subcarpeta, el pipeline actual no los encontrara.
+- El Inbox debe contener los videos directamente en esa carpeta raiz; si estan dentro de otra subcarpeta, el pipeline actual no los encontrara.
+- Despues de una publicacion exitosa, el pipeline mueve esos videos a `Terra Viva/Procesados/YYYY-MM-DD`, dejando el Inbox raiz como la cola real de pendientes.
 
 ## Organizacion
 
@@ -202,3 +203,24 @@ El admin ya puede exportar el catalogo activo a un archivo JSON e importarlo en 
 - Esto permite mover el trabajo entre dispositivos sin backend pagado.
 - El admin ya muestra una etapa de `Aprobar publicacion` cuando el catalogo activo es un borrador.
 - El publicador ya puede usar ese catalogo guardado como base de publicacion final.
+
+## Deteccion de momentos y siguiente mejora
+
+La deteccion actual todavia no usa IA ni analiza estabilidad real. En esta fase el pipeline genera momentos candidatos recorriendo la duracion del video con un espaciado configurable.
+
+- Antes estaba fijo en `9` momentos por video, lo que explicaba catalogos incompletos.
+- Ahora el borrador reparte momentos a lo largo de casi toda la duracion del video.
+- Parametros disponibles en `terra-viva.publisher.local.json`:
+  - `momentStartOffsetSeconds`
+  - `momentIntervalSeconds`
+  - `momentEndBufferSeconds`
+  - `minMomentsPerVideo`
+  - `maxMomentsPerVideo`
+
+Recomendacion inicial para probar mas arboles en un recorrido largo:
+
+- mantener `momentIntervalSeconds` entre `5` y `7`,
+- dejar `maxMomentsPerVideo` entre `24` y `36`,
+- revisar el borrador y ocultar lo que no sirva.
+
+Guia de grabacion recomendada: [`docs/VIDEO_CAPTURE_GUIDELINES.md`](docs/VIDEO_CAPTURE_GUIDELINES.md).

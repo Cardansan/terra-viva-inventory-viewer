@@ -7,7 +7,7 @@ El flujo elegido es Drive-first y semi-manual:
 1. Mama sube videos a `Terra Viva / Inbox - Videos por publicar`.
 2. Carlos prende la laptop.
 3. Se corre primero un procesamiento de borrador local o desde un GitHub Action con runner self-hosted.
-4. Ese procesamiento toma videos subidos en las ultimas 24 horas y genera un catalogo borrador con momentos candidatos.
+4. Ese procesamiento toma todos los videos pendientes que siguen dentro del Inbox raiz y genera un catalogo borrador con momentos candidatos.
 5. El borrador se revisa en admin y se aprueban los momentos que si deben quedar visibles.
 6. Despues se ejecuta la publicacion final con `scripts/publish-catalog.mjs`.
 7. La publicacion final genera `public/catalog/YYYY-MM-DD/catalog.json`.
@@ -19,18 +19,37 @@ No se usa Supabase, Apps Script, puertos abiertos ni credenciales en frontend.
 
 Este no es solo un puente temporal: es el plan operativo base para evitar suscripciones mientras el volumen del negocio lo permita.
 
+## Flujo web de ordenes
+
+Ademas del flujo por accesos directos, ya existe un flujo semi-automatizado disparado desde la web:
+
+1. Admin abre `/admin`.
+2. Pega un token temporal de Drive en el navegador.
+3. La web guarda una orden en la metadata de la carpeta Inbox de Drive.
+4. La laptop con `scripts/process-drive-orders.mjs` consulta esa metadata.
+5. Cuando detecta una orden:
+   - corre `process_draft`, o
+   - corre `publish_approved`.
+6. La laptop escribe de vuelta un estado:
+   - `queued`
+   - `running`
+   - `succeeded`
+   - `failed`
+
+Eso evita abrir puertos, evita un backend pagado y sigue usando Drive como punto de coordinacion.
+
 ## Comandos
 
 Dry-run seguro:
 
 ```bash
-pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --lookback-hours 24 --dry-run true --move-processed true
+pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --dry-run true --move-processed true
 ```
 
 Prueba sin Drive real usando media placeholder:
 
 ```bash
-pnpm publish:catalog -- --use-placeholder-media --lookback-hours 24 --dry-run true
+pnpm publish:catalog -- --use-placeholder-media --dry-run true
 ```
 
 Procesar borrador real desde Windows:
@@ -48,13 +67,13 @@ TerraViva - Publicar catalogo.cmd
 Publicacion real:
 
 ```bash
-pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --lookback-hours 24 --dry-run false --move-processed true --trash-old false
+pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --dry-run false --move-processed true --trash-old false
 ```
 
 Usar fecha manual si los videos cruzaron medianoche:
 
 ```bash
-pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --date 2026-06-16 --lookback-hours 24
+pnpm publish:catalog -- --drive-folder-id DRIVE_INBOX_FOLDER_ID --date 2026-06-16
 ```
 
 ## Salidas generadas
@@ -89,12 +108,18 @@ Validacion real completada el 2026-06-19:
 
 Operaciones reales preparadas:
 
-- listar videos del Inbox,
-- filtrar por `createdTime` o `modifiedTime`,
+- listar videos pendientes del Inbox raiz,
 - ordenar por fecha ascendente,
 - crear `Procesados/YYYY-MM-DD`,
 - mover archivos usados despues de una publicacion exitosa,
 - mandar antiguos a papelera en una fase segura posterior.
+
+Modelo operativo vigente del Inbox:
+
+- El Inbox raiz funciona como cola de videos pendientes.
+- `process_draft` toma todos los videos que sigan ahi.
+- `publish_approved` mueve a `Procesados/YYYY-MM-DD` solo los videos asociados al catalogo publicado.
+- Ya no depende de una ventana de 24 horas para saber que procesar.
 
 ## Estado actual
 
@@ -112,12 +137,75 @@ Implementado:
 - Generacion real de thumbnails con `ffmpeg` cuando hay videos descargados y `ffmpeg` disponible.
 - `ffmpeg` instalado localmente via `winget`.
 - Shortcut de escritorio para `Procesar borrador` y `Publicar catalogo`.
+- Worker local que escucha ordenes web: `scripts/process-drive-orders.mjs`.
+- Panel admin para crear ordenes web y leer estado reciente.
+
+Validacion real completada el `2026-06-22`:
+
+- una orden web `process_draft` fue tomada por la laptop,
+- se reprocesaron 3 videos reales,
+- se detectaron `15` momentos,
+- se generaron `15` thumbnails reales,
+- despues una orden web `publish_approved` actualizo el catalogo publico `2026-06-22`,
+- el catalogo publicado quedo tambien con `15` momentos y `15` thumbnails.
 
 Pendiente antes de operacion real:
 
 - Autenticacion Drive robusta para laptop.
-- Refresh token usable por script sin depender de Playground.
+- Renovacion o reemplazo del token temporal para que el feedback web no caiga en `401` cuando expira.
 - Validacion completa antes de mover archivos en Drive.
 - Retencion real conectada a carpetas `Procesados`.
 - Instalador minimo para que el publicador pueda correr sin Codex.
 - Confirmar que los videos reales se suben directamente a la carpeta Inbox correcta y no a una subcarpeta distinta.
+
+## Por que solo salieron 9 momentos en la primera corrida real
+
+La causa principal no fue Drive ni `ffmpeg`. Fue el generador de borradores.
+
+- El algoritmo inicial estaba hardcodeado a `9` momentos por video.
+- Ademas, esos timestamps solo cubrian la primera parte del video.
+- No habia todavia deteccion por pausas, estabilidad ni analisis de movimiento.
+
+Eso significa que un video con 20 o mas arboles podia terminar con un borrador de solo 9 candidatos aunque el recorrido completo mostrara muchas mas piezas.
+
+## Parametros actuales para mejorar el siguiente borrador
+
+El publicador ahora acepta estos parametros de generacion:
+
+- `momentStartOffsetSeconds`
+- `momentIntervalSeconds`
+- `momentEndBufferSeconds`
+- `minMomentsPerVideo`
+- `maxMomentsPerVideo`
+
+Funcionan asi:
+
+- `momentStartOffsetSeconds`: evita capturar los primeros segundos mientras empieza el paneo.
+- `momentIntervalSeconds`: cada cuantos segundos se propone un momento nuevo.
+- `momentEndBufferSeconds`: deja fuera el tramo final donde suele haber movimiento de salida.
+- `minMomentsPerVideo`: piso de candidatos aunque el video sea corto.
+- `maxMomentsPerVideo`: techo para no saturar el borrador.
+
+Recomendacion inicial para el siguiente video real:
+
+```json
+{
+  "momentStartOffsetSeconds": 4,
+  "momentIntervalSeconds": 6,
+  "momentEndBufferSeconds": 8,
+  "minMomentsPerVideo": 8,
+  "maxMomentsPerVideo": 30
+}
+```
+
+Eso no garantiza deteccion perfecta, pero si hace que el borrador recorra mucho mejor un video largo y evita el cuello de botella artificial de 9 momentos.
+
+## Siguiente mejora esperada
+
+La siguiente evolucion real de calidad es Fase 5 del roadmap:
+
+- detectar pausas o tramos estables,
+- proponer candidatos en esos tramos en lugar de solo muestrear por tiempo,
+- luego dejar la correccion final a mama en admin.
+
+Mientras tanto, la calidad del borrador depende mucho del estilo de grabacion. Ver [`docs/VIDEO_CAPTURE_GUIDELINES.md`](docs/VIDEO_CAPTURE_GUIDELINES.md).

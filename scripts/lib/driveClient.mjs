@@ -63,10 +63,20 @@ export async function downloadDriveFile(fileId, destination) {
   return destination;
 }
 
-async function getFile(fileId) {
+export async function getFile(fileId) {
   const response = await driveFetch(
-    `${DRIVE_API_BASE}/files/${fileId}?fields=${encodeURIComponent("id,name,parents")}`
+    `${DRIVE_API_BASE}/files/${fileId}?fields=${encodeURIComponent(
+      "id,name,parents,description"
+    )}`
   );
+  return response.json();
+}
+
+export async function updateDriveFileMetadata(fileId, payload) {
+  const response = await driveFetch(`${DRIVE_API_BASE}/files/${fileId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
   return response.json();
 }
 
@@ -95,6 +105,42 @@ async function ensureChildFolder(parentId, name) {
   return (await findChildFolder(parentId, name)) || createFolder(parentId, name);
 }
 
+export async function uploadJsonFile(parentId, name, payload) {
+  const boundary = `terra-viva-${crypto.randomUUID()}`;
+  const metadata = JSON.stringify({
+    name,
+    parents: [parentId],
+    mimeType: "application/json"
+  });
+  const body = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    metadata,
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify(payload, null, 2),
+    `--${boundary}--`
+  ].join("\r\n");
+
+  const response = await driveFetch(
+    `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=${encodeURIComponent(
+      "id,name,createdTime,modifiedTime"
+    )}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`
+      },
+      body
+    }
+  );
+
+  return response.json();
+}
+
 export async function ensureProcessedFolder(date, inboxFolderId) {
   const inbox = await getFile(inboxFolderId);
   const terraVivaRootId = inbox.parents?.[0];
@@ -105,6 +151,26 @@ export async function ensureProcessedFolder(date, inboxFolderId) {
 
   const processedRoot = await ensureChildFolder(terraVivaRootId, PROCESSED_ROOT_NAME);
   return ensureChildFolder(processedRoot.id, date);
+}
+
+export async function ensureWebPublisherFolders(inboxFolderId) {
+  const inbox = await getFile(inboxFolderId);
+  const terraVivaRootId = inbox.parents?.[0];
+
+  if (!terraVivaRootId) {
+    throw new Error("No se pudo encontrar la carpeta padre del Inbox en Drive.");
+  }
+
+  const ordersFolder = await ensureChildFolder(
+    terraVivaRootId,
+    "Ordenes - Publicador Web"
+  );
+  const statusFolder = await ensureChildFolder(
+    terraVivaRootId,
+    "Estado - Publicador Web"
+  );
+
+  return { ordersFolder, statusFolder };
 }
 
 export async function moveFileToProcessed(fileId, processedFolderId, inboxFolderId) {
@@ -144,6 +210,26 @@ export async function listFilesInProcessedFolder(folderId) {
   );
   const data = await response.json();
   return data.files || [];
+}
+
+export async function listJsonFilesInFolder(folderId) {
+  const query = `'${folderId}' in parents and trashed = false and mimeType = 'application/json'`;
+  const response = await driveFetch(
+    `${DRIVE_API_BASE}/files?q=${driveQuery(query)}&fields=${encodeURIComponent(
+      "files(id,name,mimeType,createdTime,modifiedTime)"
+    )}&orderBy=createdTime desc`
+  );
+  const data = await response.json();
+  return data.files || [];
+}
+
+export async function readJsonFile(fileId) {
+  const response = await driveFetch(`${DRIVE_API_BASE}/files/${fileId}?alt=media`, {
+    headers: {
+      Authorization: `Bearer ${getAccessToken()}`
+    }
+  });
+  return response.json();
 }
 
 export const DRIVE_UPLOAD_ENDPOINT = DRIVE_UPLOAD_BASE;

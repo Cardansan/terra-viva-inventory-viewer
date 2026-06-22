@@ -1,0 +1,202 @@
+{
+  "id": "catalog-2026-06-22",
+  "date": "2026-06-22",
+  "title": "Catalogo Terra Viva - 2026-06-22",
+  "status": "draft",
+  "videos": [
+    {
+      "id": "video-2026-06-22-01",
+      "catalogDayId": "catalog-2026-06-22",
+      "title": "PXL 20260619 195222006.TS",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "url": "https://drive.google.com/uc?id=1sOGDsGlst9nxZHYd1giFfFAgdxNTpuCU&export=download",
+      "durationSeconds": 23.808633,
+      "order": 1
+    },
+    {
+      "id": "video-2026-06-22-02",
+      "catalogDayId": "catalog-2026-06-22",
+      "title": "PXL 20260619 195255647.TS",
+      "sectionLabel": "PXL 20260619 195255647.TS",
+      "url": "https://drive.google.com/uc?id=1frms_v_tonPQ0Tc22OvYE6vLCHVg-lCh&export=download",
+      "durationSeconds": 10.862267,
+      "order": 2
+    },
+    {
+      "id": "video-2026-06-22-03",
+      "catalogDayId": "catalog-2026-06-22",
+      "title": "PXL 20260619 195346286.TS",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "url": "https://drive.google.com/uc?id=1rQyLcsJEqL0WpFj6iEzh74TTbTma0DbH&export=download",
+      "durationSeconds": 25.467556,
+      "order": 3
+    }
+  ],
+  "moments": [
+    {
+      "id": "moment-2026-06-22-001",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 1,
+      "timestampSeconds": 6,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-001.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-002",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 2,
+      "timestampSeconds": 9,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-002.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-003",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 3,
+      "timestampSeconds": 11,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-003.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-004",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 4,
+      "timestampSeconds": 14,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-004.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-005",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 5,
+      "timestampSeconds": 16,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-005.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-006",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-01",
+      "treeNumber": 6,
+      "timestampSeconds": 19,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-006.jpg",
+      "sectionLabel": "PXL 20260619 195222006.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-007",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-02",
+      "treeNumber": 7,
+      "timestampSeconds": 6,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-007.jpg",
+      "sectionLabel": "PXL 20260619 195255647.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-008",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-02",
+      "treeNumber": 8,
+      "timestampSeconds": 7,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-008.jpg",
+      "sectionLabel": "PXL 20260619 195255647.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-009",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-02",
+      "treeNumber": 9,
+      "timestampSeconds": 9,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-009.jpg",
+      "sectionLabel": "PXL 20260619 195255647.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-010",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 10,
+      "timestampSeconds": 6,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-010.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-011",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 11,
+      "timestampSeconds": 9,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-011.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-012",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 12,
+      "timestampSeconds": 12,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-012.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-013",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 13,
+      "timestampSeconds": 15,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-013.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-014",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 14,
+      "timestampSeconds": 17,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-014.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    },
+    {
+      "id": "moment-2026-06-22-015",
+      "catalogDayId": "catalog-2026-06-22",
+      "videoId": "video-2026-06-22-03",
+      "treeNumber": 15,
+      "timestampSeconds": 20,
+      "thumbnailUrl": "/catalog-drafts/2026-06-22/thumbnails/tree-015.jpg",
+      "sectionLabel": "PXL 20260619 195346286.TS",
+      "status": "available",
+      "notes": "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+    }
+  ]
+}

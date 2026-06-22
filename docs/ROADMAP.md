@@ -12,7 +12,7 @@
 7. Hecho: mejorar links compartidos de seleccion; cuando se abre `?selection=...`, muestra banner `Seleccion actual del cliente/a`, renderiza solo los arboles seleccionados y oculta la galeria completa del catalogo.
 8. Evaluar y corregir identificacion de arboles en links y WhatsApp: el numero visible se recalcula tras filtrar vendidos, pero el enlace debe usar un identificador estable del momento para evitar confusion. Propuesta base en `docs/TREE_IDENTIFICATION.md`.
 9. En progreso: subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro; ya existe panel local de preparacion, pendiente guardar en Drive Inbox.
-10. En progreso: publicador Drive-first 24h desde `Terra Viva/Inbox - Videos por publicar`; ya existe CLI, workflow self-hosted, lectura de catalogos generados, `ffmpeg` instalado y autenticacion temporal a Drive validada. Bloqueante actual: el Inbox real configurado todavia no devuelve videos utilizables al pipeline.
+10. En progreso: publicador Drive-first desde `Terra Viva/Inbox - Videos por publicar`; ya existe CLI, workflow self-hosted, lectura de catalogos generados, `ffmpeg` instalado y autenticacion temporal a Drive validada. El Inbox raiz funciona como cola de pendientes y los videos se mueven a `Procesados/YYYY-MM-DD` tras publicar.
 11. En progreso: borrador online separado del catalogo publicado. La arquitectura nueva usa `/drafts/current` y `/drafts/[date]` para revisar en linea antes de publicar; falta completar deploy limpio y amarrarlo al flujo de aprobacion desde admin.
 12. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
 13. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
@@ -20,6 +20,8 @@
 15. En progreso: retencion de inventario conserva catalogo activo + dos backups; pendiente papelera real en Drive.
 16. Definir instalador minimo para laptop de mama: `.bat`, acceso directo o ejecutable que corra el publicador sin abrir Codex.
 17. Documentar procedimiento de recuperacion: restaurar desde `public/catalog`, Drive Procesados o git history.
+18. Alta prioridad: terminar la separacion limpia entre borrador y catalogo publicado en UX, para que la vista cliente nunca muestre mensajes internos de revision.
+19. Alta prioridad: calibrar generacion de momentos del borrador con parametros por duracion antes de implementar deteccion real por estabilidad.
 
 ## Roadmap de independencia operativa
 
@@ -39,7 +41,7 @@ Grabar videos -> Drive Inbox -> procesar borrador en laptop -> subir borrador on
 - Carlos prende su laptop cuando ella avisa que ya subio videos.
 - Carlos corre primero un procesamiento de borrador por script local o GitHub Action con self-hosted runner.
 - Ya existen accesos directos en el escritorio para `Procesar borrador` y `Publicar catalogo`.
-- El procesamiento toma videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera momentos candidatos, miniaturas reales y un catalogo borrador.
+- El procesamiento toma todos los videos pendientes del Inbox raiz, los ordena por `createdTime`/`modifiedTime`, genera momentos candidatos, miniaturas reales y un catalogo borrador.
 - El borrador se escribe en `public/catalog-drafts/YYYY-MM-DD/` y actualiza `public/catalog-drafts/current-draft.json`.
 - La web debe exponer ese borrador en una ruta separada, por ejemplo `/drafts/current`, para poder revisarlo desde cualquier telefono sin tocar aun el catalogo publicado.
 - Mama o Carlos revisan ese borrador en admin o en la ruta online de borrador: corrigen visibilidad, numeros, timestamps, secciones y notas.
@@ -105,10 +107,10 @@ Criterio para iniciar: la laptop ya demostro ser una friccion real. Si la laptop
 - Guardar cambios de momentos y estados.
 - Publicar/despublicar catalogos.
 
-## Fase 3: Drive Inbox y publicador 24h
+## Fase 3: Drive Inbox y publicador por cola de pendientes
 
 - Mama sube videos a `Terra Viva/Inbox - Videos por publicar`.
-- El publicador toma archivos subidos en las ultimas 24 horas.
+- El publicador toma los archivos que sigan en el Inbox raiz.
 - Convencion de carpeta unica `Terra Viva/Inbox - Videos por publicar`.
 - Mover procesados a `Terra Viva/Procesados/YYYY-MM-DD`.
 - Mantener activo + dos backups funcionales para costo cero.
@@ -126,6 +128,7 @@ Criterio para iniciar: la laptop ya demostro ser una friccion real. Si la laptop
 - Analisis de movimiento entre frames.
 - Candidatos de momentos estables.
 - Revision manual antes de publicar.
+- Usar la calibracion temporal actual como base de comparacion para medir si la deteccion por estabilidad realmente mejora la cobertura.
 
 ## Fase 6: crops/manual spotlight
 

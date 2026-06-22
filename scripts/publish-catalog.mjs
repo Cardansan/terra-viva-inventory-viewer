@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -18,8 +18,9 @@ import {
   listInboxVideos,
   moveFileToProcessed
 } from "./lib/driveClient.mjs";
-import { isDriveVideo, isWithinLookback, sortDriveVideos } from "./lib/dateFilters.mjs";
+import { isDriveVideo, sortDriveVideos } from "./lib/dateFilters.mjs";
 import { generateThumbnailsForCatalog } from "./lib/ffmpegThumbnails.mjs";
+import { probeVideoDurationSeconds } from "./lib/videoMetadata.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -54,6 +55,11 @@ function toBoolean(value, defaultValue) {
   }
 
   return ["1", "true", "yes", "si"].includes(String(value).toLowerCase());
+}
+
+function toFiniteNumber(value, defaultValue) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : defaultValue;
 }
 
 function getWorkflowOutputDir(projectRoot, workflow, date) {
@@ -166,7 +172,6 @@ async function main() {
     process.env.TERRA_VIVA_FFMPEG_PATH = path.resolve(projectRoot, config.ffmpegPath);
   }
   const driveFolderId = cli["drive-folder-id"] || config.driveFolderId;
-  const lookbackHours = Number(cli["lookback-hours"] || config.lookbackHours || 24);
   const dryRun = toBoolean(cli["dry-run"], true);
   const moveProcessed = toBoolean(cli["move-processed"], Boolean(config.moveProcessed));
   const trashOld = toBoolean(cli["trash-old"], Boolean(config.trashOld));
@@ -177,6 +182,32 @@ async function main() {
   const verbose = toBoolean(cli.verbose, true);
   const runId = cli["run-id"] || now.toISOString().replace(/[:.]/g, "-");
   const thumbnailMode = cli["thumbnail-mode"] || config.thumbnailMode || "manifest";
+  const maxVideosPerRun = toFiniteNumber(
+    cli["max-videos"] ?? config.maxVideosPerRun,
+    0
+  );
+  const momentGeneration = {
+    startOffsetSeconds: toFiniteNumber(
+      cli["moment-start-offset-seconds"] ?? config.momentStartOffsetSeconds,
+      6
+    ),
+    intervalSeconds: toFiniteNumber(
+      cli["moment-interval-seconds"] ?? config.momentIntervalSeconds,
+      8
+    ),
+    endBufferSeconds: toFiniteNumber(
+      cli["moment-end-buffer-seconds"] ?? config.momentEndBufferSeconds,
+      12
+    ),
+    minMomentsPerVideo: toFiniteNumber(
+      cli["min-moments-per-video"] ?? config.minMomentsPerVideo,
+      6
+    ),
+    maxMomentsPerVideo: toFiniteNumber(
+      cli["max-moments-per-video"] ?? config.maxMomentsPerVideo,
+      24
+    )
+  };
   const adminCatalog = await readAdminCatalogFile(adminCatalogFile);
   const date =
     cli.date ||
@@ -203,13 +234,20 @@ async function main() {
 
   console.log(`Terra Viva publisher`);
   console.log(`Fecha de catalogo: ${date}`);
-  console.log(`Lookback: ${lookbackHours} horas`);
   console.log(`Dry-run: ${dryRun}`);
   console.log(`Mover procesados: ${moveProcessed}`);
   console.log(`Depurar antiguos: ${trashOld}`);
   console.log(`Modo: ${workflow}`);
   console.log(`Verbose: ${verbose}`);
   console.log(`Thumbnails: ${thumbnailMode}`);
+  console.log(
+    maxVideosPerRun > 0
+      ? `Max videos por corrida: ${maxVideosPerRun}`
+      : "Max videos por corrida: sin limite (todos los videos pendientes en Inbox)"
+  );
+  console.log(
+    `Momentos por video: cada ~${momentGeneration.intervalSeconds}s desde ${momentGeneration.startOffsetSeconds}s hasta dejar ${momentGeneration.endBufferSeconds}s al final (min ${momentGeneration.minMomentsPerVideo}, max ${momentGeneration.maxMomentsPerVideo})`
+  );
   console.log(
     adminCatalogFile
       ? `Catalogo admin cargado desde: ${adminCatalogFile}`
@@ -228,31 +266,72 @@ async function main() {
       ? await listInboxVideos(driveFolderId)
       : [];
 
-  const recentVideos = sortDriveVideos(
-    inboxFiles.filter((file) => isDriveVideo(file) && isWithinLookback(file, lookbackHours, now))
+  const pendingVideos = sortDriveVideos(
+    inboxFiles.filter((file) => isDriveVideo(file))
   );
+  const selectedVideos =
+    maxVideosPerRun > 0
+      ? pendingVideos.slice(0, maxVideosPerRun)
+      : pendingVideos;
 
-  if (needsDriveLookup && recentVideos.length === 0) {
-    throw new Error("No se encontraron videos subidos en las ultimas 24 horas en la carpeta Inbox.");
+  if (needsDriveLookup && selectedVideos.length === 0) {
+    throw new Error("No se encontraron videos pendientes en la carpeta Inbox de Drive.");
   }
 
-  console.log(`Videos seleccionados (${recentVideos.length}):`);
-  recentVideos.forEach((file, index) => {
+  console.log(`Videos seleccionados (${selectedVideos.length}):`);
+  selectedVideos.forEach((file, index) => {
     console.log(`${index + 1}. ${file.name} - ${file.createdTime || file.modifiedTime}`);
   });
-  if (workflow === "publish" && adminCatalog && recentVideos.length === 0) {
+  if (workflow === "publish" && adminCatalog && selectedVideos.length === 0) {
     console.log("Publicacion final desde aprobacion guardada; no se releera el Inbox para reconstruir el catalogo.");
   }
   logDivider();
 
+  const downloadedVideoEntries = [];
+
+  if (!usePlaceholderMedia && selectedVideos.length > 0) {
+    console.log("Preparando descarga temporal de videos...");
+    await mkdir(downloadsDir, { recursive: true });
+
+    for (const [index, file] of selectedVideos.entries()) {
+      const destination = path.join(
+        downloadsDir,
+        `${String(index + 1).padStart(2, "0")}-${sanitizeFileName(file.name)}`
+      );
+      console.log(`Descargando video ${index + 1}/${selectedVideos.length}: ${file.name}`);
+      await downloadDriveFile(file.id, destination);
+      const durationSeconds = probeVideoDurationSeconds(destination);
+      downloadedVideoEntries.push({
+        file,
+        destination,
+        durationSeconds
+      });
+
+      if (verbose) {
+        console.log(`  Duracion real detectada: ${durationSeconds.toFixed(2)}s`);
+      }
+    }
+
+    logDivider();
+  }
+
+  const driveVideosForCatalog =
+    downloadedVideoEntries.length > 0
+      ? downloadedVideoEntries.map(({ file, durationSeconds }) => ({
+          ...file,
+          durationSeconds
+        }))
+      : selectedVideos;
+
   const catalog = adminCatalog
-    ? recentVideos.length > 0
-      ? mergeAdminCatalogWithDriveVideos({
+    ? selectedVideos.length > 0
+        ? mergeAdminCatalogWithDriveVideos({
           adminCatalog,
           date,
-          driveVideos: recentVideos,
+          driveVideos: driveVideosForCatalog,
           usePlaceholderMedia,
-          workflow
+          workflow,
+          momentGeneration
         })
       : publishApprovedCatalogFromAdmin({
           adminCatalog,
@@ -260,9 +339,10 @@ async function main() {
         })
     : buildCatalogFromVideos({
         date,
-        driveVideos: recentVideos,
+        driveVideos: driveVideosForCatalog,
         usePlaceholderMedia,
-        workflow
+        workflow,
+        momentGeneration
       });
   const catalogToWrite = {
     ...catalog,
@@ -274,7 +354,7 @@ async function main() {
     console.log(`Se generarian ${catalogToWrite.moments.length} momentos con IDs estables.`);
     console.log(
       adminCatalog
-        ? recentVideos.length > 0
+        ? selectedVideos.length > 0
           ? "Se usaria el catalogo guardado del admin como base de publicacion."
           : "Se publicaria directamente el catalogo aprobado desde el borrador guardado."
         : "Se generaria un catalogo nuevo desde los videos del Inbox."
@@ -302,7 +382,7 @@ async function main() {
     console.log(`Catalogo escrito: ${catalogPath}`);
     console.log(`Catalogo actual actualizado: ${currentPath}`);
 
-    if (workflow === "publish" && adminCatalog && recentVideos.length === 0) {
+    if (workflow === "publish" && adminCatalog && selectedVideos.length === 0) {
       const copiedThumbnails = await copyDraftThumbnailsToPublishedCatalog({
         catalog: catalogToWrite,
         projectRoot
@@ -311,21 +391,14 @@ async function main() {
       logDivider();
     }
 
-    if (!usePlaceholderMedia && recentVideos.length > 0) {
-      console.log("Preparando descarga temporal de videos para generar miniaturas...");
-      await mkdir(downloadsDir, { recursive: true });
-
+    if (!usePlaceholderMedia && selectedVideos.length > 0) {
+      await rm(thumbnailsDir, { recursive: true, force: true });
+      await mkdir(thumbnailsDir, { recursive: true });
       const videoPathsByVideoId = {};
 
-      for (const [index, file] of recentVideos.entries()) {
+      for (const [index, downloaded] of downloadedVideoEntries.entries()) {
         const catalogVideo = catalogToWrite.videos[index];
-        const destination = path.join(
-          downloadsDir,
-          `${String(index + 1).padStart(2, "0")}-${sanitizeFileName(file.name)}`
-        );
-        console.log(`Descargando video ${index + 1}/${recentVideos.length}: ${file.name}`);
-        await downloadDriveFile(file.id, destination);
-        videoPathsByVideoId[catalogVideo.id] = destination;
+        videoPathsByVideoId[catalogVideo.id] = downloaded.destination;
       }
 
       const manifestPath = await writeThumbnailManifest({
@@ -359,15 +432,32 @@ async function main() {
         ? "Modo borrador: no se moveran videos a Procesados todavia."
         : "Modo borrador: videos se quedan en Inbox hasta publicar."
     );
-  } else if (moveProcessed && !dryRun && recentVideos.length > 0) {
+  } else if (moveProcessed && !dryRun) {
+    const filesToMove = selectedVideos.length > 0
+      ? selectedVideos
+      : catalogToWrite.videos
+          .filter((video) => video.driveFileId)
+          .map((video) => ({
+            id: video.driveFileId,
+            name: video.driveFileName || video.title
+          }));
+
+    if (filesToMove.length === 0) {
+      console.log("No habia videos pendientes asociados para mover a Procesados.");
+    } else {
     const processedFolder = await ensureProcessedFolder(date, driveFolderId);
-    for (const file of recentVideos) {
+    for (const file of filesToMove) {
       await moveFileToProcessed(file.id, processedFolder.id, driveFolderId);
       console.log(`Movido a Procesados/${date}: ${file.name}`);
     }
-  } else if (moveProcessed && recentVideos.length > 0) {
-    console.log(`Dry-run: se moverian ${recentVideos.length} videos a Procesados/${date}.`);
-  } else if (workflow === "publish" && adminCatalog) {
+    }
+  } else if (moveProcessed && dryRun) {
+    const moveCount =
+      selectedVideos.length > 0
+        ? selectedVideos.length
+        : catalogToWrite.videos.filter((video) => video.driveFileId).length;
+    console.log(`Dry-run: se moverian ${moveCount} videos a Procesados/${date}.`);
+  } else if (workflow === "publish" && adminCatalog && !moveProcessed) {
     console.log("Publicacion final hecha desde aprobacion guardada; no se movieron videos de Inbox.");
   }
 
