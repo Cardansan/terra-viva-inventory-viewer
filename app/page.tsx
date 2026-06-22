@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getLatestPublishedCatalog } from "@/lib/catalogRepository";
 
 export default function HomePage() {
@@ -12,7 +12,7 @@ export default function HomePage() {
             Terra Viva
           </p>
           <h1 className="mt-3 text-3xl font-bold text-terra-ink">
-            No hay catalogo publicado por ahora.
+            No hay catálogo publicado por ahora.
           </h1>
         </section>
       </main>

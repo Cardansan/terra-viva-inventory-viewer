@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CatalogDay,
   CatalogVideo,
   TreeMoment,
@@ -174,3 +174,4 @@ export function getLatestCatalogForAdmin(): CatalogDay {
     right.date.localeCompare(left.date)
   )[0];
 }
+

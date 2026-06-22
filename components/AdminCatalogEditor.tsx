@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CatalogDay, TreeMoment } from "@/lib/catalogTypes";
 import { assetPath } from "@/lib/assets";
 import {
   createInitialAdminCatalogVersions,
+  getApprovedCatalogDownloadName,
   getCatalogTransferPayload,
   isCatalogDay,
   loadAdminCatalogVersions,
@@ -18,11 +19,15 @@ import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 type AdminCatalogEditorProps = {
   initialActiveCatalog: CatalogDay;
   initialBackupCatalogs: CatalogDay[];
+  initialPublishedCatalog: CatalogDay;
+  initialDraftCatalog?: CatalogDay;
 };
 
 export function AdminCatalogEditor({
   initialActiveCatalog,
-  initialBackupCatalogs
+  initialBackupCatalogs,
+  initialPublishedCatalog,
+  initialDraftCatalog
 }: AdminCatalogEditorProps) {
   const initialVersions = useMemo(
     () =>
@@ -46,10 +51,19 @@ export function AdminCatalogEditor({
     versions.find((version) => version.catalog.id === selectedCatalogId) ??
     activeVersion ??
     versions[0];
+  const draftVersion = versions.find(
+    (version) => version.catalog.status === "draft"
+  );
+  const publishedVersion =
+    versions.find(
+      (version) =>
+        version.catalog.status === "published" && version.role === "active"
+    ) ?? versions.find((version) => version.catalog.status === "published");
 
   const activeCatalog = activeVersion?.catalog ?? selectedVersion.catalog;
   const selectedCatalog = selectedVersion.catalog;
   const isViewingActive = selectedVersion.role === "active";
+  const isDraftActive = activeCatalog.status === "draft";
 
   const availableCount = useMemo(
     () =>
@@ -74,14 +88,36 @@ export function AdminCatalogEditor({
 
   useEffect(() => {
     const storedVersions = loadAdminCatalogVersions(initialVersions);
+    const publishedBackups = [
+      initialPublishedCatalog,
+      ...initialBackupCatalogs
+    ].filter(
+      (catalog, index, catalogs) =>
+        catalogs.findIndex((candidate) => candidate.id === catalog.id) === index
+    );
+    const prioritizedVersions =
+      initialDraftCatalog &&
+      !storedVersions.some(
+        (version) => version.catalog.id === initialDraftCatalog.id
+      )
+        ? createInitialAdminCatalogVersions(
+            initialDraftCatalog,
+            publishedBackups
+          )
+        : storedVersions;
     const storedActiveVersion =
-      storedVersions.find((version) => version.role === "active") ??
-      storedVersions[0];
+      prioritizedVersions.find((version) => version.role === "active") ??
+      prioritizedVersions[0];
 
-    setVersions(storedVersions);
+    setVersions(prioritizedVersions);
     setSelectedCatalogId(storedActiveVersion.catalog.id);
     setHasLoadedStoredVersions(true);
-  }, [initialVersions]);
+  }, [
+    initialBackupCatalogs,
+    initialDraftCatalog,
+    initialPublishedCatalog,
+    initialVersions
+  ]);
 
   useEffect(() => {
     if (!hasLoadedStoredVersions) {
@@ -157,12 +193,12 @@ export function AdminCatalogEditor({
     setSelectedCatalogId(catalogId);
   }
 
-  function exportActiveCatalog() {
+  function exportCatalog(catalogToExport: CatalogDay, downloadName?: string) {
     if (typeof window === "undefined") {
       return;
     }
 
-    const payload = getCatalogTransferPayload(activeCatalog);
+    const payload = getCatalogTransferPayload(catalogToExport);
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json"
     });
@@ -170,11 +206,22 @@ export function AdminCatalogEditor({
     const link = document.createElement("a");
 
     link.href = downloadUrl;
-    link.download = `terra-viva-catalogo-${activeCatalog.date}.json`;
+    link.download = downloadName ?? `terra-viva-catalogo-${catalogToExport.date}.json`;
     link.click();
 
     window.URL.revokeObjectURL(downloadUrl);
-    setTransferNotice("Catalogo guardado en un archivo.");
+    setTransferNotice("Archivo guardado para continuar el proceso.");
+  }
+
+  function exportActiveCatalog() {
+    exportCatalog(activeCatalog);
+  }
+
+  function exportApprovedCatalog() {
+    exportCatalog(activeCatalog, getApprovedCatalogDownloadName(activeCatalog));
+    setTransferNotice(
+      "Aprobacion guardada. En la laptop, corre 'Publicar catalogo' para subirla."
+    );
   }
 
   function openImportPicker() {
@@ -233,6 +280,36 @@ export function AdminCatalogEditor({
     }
   }
 
+  function buildPublishCommandHint() {
+    return `TerraViva - Publicar catalogo.cmd`;
+  }
+
+  function getVersionLabel(version: AdminCatalogVersion) {
+    if (version.catalog.status === "draft") {
+      return version.role === "active" ? "Borrador actual" : "Borrador";
+    }
+
+    if (version.role === "active") {
+      return "Catalogo publicado";
+    }
+
+    const backupIndex =
+      versions
+        .filter((candidate) => candidate.role === "backup")
+        .findIndex((candidate) => candidate.catalog.id === version.catalog.id) +
+      1;
+
+    return `Backup ${backupIndex}`;
+  }
+
+  const selectedClientViewHref =
+    selectedCatalog.status === "draft"
+      ? assetPath("/drafts/current/")
+      : assetPath(`/catalog/${selectedCatalog.date}/`);
+  const draftReviewHref = draftVersion
+    ? assetPath("/drafts/current/")
+    : undefined;
+
   return (
     <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
       <header className="sticky top-0 z-30 mb-5 rounded-lg bg-white/95 p-5 shadow-soft ring-1 ring-terra-moss/20 backdrop-blur">
@@ -246,6 +323,11 @@ export function AdminCatalogEditor({
             </h1>
             <p className="mt-2 text-base font-bold text-terra-ink/65">
               {activeCatalog.title}
+            </p>
+            <p className="mt-2 text-sm font-bold text-terra-ink/55">
+              {isDraftActive
+                ? "Borrador en revision antes de publicar."
+                : "Catalogo publicado visible para clientas."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
@@ -261,7 +343,7 @@ export function AdminCatalogEditor({
               </span>
             </div>
             <p className="mt-2 text-xs font-bold text-terra-ink/45">
-              Cambios guardados en este navegador.
+              Cambios locales de revision. La fuente compartida sigue siendo el archivo de aprobacion y los JSON generados.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -281,7 +363,7 @@ export function AdminCatalogEditor({
             </button>
             <a
               className="inline-flex min-h-12 items-center rounded-lg border border-terra-moss/30 bg-white px-5 text-base font-black text-terra-ink"
-              href={assetPath(`/catalog/${activeCatalog.date}/`)}
+              href={selectedClientViewHref}
             >
               Vista de Cliente
             </a>
@@ -303,6 +385,93 @@ export function AdminCatalogEditor({
 
       <AdminVideoUploadPanel />
 
+      <section className="mb-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+              Aprobar publicacion
+            </p>
+            <h2 className="mt-1 text-xl font-black text-terra-ink">
+              {isDraftActive
+                ? "Borrador listo para revisar"
+                : "No hay borrador nuevo para publicar"}
+            </h2>
+            <p className="mt-2 text-sm font-bold text-terra-ink/60">
+              {isDraftActive
+                ? `${activeCatalog.moments.length} momentos en borrador. Cuando este aprobado, se publica para clientas.`
+                : `El catalogo publicado actual es ${initialPublishedCatalog.date}. Primero procesa un borrador nuevo para que aparezca aqui.`}
+            </p>
+            {initialDraftCatalog ? (
+              <p className="mt-2 text-xs font-bold text-terra-ink/45">
+                Borrador detectado: {initialDraftCatalog.date}
+              </p>
+            ) : null}
+            {draftReviewHref ? (
+              <a
+                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-terra-clay/30 bg-white px-4 text-sm font-black text-terra-ink"
+                href={draftReviewHref}
+              >
+                Abrir borrador en linea
+              </a>
+            ) : null}
+            {draftVersion || publishedVersion ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {draftVersion ? (
+                  <button
+                    className={`inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-black ${
+                      selectedCatalog.id === draftVersion.catalog.id
+                        ? "border-terra-clay bg-terra-paper text-terra-ink"
+                        : "border-terra-moss/25 bg-white text-terra-ink"
+                    }`}
+                    onClick={() => setSelectedCatalogId(draftVersion.catalog.id)}
+                    type="button"
+                  >
+                    Ver borrador
+                  </button>
+                ) : null}
+                {publishedVersion ? (
+                  <button
+                    className={`inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-black ${
+                      selectedCatalog.id === publishedVersion.catalog.id
+                        ? "border-terra-leaf bg-green-50 text-green-900"
+                        : "border-terra-moss/25 bg-white text-terra-ink"
+                    }`}
+                    onClick={() =>
+                      setSelectedCatalogId(publishedVersion.catalog.id)
+                    }
+                    type="button"
+                  >
+                    Ver publicado
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          {isDraftActive ? (
+            <div className="w-full max-w-xl space-y-2">
+              <button
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-terra-leaf px-5 text-base font-black text-white"
+                onClick={exportApprovedCatalog}
+                type="button"
+              >
+                Guardar aprobacion para publicar
+              </button>
+              <div className="rounded-lg bg-terra-paper/70 p-3">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-terra-clay">
+                  Siguiente paso en la laptop
+                </p>
+                <p className="mt-2 text-sm font-bold text-terra-ink/65">
+                  Despues de guardar la aprobacion, corre el acceso directo o este comando en la laptop publicadora:
+                </p>
+                <code className="mt-2 block overflow-x-auto rounded-md bg-white p-3 text-xs font-bold text-terra-ink">
+                  {buildPublishCommandHint()}
+                </code>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
       <section className="mb-4 rounded-lg bg-white p-3 shadow-soft ring-1 ring-terra-moss/20">
         <div
           aria-label="Catalogos publicados y backups"
@@ -311,18 +480,7 @@ export function AdminCatalogEditor({
         >
           {versions.map((version) => {
             const isSelected = selectedCatalog.id === version.catalog.id;
-            const backupIndex =
-              version.role === "backup"
-                ? versions
-                    .filter((candidate) => candidate.role === "backup")
-                    .findIndex(
-                      (candidate) => candidate.catalog.id === version.catalog.id
-                    ) + 1
-                : 0;
-            const label =
-              version.role === "active"
-                ? "Catalogo actual"
-                : `Backup ${backupIndex}`;
+            const label = getVersionLabel(version);
 
             return (
               <button
@@ -349,7 +507,11 @@ export function AdminCatalogEditor({
         <div className="mt-4 flex flex-col gap-3 border-t border-terra-moss/15 pt-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-terra-clay">
-              {isViewingActive ? "Catalogo publicado" : "Backup publicado"}
+              {isViewingActive
+                ? selectedCatalog.status === "draft"
+                  ? "Borrador activo"
+                  : "Catalogo publicado"
+                : "Backup publicado"}
             </p>
             <h2 className="mt-1 text-xl font-black text-terra-ink">
               {selectedCatalog.title}
@@ -363,8 +525,16 @@ export function AdminCatalogEditor({
           </div>
 
           {isViewingActive ? (
-            <span className="inline-flex min-h-11 items-center justify-center rounded-lg bg-terra-leaf px-4 text-sm font-black uppercase tracking-[0.08em] text-white">
-              Catalogo publicado
+            <span
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-black uppercase tracking-[0.08em] text-white ${
+                selectedCatalog.status === "draft"
+                  ? "bg-terra-clay"
+                  : "bg-terra-leaf"
+              }`}
+            >
+              {selectedCatalog.status === "draft"
+                ? "Borrador en revision"
+                : "Catalogo publicado"}
             </span>
           ) : (
             <button
@@ -386,3 +556,4 @@ export function AdminCatalogEditor({
     </main>
   );
 }
+

@@ -15,6 +15,7 @@ Rutas principales:
 
 - `/` redirige al catalogo publicado mas reciente.
 - `/catalog/2026-06-14` muestra la vista publica mock.
+- `/drafts/current` muestra el borrador online mas reciente para revision interna.
 - `/admin` muestra el editor local mock.
 
 ## Flujo publico actual
@@ -37,6 +38,7 @@ Rutas principales:
 - `npm run start`: sirve el build.
 - `npm run lint`: lint con Next.
 - `npm run typecheck`: validacion TypeScript estricta.
+- `npm run process:catalog-draft`: procesa videos del Inbox y genera un borrador revisable.
 - `npm run publish:catalog`: publicador Drive-first para generar catalogos estaticos.
 
 ## Publicacion Drive-first
@@ -48,6 +50,54 @@ Terra Viva / Inbox - Videos por publicar
 ```
 
 El publicador toma los videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera `public/catalog/YYYY-MM-DD/catalog.json` y actualiza `public/catalog/current-catalog.json`.
+
+Ahora existe tambien un paso formal de borrador:
+
+```bash
+npm run process:catalog-draft -- --use-placeholder-media --dry-run true
+```
+
+Ese comando genera un catalogo borrador en `public/catalog-drafts/` sin publicarlo todavia a clientas.
+
+## Nueva arquitectura de Fase A
+
+La Fase A ya no debe pensarse como "la web procesa videos". El reparto correcto de responsabilidades es:
+
+- GitHub Pages: muestra la interfaz publica, el admin y el borrador online.
+- Google Drive: guarda videos y despues tambien puede servir como buzon de ordenes.
+- Laptop publicadora: descarga videos, corre `ffmpeg`, arma JSON y publica.
+
+Flujo objetivo de Fase A:
+
+```text
+Grabar videos -> Drive Inbox -> Procesar borrador -> Revisar borrador online -> Aprobar -> Publicar catalogo
+```
+
+Ya existe la base para el paso de revision online:
+
+- `public/catalog-drafts/YYYY-MM-DD/catalog.json`
+- `public/catalog-drafts/current-draft.json`
+- ruta web `/drafts/current`
+- ruta web `/drafts/[date]`
+
+La intencion es que el borrador pueda abrirse desde cualquier telefono antes de tocar el catalogo publico.
+
+En Windows ya existen dos lanzadores listos para Fase A:
+
+- `TerraViva - Procesar borrador.cmd`
+- `TerraViva - Publicar catalogo.cmd`
+
+Los accesos directos de escritorio apuntan a esos lanzadores y muestran estado verboso en consola.
+
+### Estado real de Fase A al 2026-06-19
+
+- `ffmpeg` ya esta instalado en la laptop y disponible para generar thumbnails reales.
+- Ya existe `terra-viva.publisher.local.json` local con `driveFolderId` configurado para el Inbox real.
+- Ya se obtuvo un token temporal de Google Drive y el pipeline autentica correctamente contra la API.
+- El pipeline ya puede consultar la carpeta de Drive configurada.
+- Ya hubo una corrida real de `Procesar borrador` con Drive + `ffmpeg` + thumbnails reales; se genero un borrador en `public/catalog-drafts/2026-06-19/`.
+- La UI ya se esta adaptando para abrir ese borrador en linea sin publicarlo a clientas.
+- Bloqueante actual: falta cerrar un build/deploy limpio para que la ruta de borrador online quede visible en GitHub Pages y amarrar el flujo final de aprobacion/publicacion.
 
 Prueba local segura:
 
@@ -100,9 +150,16 @@ El archivo `public/videos/terra-viva-proto-inventory.mp4` se mantiene solo como 
 
 ## Reemplazar videos placeholder
 
-Los videos mock viven en `lib/mockCatalogData.ts`. El publicador futuro generara `public/catalog/YYYY-MM-DD/catalog.json` desde Drive Inbox.
+Los videos mock viven en `lib/mockCatalogData.ts`. El publicador ya puede generar `public/catalog/YYYY-MM-DD/catalog.json` desde Drive Inbox o, en pruebas, desde placeholder media.
 
-Mas adelante las miniaturas deben extraerse automaticamente con `ffmpeg` y guardarse como assets estaticos o en Drive segun convenga.
+Importante sobre Drive:
+
+- La app todavia no descubre por si sola en que carpeta de Drive subio videos tu mama.
+- Hay que configurar manualmente `driveFolderId` en `terra-viva.publisher.local.json`.
+- Tambien hace falta una credencial local de Drive; por ahora el lanzador acepta `googleDriveAccessToken` en ese archivo o `GOOGLE_DRIVE_ACCESS_TOKEN` en el entorno.
+- Si `ffmpeg` esta disponible, `Procesar borrador` ya genera thumbnails reales.
+- `Publicar catalogo` exige `catalogInputFile` para no publicar un catalogo no revisado.
+- El Inbox debe contener los videos directamente en esa carpeta; si estan dentro de otra subcarpeta, el pipeline actual no los encontrara.
 
 ## Organizacion
 
@@ -120,7 +177,6 @@ Documento de despliegue: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 - Publicar el JSON exportado/importado del admin dentro del pipeline para que el estado viaje entre dispositivos automaticamente.
 - Login protegido o flujo local controlado para admin.
 - Autenticacion Drive robusta para el publicador.
-- Extraccion real de miniaturas con `ffmpeg`.
 - Publicacion/despublicacion persistente.
 - QA con videos reales y dispositivos moviles.
 - Reconsiderar backend pagado solo cuando el volumen lo justifique.
@@ -144,4 +200,5 @@ El admin ya puede exportar el catalogo activo a un archivo JSON e importarlo en 
 - `Guardar catalogo` descarga el catalogo activo a un archivo.
 - `Abrir catalogo guardado` reemplaza el catalogo activo local por el archivo seleccionado.
 - Esto permite mover el trabajo entre dispositivos sin backend pagado.
-- Todavia falta integrar ese JSON exportado al pipeline de publicacion para que la web publica se actualice automaticamente para todas las clientas.
+- El admin ya muestra una etapa de `Aprobar publicacion` cuando el catalogo activo es un borrador.
+- El publicador ya puede usar ese catalogo guardado como base de publicacion final.

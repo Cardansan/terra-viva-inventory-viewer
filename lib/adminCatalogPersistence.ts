@@ -122,6 +122,10 @@ export function getCatalogTransferPayload(catalog: CatalogDay): {
   };
 }
 
+export function getApprovedCatalogDownloadName(catalog: CatalogDay): string {
+  return `terra-viva-aprobacion-${catalog.date}.json`;
+}
+
 export function stripUtf8Bom(value: string): string {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }

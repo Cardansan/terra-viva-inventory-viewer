@@ -43,5 +43,5 @@ export default function CatalogPage({ params }: CatalogPageProps) {
     );
   }
 
-  return <CatalogViewer catalog={catalog} />;
+  return <CatalogViewer catalog={catalog} syncWithAdminStorage={false} />;
 }

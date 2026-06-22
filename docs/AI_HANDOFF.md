@@ -57,6 +57,16 @@ No implementar IA compleja de detección de objetos ni prometer detección perfe
 
 Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.tsx` para entender el flujo publico. Si el trabajo es de admin, lee `components/AdminCatalogEditor.tsx` y `components/AdminMomentList.tsx`. Si el trabajo es backend, empieza por `lib/catalogTypes.ts` y reemplaza gradualmente el mock con un repositorio.
 
+## Arquitectura vigente de Fase A
+
+Pensar el sistema asi:
+
+- GitHub Pages = interfaz
+- Google Drive = entrada de videos y futuro buzon de ordenes
+- Laptop = motor de procesamiento/publicacion
+
+No asumir que GitHub Pages "ejecuta" procesos. La web solo muestra UI y mas adelante dejara ordenes compartidas; la laptop es quien corre `ffmpeg`, arma borradores y publica.
+
 ## Iteracion UX vigente
 
 - La vista publica usa `getPublicMoments` en `lib/videoMoments.ts`.
@@ -66,6 +76,7 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 - `Ver video de este arbol` es una accion secundaria debajo de WhatsApp.
 - `ShareCatalogButton` maneja Web Share API y fallback a clipboard.
 - `admin login` debe permanecer discreto al fondo mientras no exista login real.
+- La revision previa a publicacion debe ocurrir en un borrador online separado, no sobre `/catalog/[date]` publicado.
 ## Seleccion multiple vigente
 
 - La vista publica usa seleccion multiple: `Mi seleccion`, `Agregar a mi seleccion`, `Quitar de mi seleccion` y `Enviar seleccion por WhatsApp`.
@@ -94,13 +105,23 @@ Para una nueva sesion, lee `lib/mockCatalogData.ts` y `components/CatalogViewer.
 
 - El prompt vigente cambio el flujo a `Terra Viva / Inbox - Videos por publicar`.
 - Mama no crea carpetas por dia.
+- El flujo correcto de Fase A ya no es "subir y publicar directo"; primero debe existir procesamiento de borrador y luego aprobacion.
 - `scripts/publish-catalog.mjs` toma videos subidos en las ultimas 24 horas y ordena por `createdTime`/`modifiedTime`.
+- `npm run process:catalog-draft` usa el mismo script con `--workflow draft` y escribe a `public/catalog-drafts/`.
+- El borrador actual debe abrirse en `/drafts/current`; borradores por fecha van en `/drafts/[date]`.
+- `CatalogViewer` ya tiene modo `draftReview` para ocultar acciones de clienta en rutas de borrador.
+- El publicador ya puede usar un catalogo guardado del admin como base de publicacion final.
 - Salidas generadas: `public/catalog/YYYY-MM-DD/catalog.json`, `public/catalog/YYYY-MM-DD/thumbnails/` y `public/catalog/current-catalog.json`.
+- Salidas de borrador: `public/catalog-drafts/YYYY-MM-DD/catalog.json` y `public/catalog-drafts/current-draft.json`.
 - IDs estables nuevos: `moment-YYYY-MM-DD-001`.
 - `lib/catalogRepository.ts` lee catalogos generados en build time y cae a `mockCatalogData` si no existen.
+- `lib/catalogRepository.ts` tambien detecta borradores procesados y hace que admin los priorice.
 - Workflow manual: `.github/workflows/publish-catalog.yml`, pensado para runner self-hosted con etiqueta `terra-viva-publisher`.
 - Config local futura: `terra-viva.publisher.local.json`, ignorado por git; ejemplo en `terra-viva.publisher.example.json`.
 - Retencion: activo + dos backups funcionales; depuracion real debe empezar con `--trash-old false` y dry-run.
 - No implementar Supabase, Apps Script, laptop expuesta a internet ni puertos abiertos para este flujo.
 - La direccion de producto es operar sin suscripciones mientras GitHub Pages + Drive + laptop publisher sean suficientes.
-- Pendiente real: credenciales Drive robustas y thumbnails con ffmpeg conectados end-to-end.
+- Avance real al 2026-06-19: `ffmpeg` ya esta instalado, el token temporal de Drive ya se obtuvo, la carpeta Inbox real ya esta configurada, la consulta a Drive funciona y ya hubo una corrida real que produjo `public/catalog-drafts/2026-06-19/` con thumbnails.
+- Bloqueante real al 2026-06-19: falta completar un build/deploy limpio para que el borrador online quede visible en GitHub Pages y cerrar el flujo de aprobacion/publicacion final.
+- Shortcuts actuales en escritorio: `Terra Viva - Procesar borrador` y `Terra Viva - Publicar catalogo`.
+- Pendiente real: disparar la publicacion final desde un flujo mas amigable, credenciales Drive robustas de larga duracion y una corrida real con videos disponibles en Inbox.

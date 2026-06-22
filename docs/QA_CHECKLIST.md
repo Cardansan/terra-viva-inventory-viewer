@@ -81,6 +81,12 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 
 ## Checks pipeline Drive-first
 
+- [ ] `npm run process:catalog-draft` genera un borrador sin publicar a clientas.
+- [ ] El borrador se escribe en `public/catalog-drafts/YYYY-MM-DD/catalog.json`.
+- [ ] El borrador actualiza `public/catalog-drafts/current-draft.json`.
+- [ ] El admin prioriza el borrador procesado mas reciente sobre estado local viejo.
+- [ ] El admin muestra una pantalla de aprobacion antes de publicar.
+- [ ] En modo `draft` no se mueven archivos a `Procesados`.
 - [ ] Con dry-run, lista videos de ultimas 24 horas sin modificar Drive.
 - [ ] Ignora videos mas viejos que `lookbackHours`.
 - [ ] Ordena videos por `createdTime` ascendente.

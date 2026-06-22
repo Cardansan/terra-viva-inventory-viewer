@@ -3,5 +3,8 @@
   "lookbackHours": 24,
   "moveProcessed": true,
   "trashOld": false,
-  "catalogDateMode": "today"
+  "catalogDateMode": "today",
+  "nodePath": "C:/Program Files/nodejs/node.exe",
+  "ffmpegPath": "C:/ffmpeg/bin/ffmpeg.exe",
+  "googleDriveAccessToken": "PON_AQUI_UN_TOKEN_TEMPORAL_SI_AUN_NO_HAY_OAUTH"
 }

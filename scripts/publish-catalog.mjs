@@ -1,16 +1,25 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildCatalogFromVideos,
+  copyDraftThumbnailsToPublishedCatalog,
   mergeAdminCatalogWithDriveVideos,
+  publishApprovedCatalogFromAdmin,
+  updateCurrentDraftCatalogJson,
   updateCurrentCatalogJson,
+  writeDraftCatalogJson,
   writeCatalogJson
 } from "./lib/catalogBuilder.mjs";
+import {
+  downloadDriveFile,
+  ensureProcessedFolder,
+  listInboxVideos,
+  moveFileToProcessed
+} from "./lib/driveClient.mjs";
 import { isDriveVideo, isWithinLookback, sortDriveVideos } from "./lib/dateFilters.mjs";
-import { ensureProcessedFolder, listInboxVideos, moveFileToProcessed } from "./lib/driveClient.mjs";
-import { generateThumbnailsForVideo } from "./lib/ffmpegThumbnails.mjs";
+import { generateThumbnailsForCatalog } from "./lib/ffmpegThumbnails.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -45,6 +54,62 @@ function toBoolean(value, defaultValue) {
   }
 
   return ["1", "true", "yes", "si"].includes(String(value).toLowerCase());
+}
+
+function getWorkflowOutputDir(projectRoot, workflow, date) {
+  return path.join(
+    projectRoot,
+    "public",
+    workflow === "draft" ? "catalog-drafts" : "catalog",
+    date
+  );
+}
+
+function logDivider() {
+  console.log("--------------------------------------------------");
+}
+
+function sanitizeFileName(name) {
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+}
+
+async function writeThumbnailManifest({
+  catalog,
+  localWorkRoot,
+  outputDir,
+  videoPathsByVideoId
+}) {
+  await mkdir(localWorkRoot, { recursive: true });
+  const manifestPath = path.join(localWorkRoot, "thumbnail-manifest.json");
+  const payload = {
+    catalogDate: catalog.date,
+    generatedAt: new Date().toISOString(),
+    outputDir,
+    thumbnails: catalog.moments.map((moment) => ({
+      momentId: moment.id,
+      treeNumber: moment.treeNumber,
+      timestampSeconds: moment.timestampSeconds,
+      outputPath: path.join(
+        outputDir,
+        `tree-${String(moment.treeNumber).padStart(3, "0")}.jpg`
+      ),
+      videoPath: videoPathsByVideoId[moment.videoId] || ""
+    }))
+  };
+  await writeFile(manifestPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return manifestPath;
+}
+
+function requireDriveConfigured(driveFolderId) {
+  if (!driveFolderId) {
+    throw new Error(
+      [
+        "Falta la carpeta de Drive del Inbox.",
+        "Todavia no hemos conectado automaticamente Drive.",
+        "Configura 'driveFolderId' en terra-viva.publisher.local.json o pasa --drive-folder-id."
+      ].join(" ")
+    );
+  }
 }
 
 async function readLocalConfig() {
@@ -94,18 +159,46 @@ function makePlaceholderDriveVideos(now = new Date()) {
 async function main() {
   const cli = parseArgs(process.argv.slice(2));
   const config = await readLocalConfig();
+  if (!process.env.GOOGLE_DRIVE_ACCESS_TOKEN && config.googleDriveAccessToken) {
+    process.env.GOOGLE_DRIVE_ACCESS_TOKEN = config.googleDriveAccessToken;
+  }
+  if (!process.env.TERRA_VIVA_FFMPEG_PATH && config.ffmpegPath) {
+    process.env.TERRA_VIVA_FFMPEG_PATH = path.resolve(projectRoot, config.ffmpegPath);
+  }
   const driveFolderId = cli["drive-folder-id"] || config.driveFolderId;
   const lookbackHours = Number(cli["lookback-hours"] || config.lookbackHours || 24);
-  const date = cli.date || (config.catalogDateMode === "today" ? getLocalDateString() : undefined) || getLocalDateString();
   const dryRun = toBoolean(cli["dry-run"], true);
   const moveProcessed = toBoolean(cli["move-processed"], Boolean(config.moveProcessed));
   const trashOld = toBoolean(cli["trash-old"], Boolean(config.trashOld));
   const usePlaceholderMedia = toBoolean(cli["use-placeholder-media"], false);
   const adminCatalogFile = cli["catalog-input-file"] || config.catalogInputFile || "";
+  const workflow = cli.workflow || config.workflow || "publish";
   const now = new Date();
+  const verbose = toBoolean(cli.verbose, true);
+  const runId = cli["run-id"] || now.toISOString().replace(/[:.]/g, "-");
+  const thumbnailMode = cli["thumbnail-mode"] || config.thumbnailMode || "manifest";
+  const adminCatalog = await readAdminCatalogFile(adminCatalogFile);
+  const date =
+    cli.date ||
+    (workflow === "publish" && adminCatalog?.date) ||
+    (config.catalogDateMode === "today" ? getLocalDateString() : undefined) ||
+    getLocalDateString();
+  const localWorkRoot = path.join(
+    projectRoot,
+    ".tools",
+    "publisher-runtime",
+    date,
+    workflow,
+    runId
+  );
+  const downloadsDir = path.join(localWorkRoot, "downloads");
+  const workflowOutputDir = getWorkflowOutputDir(projectRoot, workflow, date);
+  const thumbnailsDir = path.join(workflowOutputDir, "thumbnails");
 
-  if (!driveFolderId && !usePlaceholderMedia) {
-    throw new Error("Falta --drive-folder-id DRIVE_FOLDER_ID o --use-placeholder-media para prueba local.");
+  const needsDriveLookup = !usePlaceholderMedia && !(workflow === "publish" && adminCatalog);
+
+  if (needsDriveLookup) {
+    requireDriveConfigured(driveFolderId);
   }
 
   console.log(`Terra Viva publisher`);
@@ -114,21 +207,32 @@ async function main() {
   console.log(`Dry-run: ${dryRun}`);
   console.log(`Mover procesados: ${moveProcessed}`);
   console.log(`Depurar antiguos: ${trashOld}`);
+  console.log(`Modo: ${workflow}`);
+  console.log(`Verbose: ${verbose}`);
+  console.log(`Thumbnails: ${thumbnailMode}`);
   console.log(
     adminCatalogFile
       ? `Catalogo admin cargado desde: ${adminCatalogFile}`
-      : "Catalogo admin: no especificado"
+      : "Catalogo admin: se generara desde videos"
   );
+  console.log(
+    usePlaceholderMedia
+      ? "Origen de medios: placeholder local"
+      : `Origen de medios: Google Drive folder ${driveFolderId}`
+  );
+  logDivider();
 
   const inboxFiles = usePlaceholderMedia
     ? makePlaceholderDriveVideos(now)
-    : await listInboxVideos(driveFolderId);
+    : needsDriveLookup
+      ? await listInboxVideos(driveFolderId)
+      : [];
 
   const recentVideos = sortDriveVideos(
     inboxFiles.filter((file) => isDriveVideo(file) && isWithinLookback(file, lookbackHours, now))
   );
 
-  if (recentVideos.length === 0) {
+  if (needsDriveLookup && recentVideos.length === 0) {
     throw new Error("No se encontraron videos subidos en las ultimas 24 horas en la carpeta Inbox.");
   }
 
@@ -136,45 +240,135 @@ async function main() {
   recentVideos.forEach((file, index) => {
     console.log(`${index + 1}. ${file.name} - ${file.createdTime || file.modifiedTime}`);
   });
+  if (workflow === "publish" && adminCatalog && recentVideos.length === 0) {
+    console.log("Publicacion final desde aprobacion guardada; no se releera el Inbox para reconstruir el catalogo.");
+  }
+  logDivider();
 
-  const adminCatalog = await readAdminCatalogFile(adminCatalogFile);
   const catalog = adminCatalog
-    ? mergeAdminCatalogWithDriveVideos({
-        adminCatalog,
-        date,
-        driveVideos: recentVideos,
-        usePlaceholderMedia
-      })
+    ? recentVideos.length > 0
+      ? mergeAdminCatalogWithDriveVideos({
+          adminCatalog,
+          date,
+          driveVideos: recentVideos,
+          usePlaceholderMedia,
+          workflow
+        })
+      : publishApprovedCatalogFromAdmin({
+          adminCatalog,
+          date
+        })
     : buildCatalogFromVideos({
         date,
         driveVideos: recentVideos,
-        usePlaceholderMedia
+        usePlaceholderMedia,
+        workflow
       });
+  const catalogToWrite = {
+    ...catalog,
+    status: workflow === "draft" ? "draft" : "published"
+  };
 
   if (dryRun) {
     console.log("Dry-run: no se escribiran catalogos ni se moveran archivos.");
-    console.log(`Se generarian ${catalog.moments.length} momentos con IDs estables.`);
+    console.log(`Se generarian ${catalogToWrite.moments.length} momentos con IDs estables.`);
     console.log(
       adminCatalog
-        ? "Se usaria el catalogo guardado del admin como base de publicacion."
+        ? recentVideos.length > 0
+          ? "Se usaria el catalogo guardado del admin como base de publicacion."
+          : "Se publicaria directamente el catalogo aprobado desde el borrador guardado."
         : "Se generaria un catalogo nuevo desde los videos del Inbox."
     );
+    console.log(
+      workflow === "draft"
+        ? "La salida iria a public/catalog-drafts."
+        : "La salida iria a public/catalog."
+    );
   } else {
-    await generateThumbnailsForVideo({ dryRun, usePlaceholderMedia });
-    const catalogPath = await writeCatalogJson({ catalog, projectRoot });
-    const currentPath = await updateCurrentCatalogJson({ catalog, projectRoot });
+    const catalogPath =
+      workflow === "draft"
+        ? await writeDraftCatalogJson({ catalog: catalogToWrite, projectRoot })
+        : await writeCatalogJson({ catalog: catalogToWrite, projectRoot });
+    const currentPath =
+      workflow === "draft"
+        ? await updateCurrentDraftCatalogJson({
+            catalog: catalogToWrite,
+            projectRoot
+          })
+        : await updateCurrentCatalogJson({
+            catalog: catalogToWrite,
+            projectRoot
+          });
     console.log(`Catalogo escrito: ${catalogPath}`);
     console.log(`Catalogo actual actualizado: ${currentPath}`);
+
+    if (workflow === "publish" && adminCatalog && recentVideos.length === 0) {
+      const copiedThumbnails = await copyDraftThumbnailsToPublishedCatalog({
+        catalog: catalogToWrite,
+        projectRoot
+      });
+      console.log(`Miniaturas copiadas desde borrador: ${copiedThumbnails.length}`);
+      logDivider();
+    }
+
+    if (!usePlaceholderMedia && recentVideos.length > 0) {
+      console.log("Preparando descarga temporal de videos para generar miniaturas...");
+      await mkdir(downloadsDir, { recursive: true });
+
+      const videoPathsByVideoId = {};
+
+      for (const [index, file] of recentVideos.entries()) {
+        const catalogVideo = catalogToWrite.videos[index];
+        const destination = path.join(
+          downloadsDir,
+          `${String(index + 1).padStart(2, "0")}-${sanitizeFileName(file.name)}`
+        );
+        console.log(`Descargando video ${index + 1}/${recentVideos.length}: ${file.name}`);
+        await downloadDriveFile(file.id, destination);
+        videoPathsByVideoId[catalogVideo.id] = destination;
+      }
+
+      const manifestPath = await writeThumbnailManifest({
+        catalog: catalogToWrite,
+        localWorkRoot,
+        outputDir: thumbnailsDir,
+        videoPathsByVideoId
+      });
+      console.log(`Manifest de thumbnails: ${manifestPath}`);
+
+      if (thumbnailMode === "node") {
+        await generateThumbnailsForCatalog({
+          catalog: catalogToWrite,
+          outputDir: thumbnailsDir,
+          videoPathsByVideoId: new Map(Object.entries(videoPathsByVideoId)),
+          verbose
+        });
+      } else {
+        console.log("Generacion de thumbnails delegada al launcher local.");
+      }
+      logDivider();
+    } else if (usePlaceholderMedia) {
+      console.log("Modo placeholder: se conservaran thumbnails mock.");
+      logDivider();
+    }
   }
 
-  if (moveProcessed && !dryRun) {
+  if (workflow === "draft") {
+    console.log(
+      moveProcessed
+        ? "Modo borrador: no se moveran videos a Procesados todavia."
+        : "Modo borrador: videos se quedan en Inbox hasta publicar."
+    );
+  } else if (moveProcessed && !dryRun && recentVideos.length > 0) {
     const processedFolder = await ensureProcessedFolder(date, driveFolderId);
     for (const file of recentVideos) {
       await moveFileToProcessed(file.id, processedFolder.id, driveFolderId);
       console.log(`Movido a Procesados/${date}: ${file.name}`);
     }
-  } else if (moveProcessed) {
+  } else if (moveProcessed && recentVideos.length > 0) {
     console.log(`Dry-run: se moverian ${recentVideos.length} videos a Procesados/${date}.`);
+  } else if (workflow === "publish" && adminCatalog) {
+    console.log("Publicacion final hecha desde aprobacion guardada; no se movieron videos de Inbox.");
   }
 
   if (trashOld) {

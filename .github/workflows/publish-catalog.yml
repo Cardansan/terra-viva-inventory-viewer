@@ -15,6 +15,11 @@ on:
         description: "Optional local catalog file exported from admin"
         required: false
         type: string
+      workflow_mode:
+        description: "draft procesa borrador; publish publica para clientas"
+        required: true
+        default: "publish"
+        type: string
       lookback_hours:
         description: "Only publish videos uploaded in the last N hours"
         required: true
@@ -83,7 +88,8 @@ jobs:
             "--dry-run", "${{ inputs.dry_run }}",
             "--move-processed", "${{ inputs.move_processed }}",
             "--trash-old", "${{ inputs.trash_old }}",
-            "--use-placeholder-media", "${{ inputs.use_placeholder_media }}"
+            "--use-placeholder-media", "${{ inputs.use_placeholder_media }}",
+            "--workflow", "${{ inputs.workflow_mode }}"
           )
 
           if ("${{ inputs.catalog_date }}" -ne "") {
@@ -110,7 +116,7 @@ jobs:
         run: |
           git config user.name "terra-viva-publisher"
           git config user.email "actions@users.noreply.github.com"
-          git add public/catalog
+          git add public/catalog public/catalog-drafts
           if git diff --cached --quiet; then
             echo "No generated catalog changes to commit."
           else

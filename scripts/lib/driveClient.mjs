@@ -1,4 +1,4 @@
-import { createWriteStream } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -37,7 +37,7 @@ async function driveFetch(url, options = {}) {
 }
 
 function driveQuery(value) {
-  return encodeURIComponent(value.replace(/'/g, "\\'"));
+  return encodeURIComponent(value);
 }
 
 export async function listInboxVideos(folderId) {
@@ -57,24 +57,8 @@ export async function downloadDriveFile(fileId, destination) {
       Authorization: `Bearer ${getAccessToken()}`
     }
   });
-
-  await new Promise((resolve, reject) => {
-    const stream = createWriteStream(destination);
-    response.body.pipeTo(
-      new WritableStream({
-        write(chunk) {
-          stream.write(Buffer.from(chunk));
-        },
-        close() {
-          stream.end(resolve);
-        },
-        abort(error) {
-          stream.destroy(error);
-          reject(error);
-        }
-      })
-    ).catch(reject);
-  });
+  const arrayBuffer = await response.arrayBuffer();
+  await writeFile(destination, Buffer.from(arrayBuffer));
 
   return destination;
 }

@@ -12,76 +12,14 @@
 7. Hecho: mejorar links compartidos de seleccion; cuando se abre `?selection=...`, muestra banner `Seleccion actual del cliente/a`, renderiza solo los arboles seleccionados y oculta la galeria completa del catalogo.
 8. Evaluar y corregir identificacion de arboles en links y WhatsApp: el numero visible se recalcula tras filtrar vendidos, pero el enlace debe usar un identificador estable del momento para evitar confusion. Propuesta base en `docs/TREE_IDENTIFICATION.md`.
 9. En progreso: subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro; ya existe panel local de preparacion, pendiente guardar en Drive Inbox.
-10. En progreso: publicador Drive-first 24h desde `Terra Viva/Inbox - Videos por publicar`; ya existe CLI, workflow self-hosted y lectura de catalogos generados, pendiente credenciales Drive robustas, thumbnails reales y publicacion del estado admin.
-11. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
-12. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
-13. En progreso: retencion de inventario conserva catalogo activo + dos backups; pendiente papelera real en Drive.
-14. Definir instalador minimo para laptop de mama: `.bat`, acceso directo o ejecutable que corra el publicador sin abrir Codex.
-15. Documentar procedimiento de recuperacion: restaurar desde `public/catalog`, Drive Procesados o git history.
-
-## Roadmap de independencia operativa
-
-### Fase A: laptop de Carlos, publicacion semi-manual
-
-Objetivo:
-Validar el flujo completo con la menor infraestructura posible.
-
-Flujo:
-Drive Inbox -> script/publicador -> GitHub Pages
-
-Detalles:
-
-- Mama sube videos a `Terra Viva/Inbox - Videos por publicar`.
-- Carlos prende su laptop cuando ella avisa que ya subio videos.
-- Carlos corre el publicador por script local o GitHub Action con self-hosted runner.
-- El publicador toma videos subidos en las ultimas 24 horas.
-- El publicador ordena videos por `createdTime` o `modifiedTime`.
-- El publicador genera catalogo estatico, miniaturas y `current-catalog.json`.
-- El publicador mueve los videos usados a `Terra Viva/Procesados/YYYY-MM-DD` solo despues de una publicacion exitosa.
-- La depuracion de Drive queda en modo seguro: conservar catalogo activo, conservar dos backups funcionales y mandar a papelera lo anterior solo con `dry-run` revisado y `trash_old=true`.
-
-Criterio para avanzar:
-El flujo publica varios catalogos reales sin depender de Codex, sin romper la app publica y sin perder archivos.
-
-### Fase B: laptop de mama, publicador instalable
-
-Objetivo:
-Que mama pueda publicar sin esperar a Carlos.
-
-Flujo:
-Doble clic -> procesa Drive Inbox -> publica en GitHub Pages
-
-Detalles:
-
-- Reutilizar el mismo script de la Fase A.
-- Instalar dependencias en la laptop de mama: Node/pnpm o ejecutable empaquetado, Git, ffmpeg y autenticacion Drive/GitHub segura.
-- Crear un lanzador minimo: `.bat`, acceso directo o ejecutable simple.
-- Usar configuracion local ignorada por git, por ejemplo `terra-viva.publisher.local.json`.
-- El lanzador debe mostrar estados entendibles: buscando videos, generando miniaturas, publicando, moviendo procesados, terminado y error.
-- No exigir que mama use terminal, GitHub Actions, Codex ni carpetas por dia.
-
-Criterio para avanzar:
-Mama puede publicar un catalogo completo con un doble clic y entender si termino bien o si hubo error.
-
-### Fase C: app movil publicadora, solo si la laptop se vuelve friccion real
-
-Objetivo:
-Evaluar una app movil instalada solo si operar desde laptop sigue siendo molesto.
-
-Flujo posible:
-App movil -> selecciona/procesa videos -> genera catalogo -> publica
-
-Detalles:
-
-- Mantener esta fase como posibilidad, no como plan base.
-- Considerarla solo si mama no quiere usar laptop, la preparacion desde Drive/laptop tarda demasiado o el negocio necesita publicar con mas frecuencia.
-- Evaluar primero Android, porque instalar y probar fuera de tienda es mas simple que iOS.
-- Evitar PWA pura para procesamiento pesado de video si los videos crecen: navegador movil puede ser fragil con memoria, bateria, bloqueo de pantalla y archivos grandes.
-- Resolver antes la publicacion segura: la app movil necesitaria subir resultados a Drive/GitHub o a un intermediario seguro.
-- No guardar secretos sensibles en una web publica.
-
-Criterio para iniciar:
-La laptop ya demostro ser una friccion real. Si la laptop funciona bien, no construir app movil.
+10. En progreso: publicador Drive-first 24h desde `Terra Viva/Inbox - Videos por publicar`; ya existe CLI, workflow self-hosted, lectura de catalogos generados, `ffmpeg` instalado y autenticacion temporal a Drive validada. Bloqueante actual: el Inbox real configurado todavia no devuelve videos utilizables al pipeline.
+11. En progreso: borrador online separado del catalogo publicado. La arquitectura nueva usa `/drafts/current` y `/drafts/[date]` para revisar en linea antes de publicar; falta completar deploy limpio y amarrarlo al flujo de aprobacion desde admin.
+12. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
+13. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
+14. En progreso: preparar cola de acciones `procesar` / `publicar` para que la web de admin deje una orden y la laptop la recoja sin exponer puertos.
+15. En progreso: retencion de inventario conserva catalogo activo + dos backups; pendiente papelera real en Drive.
+16. Definir instalador minimo para laptop de mama: `.bat`, acceso directo o ejecutable que corra el publicador sin abrir Codex.
+17. Documentar procedimiento de recuperacion: restaurar desde `public/catalog`, Drive Procesados o git history.
 
 ## Roadmap de independencia operativa
 
@@ -89,22 +27,29 @@ Estas fases definen como pasar de un flujo asistido por Carlos a uno que mama pu
 
 ### Fase A: laptop de Carlos, publicacion semi-manual
 
-Objetivo: validar el flujo completo con la menor infraestructura posible.
+Objetivo: validar el flujo completo con la menor infraestructura posible y separar claramente procesamiento, revision y publicacion.
 
 Flujo:
 
 ```text
-Drive Inbox -> script/publicador -> GitHub Pages
+Grabar videos -> Drive Inbox -> procesar borrador en laptop -> subir borrador online -> revisar y aprobar -> publicar en GitHub Pages
 ```
 
 - Mama sube videos a `Terra Viva/Inbox - Videos por publicar`.
 - Carlos prende su laptop cuando ella avisa que ya subio videos.
-- Carlos corre el publicador por script local o GitHub Action con self-hosted runner.
-- El publicador toma videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera catalogo estatico, miniaturas y `current-catalog.json`.
-- El publicador mueve los videos usados a `Terra Viva/Procesados/YYYY-MM-DD` solo despues de una publicacion exitosa.
+- Carlos corre primero un procesamiento de borrador por script local o GitHub Action con self-hosted runner.
+- Ya existen accesos directos en el escritorio para `Procesar borrador` y `Publicar catalogo`.
+- El procesamiento toma videos subidos en las ultimas 24 horas, los ordena por `createdTime`/`modifiedTime`, genera momentos candidatos, miniaturas reales y un catalogo borrador.
+- El borrador se escribe en `public/catalog-drafts/YYYY-MM-DD/` y actualiza `public/catalog-drafts/current-draft.json`.
+- La web debe exponer ese borrador en una ruta separada, por ejemplo `/drafts/current`, para poder revisarlo desde cualquier telefono sin tocar aun el catalogo publicado.
+- Mama o Carlos revisan ese borrador en admin o en la ruta online de borrador: corrigen visibilidad, numeros, timestamps, secciones y notas.
+- Solo despues de la aprobacion se ejecuta la publicacion final del catalogo.
+- La publicacion final escribe `public/catalog/YYYY-MM-DD/catalog.json`, actualiza `current-catalog.json` y deja visible el catalogo a las clientas.
+- El publicador mueve los videos usados a `Terra Viva/Procesados/YYYY-MM-DD` solo despues de una publicacion final exitosa.
 - La depuracion de Drive queda en modo seguro: conservar catalogo activo + dos backups funcionales; mandar a papelera lo anterior solo con `dry-run` revisado y `trash_old=true`.
+- La laptop sigue siendo el motor del sistema. GitHub Pages solo muestra la interfaz y Drive funciona como entrada de videos y, mas adelante, tambien como buzon de ordenes para `procesar` y `publicar`.
 
-Criterio para avanzar: el flujo publica varios catalogos reales sin depender de Codex, sin romper la app publica y sin perder archivos.
+Criterio para avanzar: el flujo procesa borradores, deja un borrador visible online para revision humana y publica varios catalogos reales sin depender de Codex, sin romper la app publica y sin perder archivos. Al 2026-06-19 ya hubo una corrida real de `Procesar borrador` con Drive + ffmpeg + thumbnails reales; falta terminar el deploy limpio de la ruta de borrador online y completar el paso de aprobacion/publicacion final.
 
 ### Fase B: laptop de mama, publicador instalable
 
@@ -113,17 +58,17 @@ Objetivo: que mama pueda publicar sin esperar a Carlos.
 Flujo:
 
 ```text
-Doble clic -> procesa Drive Inbox -> publica en GitHub Pages
+Doble clic -> procesa borrador -> revisar/aprobar -> publica en GitHub Pages
 ```
 
 - Reutilizar el mismo script de la Fase A.
 - Instalar dependencias en la laptop de mama: Node/pnpm o ejecutable empaquetado, Git, ffmpeg y autenticacion Drive/GitHub seguras.
 - Crear un lanzador minimo: `.bat`, acceso directo o ejecutable simple.
 - Usar configuracion local ignorada por git, por ejemplo `terra-viva.publisher.local.json`.
-- El lanzador debe mostrar estados entendibles: buscando videos, generando miniaturas, publicando, moviendo procesados, terminado o error.
+- El lanzador debe mostrar estados entendibles: buscando videos, generando borrador, revisando/publicando, moviendo procesados, terminado o error.
 - No exigir que mama use terminal, GitHub Actions, Codex ni carpetas por dia.
 
-Criterio para avanzar: mama puede publicar un catalogo completo con un doble clic y entender si termino bien o si hubo error.
+Criterio para avanzar: mama puede procesar un borrador, revisarlo, publicarlo y entender si termino bien o si hubo error.
 
 ### Fase C: app movil publicadora, solo si la laptop se vuelve friccion real
 

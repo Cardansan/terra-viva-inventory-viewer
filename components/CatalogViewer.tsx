@@ -34,9 +34,15 @@ import { VideoMomentPlayer } from "./VideoMomentPlayer";
 
 type CatalogViewerProps = {
   catalog: CatalogDay;
+  syncWithAdminStorage?: boolean;
+  viewerMode?: "public" | "draftReview";
 };
 
-export function CatalogViewer({ catalog }: CatalogViewerProps) {
+export function CatalogViewer({
+  catalog,
+  syncWithAdminStorage = true,
+  viewerMode = "public"
+}: CatalogViewerProps) {
   const [resolvedCatalog, setResolvedCatalog] = useState(catalog);
   const visibleMoments = useMemo(
     () => getPublicMoments(resolvedCatalog),
@@ -56,6 +62,11 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     visibleMoments[0];
 
   useEffect(() => {
+    if (!syncWithAdminStorage) {
+      setResolvedCatalog(catalog);
+      return;
+    }
+
     setResolvedCatalog(loadActiveAdminCatalog(catalog));
 
     function syncCatalogFromAdminStorage(event: StorageEvent) {
@@ -74,7 +85,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     return () => {
       window.removeEventListener("storage", syncCatalogFromAdminStorage);
     };
-  }, [catalog]);
+  }, [catalog, syncWithAdminStorage]);
 
   useEffect(() => {
     const storageKey = getSelectionStorageKey(resolvedCatalog);
@@ -180,16 +191,22 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
     selectedMomentIds,
     selectedMoment.id
   );
-  const selectionUrl = buildSelectionUrl(resolvedCatalog, selectedMomentIds, {
-    origin: typeof window !== "undefined" ? window.location.origin : "",
-    pathPrefix: publicPathPrefix
-  });
-  const selectionWhatsAppUrl = buildWhatsAppUrlForSelection(
-    resolvedCatalog,
-    selectedMoments,
-    visibleMoments,
-    selectionUrl
-  );
+  const selectionUrl =
+    viewerMode === "public"
+      ? buildSelectionUrl(resolvedCatalog, selectedMomentIds, {
+          origin: typeof window !== "undefined" ? window.location.origin : "",
+          pathPrefix: publicPathPrefix
+        })
+      : "";
+  const selectionWhatsAppUrl =
+    viewerMode === "public"
+      ? buildWhatsAppUrlForSelection(
+          resolvedCatalog,
+          selectedMoments,
+          visibleMoments,
+          selectionUrl
+        )
+      : "";
 
   function selectAdjacent(direction: "previous" | "next") {
     const nextMoment = getAdjacentMoment(
@@ -249,7 +266,18 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
             onNext={() => selectAdjacent("next")}
             onPrevious={() => selectAdjacent("previous")}
           />
-          <SelectionSummary count={selectedMomentIds.length} />
+          {viewerMode === "draftReview" ? (
+            <section className="rounded-lg bg-terra-paper/80 p-4 text-center ring-1 ring-terra-clay/20">
+              <p className="text-base font-black text-terra-ink">
+                Borrador en revisión
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink/65">
+                Esta vista es interna para revisar antes de publicar.
+              </p>
+            </section>
+          ) : (
+            <SelectionSummary count={selectedMomentIds.length} />
+          )}
           {isViewingSharedSelection ? (
             <section className="rounded-lg bg-green-50 p-4 text-center ring-1 ring-green-700/20">
               <p className="text-base font-black text-green-900">
@@ -267,7 +295,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
               {selectionNotice}
             </p>
           ) : null}
-          {isViewingSharedSelection ? null : (
+          {viewerMode === "public" && !isViewingSharedSelection ? (
             <>
               <AddToSelectionButton
                 isSelected={currentMomentIsSelected}
@@ -278,7 +306,7 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
                 selectedCount={selectedMomentIds.length}
               />
             </>
-          )}
+          ) : null}
           <button
             className="min-h-11 w-full rounded-lg border border-terra-moss/30 bg-white/80 px-4 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper"
             onClick={() => setPlayRequest((current) => current + 1)}
@@ -286,17 +314,19 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
           >
             Ver video de este &aacute;rbol
           </button>
-          <SelectionPanel
-            onRemove={removeSelectedMoment}
-            publicMoments={visibleMoments}
-            readOnly={isViewingSharedSelection}
-            selectedMoments={selectedMoments}
-            title={
-              isViewingSharedSelection
-                ? "Selecci\u00f3n del cliente/a"
-                : "Mi selecci\u00f3n"
-            }
-          />
+          {viewerMode === "public" ? (
+            <SelectionPanel
+              onRemove={removeSelectedMoment}
+              publicMoments={visibleMoments}
+              readOnly={isViewingSharedSelection}
+              selectedMoments={selectedMoments}
+              title={
+                isViewingSharedSelection
+                  ? "Selecci\u00f3n del cliente/a"
+                  : "Mi selecci\u00f3n"
+              }
+            />
+          ) : null}
         </section>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
@@ -318,7 +348,9 @@ export function CatalogViewer({ catalog }: CatalogViewerProps) {
         <p className="text-sm font-bold text-terra-ink/60">
           Cat&aacute;logo actualizado: {formatCatalogDate(resolvedCatalog.date)}
         </p>
-        <ShareCatalogButton title={catalog.title} />
+        {viewerMode === "public" ? (
+          <ShareCatalogButton title={catalog.title} />
+        ) : null}
         <a
           className="inline-flex text-xs font-bold lowercase text-terra-ink/45 underline-offset-4 hover:text-terra-ink hover:underline"
           href={assetPath("/admin/")}
