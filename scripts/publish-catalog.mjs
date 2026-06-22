@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildCatalogFromVideos,
+  buildMomentTimestampsForVideo,
   copyDraftThumbnailsToPublishedCatalog,
   mergeAdminCatalogWithDriveVideos,
   publishApprovedCatalogFromAdmin,
@@ -18,6 +19,7 @@ import {
   listInboxVideos,
   moveFileToProcessed
 } from "./lib/driveClient.mjs";
+import { dedupeMomentTimestamps } from "./lib/frameDedup.mjs";
 import { isDriveVideo, sortDriveVideos } from "./lib/dateFilters.mjs";
 import { generateThumbnailsForCatalog } from "./lib/ffmpegThumbnails.mjs";
 import { probeVideoDurationSeconds } from "./lib/videoMetadata.mjs";
@@ -206,6 +208,18 @@ async function main() {
     maxMomentsPerVideo: toFiniteNumber(
       cli["max-moments-per-video"] ?? config.maxMomentsPerVideo,
       24
+    ),
+    dedupeSampleSize: toFiniteNumber(
+      cli["dedupe-sample-size"] ?? config.dedupeSampleSize,
+      24
+    ),
+    dedupeSimilarityThreshold: toFiniteNumber(
+      cli["dedupe-similarity-threshold"] ?? config.dedupeSimilarityThreshold,
+      11
+    ),
+    dedupeMinGapSeconds: toFiniteNumber(
+      cli["dedupe-min-gap-seconds"] ?? config.dedupeMinGapSeconds,
+      1
     )
   };
   const adminCatalog = await readAdminCatalogFile(adminCatalogFile);
@@ -247,6 +261,9 @@ async function main() {
   );
   console.log(
     `Momentos por video: cada ~${momentGeneration.intervalSeconds}s desde ${momentGeneration.startOffsetSeconds}s hasta dejar ${momentGeneration.endBufferSeconds}s al final (min ${momentGeneration.minMomentsPerVideo}, max ${momentGeneration.maxMomentsPerVideo})`
+  );
+  console.log(
+    `Deduplicacion visual: umbral ${momentGeneration.dedupeSimilarityThreshold}, muestra ${momentGeneration.dedupeSampleSize}x${momentGeneration.dedupeSampleSize}, gap minimo ${momentGeneration.dedupeMinGapSeconds}s`
   );
   console.log(
     adminCatalogFile
@@ -317,10 +334,45 @@ async function main() {
 
   const driveVideosForCatalog =
     downloadedVideoEntries.length > 0
-      ? downloadedVideoEntries.map(({ file, durationSeconds }) => ({
-          ...file,
-          durationSeconds
-        }))
+      ? downloadedVideoEntries.map(({ file, destination, durationSeconds }) => {
+          const baseTimestamps = buildMomentTimestampsForVideo(
+            durationSeconds,
+            momentGeneration
+          );
+          let momentTimestamps = baseTimestamps;
+
+          try {
+            const dedupeResult = dedupeMomentTimestamps({
+              filePath: destination,
+              timestamps: baseTimestamps,
+              sampleSize: momentGeneration.dedupeSampleSize,
+              similarityThreshold: momentGeneration.dedupeSimilarityThreshold,
+              minGapSeconds: momentGeneration.dedupeMinGapSeconds,
+              verbose
+            });
+            momentTimestamps = dedupeResult.acceptedTimestamps;
+
+            if (verbose) {
+              console.log(
+                `  ${file.name}: ${baseTimestamps.length} candidatos -> ${momentTimestamps.length} despues de deduplicar`
+              );
+            }
+          } catch (error) {
+            console.warn(
+              `No se pudo deduplicar visualmente ${file.name}. Se conservaran timestamps base.`
+            );
+            if (verbose && error instanceof Error) {
+              console.warn(`  Motivo: ${error.message}`);
+            }
+          }
+
+          return {
+            ...file,
+            durationSeconds,
+            momentTimestamps,
+            localPath: destination
+          };
+        })
       : selectedVideos;
 
   const catalog = adminCatalog

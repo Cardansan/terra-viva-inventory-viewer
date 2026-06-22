@@ -41,7 +41,10 @@ Si el video vuelve a ser un recorrido continuo, probar primero con:
   "momentIntervalSeconds": 6,
   "momentEndBufferSeconds": 8,
   "minMomentsPerVideo": 8,
-  "maxMomentsPerVideo": 30
+  "maxMomentsPerVideo": 30,
+  "dedupeSampleSize": 24,
+  "dedupeSimilarityThreshold": 11,
+  "dedupeMinGapSeconds": 1
 }
 ```
 
@@ -50,6 +53,8 @@ Si el video vuelve a ser un recorrido continuo, probar primero con:
 - No detecta automaticamente cada arbol individual.
 - No entiende todavia si el arbol esta centrado o tapado.
 - No encuentra pausas reales por vision computacional; por ahora solo propone candidatos por tiempo.
+
+La deduplicacion visual ligera ya ayuda a quitar algunos repetidos consecutivos, pero no reemplaza una grabacion ordenada ni garantiza un arbol unico por candidato.
 
 Por eso, hoy la mejor manera de mejorar resultados es combinar:
 

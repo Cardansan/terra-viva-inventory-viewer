@@ -10,7 +10,10 @@ const DEFAULT_MOMENT_GENERATION = Object.freeze({
   intervalSeconds: 8,
   endBufferSeconds: 12,
   minMomentsPerVideo: 6,
-  maxMomentsPerVideo: 24
+  maxMomentsPerVideo: 24,
+  dedupeSampleSize: 24,
+  dedupeSimilarityThreshold: 11,
+  dedupeMinGapSeconds: 1
 });
 
 function getCatalogAssetBasePath(date, workflow = "publish") {
@@ -63,7 +66,24 @@ export function normalizeMomentGenerationConfig(config = {}) {
     intervalSeconds,
     endBufferSeconds,
     minMomentsPerVideo,
-    maxMomentsPerVideo
+    maxMomentsPerVideo,
+    dedupeSampleSize: Math.max(
+      8,
+      Math.round(
+        toPositiveNumber(
+          config.dedupeSampleSize,
+          DEFAULT_MOMENT_GENERATION.dedupeSampleSize
+        )
+      )
+    ),
+    dedupeSimilarityThreshold: toPositiveNumber(
+      config.dedupeSimilarityThreshold,
+      DEFAULT_MOMENT_GENERATION.dedupeSimilarityThreshold
+    ),
+    dedupeMinGapSeconds: toPositiveNumber(
+      config.dedupeMinGapSeconds,
+      DEFAULT_MOMENT_GENERATION.dedupeMinGapSeconds
+    )
   };
 }
 
@@ -135,7 +155,11 @@ export function buildCatalogFromVideos({
   }));
 
   const generatedMoments = videos.flatMap((video) =>
-    buildMomentTimestampsForVideo(video.durationSeconds, momentGeneration).map(
+    (Array.isArray(driveVideos[video.order - 1]?.momentTimestamps) &&
+    driveVideos[video.order - 1].momentTimestamps.length > 0
+      ? driveVideos[video.order - 1].momentTimestamps
+      : buildMomentTimestampsForVideo(video.durationSeconds, momentGeneration)
+    ).map(
       (timestampSeconds) => ({
         video,
         timestampSeconds

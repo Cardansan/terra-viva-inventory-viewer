@@ -10,5 +10,8 @@
   "momentIntervalSeconds": 8,
   "momentEndBufferSeconds": 12,
   "minMomentsPerVideo": 6,
-  "maxMomentsPerVideo": 24
+  "maxMomentsPerVideo": 24,
+  "dedupeSampleSize": 24,
+  "dedupeSimilarityThreshold": 11,
+  "dedupeMinGapSeconds": 1
 }

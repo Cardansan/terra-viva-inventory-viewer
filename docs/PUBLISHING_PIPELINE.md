@@ -177,6 +177,9 @@ El publicador ahora acepta estos parametros de generacion:
 - `momentEndBufferSeconds`
 - `minMomentsPerVideo`
 - `maxMomentsPerVideo`
+- `dedupeSampleSize`
+- `dedupeSimilarityThreshold`
+- `dedupeMinGapSeconds`
 
 Funcionan asi:
 
@@ -185,6 +188,9 @@ Funcionan asi:
 - `momentEndBufferSeconds`: deja fuera el tramo final donde suele haber movimiento de salida.
 - `minMomentsPerVideo`: piso de candidatos aunque el video sea corto.
 - `maxMomentsPerVideo`: techo para no saturar el borrador.
+- `dedupeSampleSize`: tamano del frame reducido usado para comparar similitud visual.
+- `dedupeSimilarityThreshold`: umbral de diferencia media; mas bajo conserva mas momentos, mas alto elimina mas repeticiones.
+- `dedupeMinGapSeconds`: separacion minima para considerar que dos candidatos consecutivos pueden ser duplicados.
 
 Recomendacion inicial para el siguiente video real:
 
@@ -194,11 +200,16 @@ Recomendacion inicial para el siguiente video real:
   "momentIntervalSeconds": 6,
   "momentEndBufferSeconds": 8,
   "minMomentsPerVideo": 8,
-  "maxMomentsPerVideo": 30
+  "maxMomentsPerVideo": 30,
+  "dedupeSampleSize": 24,
+  "dedupeSimilarityThreshold": 11,
+  "dedupeMinGapSeconds": 1
 }
 ```
 
 Eso no garantiza deteccion perfecta, pero si hace que el borrador recorra mucho mejor un video largo y evita el cuello de botella artificial de 9 momentos.
+
+Ademas, ahora existe una deduplicacion visual ligera: si dos candidatos consecutivos producen frames demasiado parecidos, el segundo se descarta para reducir casos donde el mismo arbol aparece repetido varias veces seguidas.
 
 ## Siguiente mejora esperada
 
