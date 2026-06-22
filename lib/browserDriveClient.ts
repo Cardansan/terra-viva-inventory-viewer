@@ -156,3 +156,11 @@ export async function getLatestDrivePublisherStatuses(
   const { mailbox } = await readMailbox(accessToken, inboxFolderId);
   return mailbox.status ? [mailbox.status].slice(0, limit) : [];
 }
+
+export function isDriveTokenExpiredError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message ===
+      "Drive session expired. Paste a fresh temporary Drive token in admin."
+  );
+}

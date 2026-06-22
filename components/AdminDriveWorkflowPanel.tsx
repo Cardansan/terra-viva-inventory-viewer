@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
 import {
   createDrivePublisherOrder,
-  getLatestDrivePublisherStatuses
+  getLatestDrivePublisherStatuses,
+  isDriveTokenExpiredError
 } from "@/lib/browserDriveClient";
 import type {
   DrivePublisherOrder,
@@ -31,6 +32,11 @@ export function AdminDriveWorkflowPanel({
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
+  const [draftInboxFolderId, setDraftInboxFolderId] = useState("");
+  const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
+  const [isEditingSession, setIsEditingSession] = useState(false);
+  const [isLoadingConfiguredSession, setIsLoadingConfiguredSession] =
+    useState(true);
 
   const latestStatus = statuses[0];
   const hasToken = accessToken.trim().length > 0;
@@ -47,6 +53,7 @@ export function AdminDriveWorkflowPanel({
     setAccessToken(storedToken);
     setDraftTokenValue(storedToken);
     setInboxFolderId(storedInboxFolderId);
+    setDraftInboxFolderId(storedInboxFolderId);
 
     if (storedStatuses) {
       try {
@@ -55,6 +62,8 @@ export function AdminDriveWorkflowPanel({
         window.localStorage.removeItem(STATUS_STORAGE_KEY);
       }
     }
+
+    void loadConfiguredSession(storedToken, storedInboxFolderId);
   }, []);
 
   useEffect(() => {
@@ -97,6 +106,12 @@ export function AdminDriveWorkflowPanel({
         );
       }
     } catch (error) {
+      if (isDriveTokenExpiredError(error)) {
+        setFeedback(
+          "El token de Drive configurado ya no esta vigente. Abre Editar sesion de Drive para pegar uno nuevo."
+        );
+        return;
+      }
       setFeedback(
         error instanceof Error
           ? error.message
@@ -105,29 +120,103 @@ export function AdminDriveWorkflowPanel({
     }
   }
 
+  async function loadConfiguredSession(
+    storedToken: string,
+    storedInboxFolderId: string
+  ) {
+    try {
+      const response = await fetch("/api/drive-session", { cache: "no-store" });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const configuredSession = (await response.json()) as {
+        driveFolderId?: string;
+        googleDriveAccessToken?: string;
+      };
+
+      const nextToken =
+        configuredSession.googleDriveAccessToken || storedToken || "";
+      const nextInboxFolderId =
+        configuredSession.driveFolderId || storedInboxFolderId || "";
+
+      setAccessToken(nextToken);
+      setDraftTokenValue(nextToken);
+      setInboxFolderId(nextInboxFolderId);
+      setDraftInboxFolderId(nextInboxFolderId);
+    } finally {
+      setIsLoadingConfiguredSession(false);
+    }
+  }
+
   function saveToken() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Oye, estas seguro de que quieres editar la sesion de Drive?")
+    ) {
+      return;
+    }
+
     const sanitizedToken = draftTokenValue.trim();
+    const sanitizedInboxFolderId = draftInboxFolderId.trim();
     setAccessToken(sanitizedToken);
+    setInboxFolderId(sanitizedInboxFolderId);
     if (typeof window !== "undefined") {
       if (sanitizedToken) {
         window.localStorage.setItem(STORAGE_KEY, sanitizedToken);
       } else {
         window.localStorage.removeItem(STORAGE_KEY);
       }
-      if (inboxFolderId.trim()) {
+      if (sanitizedInboxFolderId) {
         window.localStorage.setItem(
           INBOX_ID_STORAGE_KEY,
-          inboxFolderId.trim()
+          sanitizedInboxFolderId
         );
       } else {
         window.localStorage.removeItem(INBOX_ID_STORAGE_KEY);
       }
     }
+    setIsEditingSession(false);
+    setIsSessionPanelOpen(false);
     setFeedback(
       sanitizedToken
         ? "Sesion de Drive guardada en este navegador."
         : "Sesion de Drive eliminada de este navegador."
     );
+  }
+
+  function enableSessionEditing() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Oye, estas seguro de que quieres editar la sesion de Drive?")
+    ) {
+      return;
+    }
+
+    setIsSessionPanelOpen(true);
+    setIsEditingSession(true);
+  }
+
+  function clearStoredSession() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Oye, estas seguro de que quieres borrar la sesion guardada en este navegador?")
+    ) {
+      return;
+    }
+
+    setDraftTokenValue("");
+    setAccessToken("");
+    setDraftInboxFolderId("");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(INBOX_ID_STORAGE_KEY);
+    }
+    setInboxFolderId("");
+    setIsEditingSession(false);
+    setIsSessionPanelOpen(false);
+    setFeedback("Sesion de Drive eliminada de este navegador.");
   }
 
   async function submitOrder(action: PublisherOrderAction) {
@@ -159,6 +248,12 @@ export function AdminDriveWorkflowPanel({
       );
       await refreshStatuses(accessToken);
     } catch (error) {
+      if (isDriveTokenExpiredError(error)) {
+        setFeedback(
+          "Intente usar el token de Drive, pero ya no esta vigente. Abre Editar sesion de Drive para pegar uno nuevo."
+        );
+        return;
+      }
       setFeedback(
         error instanceof Error
           ? error.message
@@ -187,48 +282,99 @@ export function AdminDriveWorkflowPanel({
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="rounded-lg bg-terra-paper/60 p-4">
-          <label className="block text-sm font-black text-terra-ink">
-            Token temporal de Drive
-          </label>
-          <textarea
-            className="mt-2 min-h-28 w-full rounded-lg border border-terra-moss/25 bg-white px-3 py-3 text-sm font-bold text-terra-ink"
-            onChange={(event) => setDraftTokenValue(event.target.value)}
-            placeholder="Pega aqui el token temporal para esta laptop o este telefono."
-            value={draftTokenValue}
-          />
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-              onClick={saveToken}
-              type="button"
-            >
-              Guardar sesion de Drive
-            </button>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <label className="block text-sm font-black text-terra-ink">
+                Sesion de Drive
+              </label>
+              <p className="mt-2 text-sm font-bold text-terra-ink/65">
+                {isLoadingConfiguredSession
+                  ? "Cargando la sesion configurada para esta laptop..."
+                  : hasToken
+                    ? "Ahorita esta puesto el token que funciona en esta laptop."
+                    : "Ahorita no hay token activo de Drive."}
+              </p>
+            </div>
             <button
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
               onClick={() => {
-                setDraftTokenValue("");
-                setAccessToken("");
-                if (typeof window !== "undefined") {
-                  window.localStorage.removeItem(STORAGE_KEY);
-                }
-                setFeedback("Sesion de Drive eliminada de este navegador.");
+                setIsSessionPanelOpen((currentValue) => !currentValue);
+                setIsEditingSession(false);
               }}
               type="button"
             >
-              Borrar sesion
+              {isSessionPanelOpen ? "Compactar" : "Abrir"}
             </button>
           </div>
-          <label className="mt-4 block text-sm font-black text-terra-ink">
-            Inbox folder ID
-          </label>
-          <input
-            className="mt-2 min-h-11 w-full rounded-lg border border-terra-moss/25 bg-white px-3 text-sm font-bold text-terra-ink"
-            onChange={(event) => setInboxFolderId(event.target.value)}
-            placeholder="13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ"
-            type="text"
-            value={inboxFolderId}
-          />
+
+          {isSessionPanelOpen ? (
+            <div className="mt-4 rounded-lg border border-terra-moss/20 bg-white p-3">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                  onClick={enableSessionEditing}
+                  type="button"
+                >
+                  Editar sesion
+                </button>
+                <button
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                  onClick={clearStoredSession}
+                  type="button"
+                >
+                  Borrar sesion
+                </button>
+              </div>
+
+              {isEditingSession ? (
+                <>
+                  <label className="mt-4 block text-sm font-black text-terra-ink">
+                    Token temporal de Drive
+                  </label>
+                  <textarea
+                    className="mt-2 min-h-28 w-full rounded-lg border border-terra-moss/25 bg-white px-3 py-3 text-sm font-bold text-terra-ink"
+                    onChange={(event) => setDraftTokenValue(event.target.value)}
+                    placeholder="Pega aqui el token temporal para esta laptop o este telefono."
+                    value={draftTokenValue}
+                  />
+                  <label className="mt-4 block text-sm font-black text-terra-ink">
+                    Inbox folder ID
+                  </label>
+                  <input
+                    className="mt-2 min-h-11 w-full rounded-lg border border-terra-moss/25 bg-white px-3 text-sm font-bold text-terra-ink"
+                    onChange={(event) => setDraftInboxFolderId(event.target.value)}
+                    placeholder="13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ"
+                    type="text"
+                    value={draftInboxFolderId}
+                  />
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                      onClick={saveToken}
+                      type="button"
+                    >
+                      Guardar sesion de Drive
+                    </button>
+                    <button
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+                      onClick={() => {
+                        setDraftTokenValue(accessToken);
+                        setDraftInboxFolderId(inboxFolderId);
+                        setIsEditingSession(false);
+                      }}
+                      type="button"
+                    >
+                      Cancelar edicion
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-3 text-sm font-bold text-terra-ink/65">
+                  Esta seccion queda compacta y no cambia nada hasta que piques Editar sesion y confirmes.
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-lg bg-terra-paper/60 p-4">
