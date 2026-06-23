@@ -4,11 +4,19 @@ import path from "node:path";
 type PublisherLocalConfig = {
   driveFolderId?: string;
   googleDriveAccessToken?: string;
-};
+  googleDriveRefreshToken?: string;
+  googleDriveClientId?: string;
+  googleDriveClientSecret?: string;
+  googleDriveAccessTokenExpiresAt?: string;
+} & Record<string, unknown>;
 
 export type PublisherSessionConfig = {
   driveFolderId: string;
   googleDriveAccessToken: string;
+  googleDriveRefreshToken: string;
+  googleDriveClientId: string;
+  googleDriveClientSecret: string;
+  googleDriveAccessTokenExpiresAt: string;
 };
 
 const localConfigPath = path.join(
@@ -23,12 +31,54 @@ export async function readPublisherSessionConfig(): Promise<PublisherSessionConf
 
     return {
       driveFolderId: parsed.driveFolderId?.trim() || "",
-      googleDriveAccessToken: parsed.googleDriveAccessToken?.trim() || ""
+      googleDriveAccessToken: parsed.googleDriveAccessToken?.trim() || "",
+      googleDriveRefreshToken: parsed.googleDriveRefreshToken?.trim() || "",
+      googleDriveClientId: parsed.googleDriveClientId?.trim() || "",
+      googleDriveClientSecret: parsed.googleDriveClientSecret?.trim() || "",
+      googleDriveAccessTokenExpiresAt:
+        parsed.googleDriveAccessTokenExpiresAt?.trim() || ""
     };
   } catch {
     return {
       driveFolderId: "",
-      googleDriveAccessToken: ""
+      googleDriveAccessToken: "",
+      googleDriveRefreshToken: "",
+      googleDriveClientId: "",
+      googleDriveClientSecret: "",
+      googleDriveAccessTokenExpiresAt: ""
     };
   }
+}
+
+export async function writePublisherSessionConfig(
+  nextConfig: PublisherSessionConfig
+) {
+  let existingConfig: PublisherLocalConfig = {};
+
+  try {
+    existingConfig = JSON.parse(
+      await fs.readFile(localConfigPath, "utf8")
+    ) as PublisherLocalConfig;
+  } catch {
+    existingConfig = {};
+  }
+
+  await fs.writeFile(
+    localConfigPath,
+    `${JSON.stringify(
+      {
+        ...existingConfig,
+        driveFolderId: nextConfig.driveFolderId,
+        googleDriveAccessToken: nextConfig.googleDriveAccessToken,
+        googleDriveRefreshToken: nextConfig.googleDriveRefreshToken,
+        googleDriveClientId: nextConfig.googleDriveClientId,
+        googleDriveClientSecret: nextConfig.googleDriveClientSecret,
+        googleDriveAccessTokenExpiresAt:
+          nextConfig.googleDriveAccessTokenExpiresAt
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
 }

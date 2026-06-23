@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
-import { readPublisherSessionConfig } from "@/lib/publisherLocalConfig";
+import { resolveDriveSessionDiagnostics } from "@/lib/googleDriveSession";
 
 export async function GET() {
-  const sessionConfig = await readPublisherSessionConfig();
+  const sessionConfig = await resolveDriveSessionDiagnostics();
 
   return NextResponse.json({
     driveFolderId: sessionConfig.driveFolderId,
-    googleDriveAccessToken: sessionConfig.googleDriveAccessToken
+    googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
+    hasAccessToken: sessionConfig.hasAccessToken,
+    hasRefreshToken: sessionConfig.hasRefreshToken,
+    canAutoRefresh: sessionConfig.canAutoRefresh,
+    severity: sessionConfig.severity,
+    message: sessionConfig.message
   });
 }

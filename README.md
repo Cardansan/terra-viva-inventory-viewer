@@ -38,6 +38,7 @@ Rutas principales:
 - `npm run start`: sirve el build.
 - `npm run lint`: lint con Next.
 - `npm run typecheck`: validacion TypeScript estricta.
+- `npm run setup:drive-oauth`: inicia el flujo local para renovar `access_token` y `refresh_token` de Drive con callback por `localhost`.
 - `npm run process:catalog-draft`: procesa videos del Inbox y genera un borrador revisable.
 - `npm run publish:catalog`: publicador Drive-first para generar catalogos estaticos.
 
@@ -157,6 +158,7 @@ Importante sobre Drive:
 - La app todavia no descubre por si sola en que carpeta de Drive subio videos tu mama.
 - Hay que configurar manualmente `driveFolderId` en `terra-viva.publisher.local.json`.
 - Tambien hace falta una credencial local de Drive; por ahora el lanzador acepta `googleDriveAccessToken` en ese archivo o `GOOGLE_DRIVE_ACCESS_TOKEN` en el entorno.
+- El proyecto ya soporta `googleDriveClientId`, `googleDriveClientSecret`, `googleDriveRefreshToken` y `googleDriveAccessTokenExpiresAt` para renovar la sesion automaticamente.
 - Si `ffmpeg` esta disponible, `Procesar borrador` ya genera thumbnails reales.
 - `Publicar catalogo` exige `catalogInputFile` para no publicar un catalogo no revisado.
 - El Inbox debe contener los videos directamente en esa carpeta raiz; si estan dentro de otra subcarpeta, el pipeline actual no los encontrara.

@@ -261,8 +261,8 @@ async function main() {
         order,
         "running",
         order.action === "process_draft"
-          ? "La laptop ya empezo a procesar el borrador."
-          : "La laptop ya empezo a publicar el borrador aprobado."
+          ? "Ya se esta preparando el borrador."
+          : "Ya se esta publicando el catalogo."
       )
     });
 

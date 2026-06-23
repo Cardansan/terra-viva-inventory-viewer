@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
 import {
+  DRIVE_INBOX_ID_STORAGE_KEY,
+  DRIVE_SESSION_STORAGE_KEY,
+  DRIVE_SESSION_UPDATED_EVENT,
+  DRIVE_STATUS_STORAGE_KEY
+} from "@/lib/driveSessionBrowser";
+import {
   createDrivePublisherOrder,
   getLatestDrivePublisherStatuses,
   isDriveTokenExpiredError
@@ -14,58 +20,86 @@ import type {
 } from "@/lib/drivePublisherTypes";
 import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
-const STORAGE_KEY = "terra-viva:drive-access-token";
-const INBOX_ID_STORAGE_KEY = "terra-viva:drive-inbox-folder-id";
-const STATUS_STORAGE_KEY = "terra-viva:drive-publisher-statuses";
-
 type AdminDriveWorkflowPanelProps = {
   activeCatalog: CatalogDay;
   canPublishDraft: boolean;
+  selectedCatalogId: string;
+  draftCatalogId?: string;
+  publishedCatalogId?: string;
+  onSelectDraft?: () => void;
+  onSelectPublished?: () => void;
 };
 
 export function AdminDriveWorkflowPanel({
   activeCatalog,
-  canPublishDraft
+  canPublishDraft,
+  selectedCatalogId,
+  draftCatalogId,
+  publishedCatalogId,
+  onSelectDraft,
+  onSelectPublished
 }: AdminDriveWorkflowPanelProps) {
   const [accessToken, setAccessToken] = useState("");
-  const [draftTokenValue, setDraftTokenValue] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
-  const [draftInboxFolderId, setDraftInboxFolderId] = useState("");
-  const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
-  const [isEditingSession, setIsEditingSession] = useState(false);
-  const [isActionsHintOpen, setIsActionsHintOpen] = useState(false);
   const [isLoadingConfiguredSession, setIsLoadingConfiguredSession] =
     useState(true);
 
   const latestStatus = statuses[0];
   const hasToken = accessToken.trim().length > 0;
+  const isDraftSelected = Boolean(draftCatalogId && selectedCatalogId === draftCatalogId);
+  const isPublishedSelected = Boolean(
+    publishedCatalogId && selectedCatalogId === publishedCatalogId
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const storedToken = window.localStorage.getItem(STORAGE_KEY) || "";
+    const storedToken =
+      window.localStorage.getItem(DRIVE_SESSION_STORAGE_KEY) || "";
     const storedInboxFolderId =
-      window.localStorage.getItem(INBOX_ID_STORAGE_KEY) || "";
-    const storedStatuses = window.localStorage.getItem(STATUS_STORAGE_KEY) || "";
+      window.localStorage.getItem(DRIVE_INBOX_ID_STORAGE_KEY) || "";
+    const storedStatuses =
+      window.localStorage.getItem(DRIVE_STATUS_STORAGE_KEY) || "";
     setAccessToken(storedToken);
-    setDraftTokenValue(storedToken);
     setInboxFolderId(storedInboxFolderId);
-    setDraftInboxFolderId(storedInboxFolderId);
 
     if (storedStatuses) {
       try {
         setStatuses(JSON.parse(storedStatuses) as DrivePublisherStatus[]);
       } catch {
-        window.localStorage.removeItem(STATUS_STORAGE_KEY);
+        window.localStorage.removeItem(DRIVE_STATUS_STORAGE_KEY);
       }
     }
 
     void loadConfiguredSession(storedToken, storedInboxFolderId);
+
+    function handleDriveSessionUpdated() {
+      const nextStoredToken =
+        window.localStorage.getItem(DRIVE_SESSION_STORAGE_KEY) || "";
+      const nextStoredInboxFolderId =
+        window.localStorage.getItem(DRIVE_INBOX_ID_STORAGE_KEY) || "";
+
+      setAccessToken(nextStoredToken);
+      setInboxFolderId(nextStoredInboxFolderId);
+      void loadConfiguredSession(nextStoredToken, nextStoredInboxFolderId);
+    }
+
+    window.addEventListener(
+      DRIVE_SESSION_UPDATED_EVENT,
+      handleDriveSessionUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        DRIVE_SESSION_UPDATED_EVENT,
+        handleDriveSessionUpdated
+      );
+    };
   }, []);
 
   useEffect(() => {
@@ -83,11 +117,11 @@ export function AdminDriveWorkflowPanel({
 
   const publishDisabledReason = useMemo(() => {
     if (!hasToken) {
-      return "Pega primero un token temporal de Drive.";
+      return "La publicacion automatica no esta lista todavia.";
     }
 
     if (!canPublishDraft) {
-      return "Primero procesa un borrador nuevo para que pueda aprobarse.";
+      return "Primero prepara un borrador nuevo.";
     }
 
     return "";
@@ -103,21 +137,21 @@ export function AdminDriveWorkflowPanel({
       setStatuses(nextStatuses);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
-          STATUS_STORAGE_KEY,
+          DRIVE_STATUS_STORAGE_KEY,
           JSON.stringify(nextStatuses)
         );
       }
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         setFeedback(
-          "El token de Drive configurado ya no esta vigente. Abre Editar sesion de Drive para pegar uno nuevo."
+          "La conexion automatica de publicacion vencio. Revisa la seccion de soporte."
         );
         return;
       }
       setFeedback(
         error instanceof Error
           ? error.message
-          : "No se pudo leer el estado del publicador."
+          : "No se pudo leer el estado de publicacion."
       );
     }
   }
@@ -136,6 +170,8 @@ export function AdminDriveWorkflowPanel({
       const configuredSession = (await response.json()) as {
         driveFolderId?: string;
         googleDriveAccessToken?: string;
+        message?: string;
+        severity?: "info" | "warning" | "error";
       };
 
       const nextToken =
@@ -144,86 +180,26 @@ export function AdminDriveWorkflowPanel({
         configuredSession.driveFolderId || storedInboxFolderId || "";
 
       setAccessToken(nextToken);
-      setDraftTokenValue(nextToken);
       setInboxFolderId(nextInboxFolderId);
-      setDraftInboxFolderId(nextInboxFolderId);
+
+      if (
+        configuredSession.severity === "warning" ||
+        configuredSession.severity === "error"
+      ) {
+        setFeedback(
+          "La publicacion automatica necesita revision. Revisa la seccion de soporte."
+        );
+      }
     } finally {
       setIsLoadingConfiguredSession(false);
     }
   }
 
-  function saveToken() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Oye, estas seguro de que quieres editar la sesion de Drive?")
-    ) {
-      return;
-    }
-
-    const sanitizedToken = draftTokenValue.trim();
-    const sanitizedInboxFolderId = draftInboxFolderId.trim();
-    setAccessToken(sanitizedToken);
-    setInboxFolderId(sanitizedInboxFolderId);
-    if (typeof window !== "undefined") {
-      if (sanitizedToken) {
-        window.localStorage.setItem(STORAGE_KEY, sanitizedToken);
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
-      if (sanitizedInboxFolderId) {
-        window.localStorage.setItem(
-          INBOX_ID_STORAGE_KEY,
-          sanitizedInboxFolderId
-        );
-      } else {
-        window.localStorage.removeItem(INBOX_ID_STORAGE_KEY);
-      }
-    }
-    setIsEditingSession(false);
-    setIsSessionPanelOpen(false);
-    setFeedback(
-      sanitizedToken
-        ? "Sesion de Drive guardada en este navegador."
-        : "Sesion de Drive eliminada de este navegador."
-    );
-  }
-
-  function enableSessionEditing() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Oye, estas seguro de que quieres editar la sesion de Drive?")
-    ) {
-      return;
-    }
-
-    setIsSessionPanelOpen(true);
-    setIsEditingSession(true);
-  }
-
-  function clearStoredSession() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Oye, estas seguro de que quieres borrar la sesion guardada en este navegador?")
-    ) {
-      return;
-    }
-
-    setDraftTokenValue("");
-    setAccessToken("");
-    setDraftInboxFolderId("");
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-      window.localStorage.removeItem(INBOX_ID_STORAGE_KEY);
-    }
-    setInboxFolderId("");
-    setIsEditingSession(false);
-    setIsSessionPanelOpen(false);
-    setFeedback("Sesion de Drive eliminada de este navegador.");
-  }
-
   async function submitOrder(action: PublisherOrderAction) {
     if (!hasToken) {
-      setFeedback("Pega primero un token temporal de Drive.");
+      setFeedback(
+        "La publicacion automatica no esta lista todavia. Revisa la seccion de soporte."
+      );
       return;
     }
 
@@ -232,7 +208,8 @@ export function AdminDriveWorkflowPanel({
       action,
       createdAt: new Date().toISOString(),
       createdBy: "admin-web",
-      catalogDate: activeCatalog.date
+      catalogDate: activeCatalog.date,
+      approvalCatalog: action === "publish_approved" ? activeCatalog : undefined
     };
 
     try {
@@ -245,21 +222,21 @@ export function AdminDriveWorkflowPanel({
       );
       setFeedback(
         action === "process_draft"
-          ? "Orden enviada. La laptop puede empezar a procesar en cuanto recoja la cola."
-          : "Orden enviada. La laptop puede publicar este borrador aprobado en cuanto recoja la cola."
+          ? "Listo. Ya se empezo a preparar un borrador nuevo."
+          : "Listo. El catalogo se envio a publicacion con los cambios que acabas de revisar."
       );
       await refreshStatuses(accessToken);
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         setFeedback(
-          "Intente usar el token de Drive, pero ya no esta vigente. Abre Editar sesion de Drive para pegar uno nuevo."
+          "La conexion automatica de publicacion vencio. Revisa la seccion de soporte."
         );
         return;
       }
       setFeedback(
         error instanceof Error
           ? error.message
-          : "No se pudo enviar la orden a Drive."
+          : "No se pudo enviar la orden de publicacion."
       );
     } finally {
       setIsBusy(null);
@@ -267,218 +244,200 @@ export function AdminDriveWorkflowPanel({
   }
 
   return (
-    <section className="mb-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-            Publicador remoto
+    <section className="mb-4 overflow-hidden rounded-[24px] bg-white shadow-soft ring-1 ring-terra-moss/20">
+      <div className="bg-[linear-gradient(135deg,#f8f3e8_0%,#eef6ef_100%)] px-4 py-5 sm:px-5">
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-terra-clay">
+          Flujo principal
+        </p>
+        <h2 className="mt-2 text-2xl font-black leading-tight text-terra-ink">
+          Revisar y publicar catalogo
+        </h2>
+        <p className="mt-2 max-w-2xl text-base font-bold text-terra-ink/70">
+          Abre el borrador de hoy, marca que arboles se muestran y publicalo
+          cuando ya este listo.
+        </p>
+
+        <div
+          className={`mt-4 rounded-2xl px-4 py-4 ring-1 ${
+            canPublishDraft
+              ? "bg-white/85 text-terra-ink ring-terra-moss/15"
+              : "bg-amber-50 text-amber-950 ring-amber-200"
+          }`}
+        >
+          <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+            {canPublishDraft ? "Borrador listo" : "Sin borrador nuevo"}
           </p>
-          <h2 className="mt-1 text-xl font-black text-terra-ink">
-            Pedir procesamiento o publicacion desde esta web
-          </h2>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="rounded-lg bg-terra-paper/60 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <label className="block text-sm font-black text-terra-ink">
-                Sesion de Drive
-              </label>
-              <p className="mt-2 text-sm font-bold text-terra-ink/65">
-                {isLoadingConfiguredSession
-                  ? "Cargando la sesion configurada para esta laptop..."
-                  : hasToken
-                    ? "Ahorita esta puesto el token que funciona en esta laptop."
-                    : "Ahorita no hay token activo de Drive."}
-              </p>
-            </div>
-            <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-              onClick={() => {
-                setIsSessionPanelOpen((currentValue) => !currentValue);
-                setIsEditingSession(false);
-              }}
-              type="button"
-            >
-              {isSessionPanelOpen ? "Compactar" : "Abrir"}
-            </button>
-          </div>
-
-          {isSessionPanelOpen ? (
-            <div className="mt-4 rounded-lg border border-terra-moss/20 bg-white p-3">
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-                  onClick={enableSessionEditing}
-                  type="button"
-                >
-                  Editar sesion
-                </button>
-                <button
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-                  onClick={clearStoredSession}
-                  type="button"
-                >
-                  Borrar sesion
-                </button>
-              </div>
-
-              {isEditingSession ? (
-                <>
-                  <label className="mt-4 block text-sm font-black text-terra-ink">
-                    Token temporal de Drive
-                  </label>
-                  <textarea
-                    className="mt-2 min-h-28 w-full rounded-lg border border-terra-moss/25 bg-white px-3 py-3 text-sm font-bold text-terra-ink"
-                    onChange={(event) => setDraftTokenValue(event.target.value)}
-                    placeholder="Pega aqui el token temporal para esta laptop o este telefono."
-                    value={draftTokenValue}
-                  />
-                  <label className="mt-4 block text-sm font-black text-terra-ink">
-                    Inbox folder ID
-                  </label>
-                  <input
-                    className="mt-2 min-h-11 w-full rounded-lg border border-terra-moss/25 bg-white px-3 text-sm font-bold text-terra-ink"
-                    onChange={(event) => setDraftInboxFolderId(event.target.value)}
-                    placeholder="13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ"
-                    type="text"
-                    value={draftInboxFolderId}
-                  />
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <button
-                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-                      onClick={saveToken}
-                      type="button"
-                    >
-                      Guardar sesion de Drive
-                    </button>
-                    <button
-                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
-                      onClick={() => {
-                        setDraftTokenValue(accessToken);
-                        setDraftInboxFolderId(inboxFolderId);
-                        setIsEditingSession(false);
-                      }}
-                      type="button"
-                    >
-                      Cancelar edicion
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <p className="mt-3 text-sm font-bold text-terra-ink/65">
-                  Esta seccion queda compacta y no cambia nada hasta que piques Editar sesion y confirmes.
-                </p>
-              )}
-            </div>
-          ) : null}
+          <p className="mt-2 text-base font-black">
+            {canPublishDraft
+              ? `${activeCatalog.moments.length} arboles listos para revisar y publicar.`
+              : "Todavia no hay un borrador nuevo para revisar."}
+          </p>
+          <p className="mt-1 text-sm font-bold text-terra-ink/65">
+            {canPublishDraft
+              ? "Empieza tocando Revisar borrador y, cuando termines, usa Publicar catalogo."
+              : "Si hoy llegaron videos nuevos, usa la opcion de abajo para preparar el siguiente borrador."}
+          </p>
         </div>
 
-        <div className="rounded-lg bg-terra-paper/60 p-4">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-black text-terra-ink">Acciones</p>
-            <button
-              aria-expanded={isActionsHintOpen}
-              aria-label="Mostrar ayuda de Acciones"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-terra-moss/25 bg-white text-sm font-black text-terra-ink"
-              onClick={() => setIsActionsHintOpen((currentValue) => !currentValue)}
-              type="button"
-            >
-              i
-            </button>
-          </div>
-          {isActionsHintOpen ? (
-            <p className="mt-3 rounded-lg border border-terra-moss/20 bg-white px-3 py-3 text-sm font-bold text-terra-ink/65">
-              El procesamiento toma todos los videos pendientes que sigan dentro del Inbox de Drive. Cuando un catalogo se publica bien, esos videos se mueven a Procesados para que no vuelvan a entrar en la siguiente corrida.
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+          <div className="rounded-2xl bg-white/85 p-4 ring-1 ring-terra-moss/15">
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+              Paso 1
             </p>
-          ) : null}
-          <div className="mt-3">
-            <AdminVideoUploadPanel embedded />
+            <h3 className="mt-1 text-lg font-black text-terra-ink">
+              Elegir que quieres revisar
+            </h3>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {draftCatalogId ? (
+                <button
+                  className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
+                    isDraftSelected
+                      ? "bg-terra-clay text-white"
+                      : "bg-terra-paper text-terra-ink ring-1 ring-terra-clay/20"
+                  }`}
+                  onClick={onSelectDraft}
+                  type="button"
+                >
+                  {isDraftSelected ? "Revisando borrador" : "Revisar borrador"}
+                </button>
+              ) : null}
+              {publishedCatalogId ? (
+                <button
+                  className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
+                    isPublishedSelected
+                      ? "bg-terra-leaf text-white"
+                      : "bg-white text-terra-ink ring-1 ring-terra-moss/20"
+                  }`}
+                  onClick={onSelectPublished}
+                  type="button"
+                >
+                  {isPublishedSelected
+                    ? "Viendo catalogo actual"
+                    : "Ver catalogo actual"}
+                </button>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-3 space-y-2">
+
+          <div className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm">
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f2d0b1]">
+              Paso 2
+            </p>
+            <h3 className="mt-1 text-lg font-black">
+              Publicar cuando ya termine la revision
+            </h3>
             <button
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-terra-clay px-5 text-base font-black text-white"
-              disabled={!hasToken || isBusy !== null}
-              onClick={() => submitOrder("process_draft")}
-              type="button"
-            >
-              {isBusy === "process_draft"
-                ? "Enviando orden de proceso..."
-                : "Procesar videos de Drive"}
-            </button>
-            <button
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-terra-leaf px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
+              className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
               disabled={Boolean(publishDisabledReason) || isBusy !== null}
               onClick={() => submitOrder("publish_approved")}
               type="button"
             >
               {isBusy === "publish_approved"
-                ? "Enviando orden de publicacion..."
-                : "Publicar borrador aprobado"}
+                ? "Publicando catalogo..."
+                : "Publicar catalogo"}
             </button>
             {publishDisabledReason ? (
-              <p className="text-xs font-bold text-terra-ink/55">
+              <p className="mt-3 text-sm font-bold text-white/75">
                 {publishDisabledReason}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-3 text-sm font-bold text-white/75">
+                Se publica el catalogo exactamente como lo dejaste en esta
+                revision.
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {feedback ? (
-        <p className="mt-3 text-sm font-bold text-terra-ink/65">{feedback}</p>
+        <div className="border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
+          <p className="rounded-xl bg-terra-paper/70 px-4 py-3 text-sm font-black text-terra-ink/75">
+            {feedback}
+          </p>
+        </div>
       ) : null}
 
-      <div className="mt-4 rounded-lg border border-terra-moss/20 bg-white p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
-            Estado reciente
-          </p>
-          {hasToken ? (
+      <div className="space-y-3 border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
+        <details
+          className="rounded-2xl bg-terra-paper/55"
+          open={!canPublishDraft}
+        >
+          <summary className="cursor-pointer list-none px-4 py-4 text-base font-black text-terra-ink">
+            Preparar un borrador nuevo
+          </summary>
+          <div className="border-t border-terra-moss/10 px-4 py-4">
+            <p className="text-sm font-bold text-terra-ink/65">
+              Usa esta opcion solo cuando ya llegaron videos nuevos y hace falta
+              crear el siguiente borrador.
+            </p>
+            <div className="mt-3">
+              <AdminVideoUploadPanel embedded />
+            </div>
             <button
-              className="text-sm font-black text-terra-ink/60"
-              onClick={() => void refreshStatuses(accessToken)}
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
+              disabled={!hasToken || isBusy !== null}
+              onClick={() => submitOrder("process_draft")}
               type="button"
             >
-              Actualizar
+              {isBusy === "process_draft"
+                ? "Preparando borrador..."
+                : "Crear borrador nuevo"}
             </button>
-          ) : null}
-        </div>
+            {!hasToken && !isLoadingConfiguredSession ? (
+              <p className="mt-3 text-sm font-bold text-terra-ink/60">
+                La preparacion automatica no esta disponible por ahora. Revisa
+                la seccion de soporte.
+              </p>
+            ) : null}
+          </div>
+        </details>
 
-        {latestStatus ? (
-          <article className="mt-3 rounded-lg bg-terra-paper/60 p-4">
-            <p className="text-base font-black text-terra-ink">
-              {getStateLabel(latestStatus.state)}
-            </p>
-            <p className="mt-1 text-sm font-bold text-terra-ink/65">
-              {getActionLabel(latestStatus.action)}
-            </p>
-            <p className="mt-2 text-sm font-bold text-terra-ink/60">
-              {latestStatus.message}
-            </p>
-            <p className="mt-2 text-xs font-bold text-terra-ink/45">
-              Actualizado: {formatTimestamp(latestStatus.updatedAt)}
-            </p>
-            {latestStatus.result?.momentCount ? (
-              <p className="mt-1 text-xs font-bold text-terra-ink/45">
-                Momentos detectados: {latestStatus.result.momentCount}
+        <details className="rounded-2xl bg-terra-paper/55">
+          <summary className="cursor-pointer list-none px-4 py-4 text-base font-black text-terra-ink">
+            Ver ultimo avance
+          </summary>
+          <div className="border-t border-terra-moss/10 px-4 py-4">
+            {latestStatus ? (
+              <article className="rounded-2xl bg-white p-4 ring-1 ring-terra-moss/15">
+                <p className="text-base font-black text-terra-ink">
+                  {getStateLabel(latestStatus.state)}
+                </p>
+                <p className="mt-1 text-sm font-black text-terra-clay">
+                  {getActionLabel(latestStatus.action)}
+                </p>
+                <p className="mt-2 text-sm font-bold text-terra-ink/65">
+                  {latestStatus.message}
+                </p>
+                <p className="mt-2 text-xs font-bold text-terra-ink/45">
+                  Actualizado: {formatTimestamp(latestStatus.updatedAt)}
+                </p>
+                {latestStatus.result?.momentCount ? (
+                  <p className="mt-1 text-xs font-bold text-terra-ink/45">
+                    Arboles detectados: {latestStatus.result.momentCount}
+                  </p>
+                ) : null}
+                {hasToken ? (
+                  <button
+                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-terra-moss/20 bg-white px-4 text-sm font-black text-terra-ink"
+                    onClick={() => void refreshStatuses(accessToken)}
+                    type="button"
+                  >
+                    Actualizar estado
+                  </button>
+                ) : null}
+              </article>
+            ) : (
+              <p className="text-sm font-bold text-terra-ink/55">
+                {hasToken
+                  ? "Todavia no hay avances guardados."
+                  : isLoadingConfiguredSession
+                    ? "Revisando la conexion automatica..."
+                    : "La publicacion automatica no esta lista todavia."}
               </p>
-            ) : null}
-            {feedback ? (
-              <p className="mt-2 text-xs font-bold text-terra-clay">
-                {feedback}
-              </p>
-            ) : null}
-          </article>
-        ) : (
-          <p className="mt-3 text-sm font-bold text-terra-ink/55">
-            {hasToken
-              ? "Todavia no hay estados guardados en Drive."
-              : "Guarda primero la sesion de Drive para poder ver estados."}
-          </p>
-        )}
+            )}
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -486,20 +445,20 @@ export function AdminDriveWorkflowPanel({
 
 function getActionLabel(action: PublisherOrderAction): string {
   return action === "process_draft"
-    ? "Procesar borrador desde Drive"
-    : "Publicar borrador aprobado";
+    ? "Preparando borrador"
+    : "Publicando catalogo";
 }
 
 function getStateLabel(state: DrivePublisherStatus["state"]): string {
   switch (state) {
     case "queued":
-      return "Orden en cola";
+      return "En espera";
     case "running":
-      return "Procesando en laptop";
+      return "Trabajando";
     case "succeeded":
-      return "Termino bien";
+      return "Terminado";
     case "failed":
-      return "Hubo un error";
+      return "Necesita revision";
     default:
       return state;
   }

@@ -44,7 +44,7 @@ async function driveFetch(
 
     if (response.status === 401) {
       throw new Error(
-        "Drive session expired. Paste a fresh temporary Drive token in admin."
+        "Drive session expired. Check the local Drive notices in Developer Tools Carlos."
       );
     }
 
@@ -132,8 +132,8 @@ export async function createDrivePublisherOrder(
       updatedAt: new Date().toISOString(),
       message:
         order.action === "process_draft"
-          ? "La orden de proceso ya quedo guardada y espera a la laptop."
-          : "La orden de publicacion ya quedo guardada y espera a la laptop."
+          ? "La preparacion del borrador ya quedo en fila."
+          : "La publicacion del catalogo ya quedo en fila."
     }
   };
 
@@ -161,6 +161,6 @@ export function isDriveTokenExpiredError(error: unknown): boolean {
   return (
     error instanceof Error &&
     error.message ===
-      "Drive session expired. Paste a fresh temporary Drive token in admin."
+      "Drive session expired. Check the local Drive notices in Developer Tools Carlos."
   );
 }

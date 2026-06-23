@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "setup:drive-oauth": "node scripts/setup-drive-oauth.mjs",
     "stage:approved-catalog": "node scripts/stage-approved-catalog.mjs",
     "publish:catalog": "node scripts/publish-catalog.mjs",
     "process:catalog-draft": "node scripts/publish-catalog.mjs --workflow draft"

@@ -51,14 +51,14 @@ export function AdminMomentList({
   return (
     <>
       <section className="overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
-        <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_44px] items-center gap-2 border-b border-terra-moss/15 bg-terra-paper px-2 py-3 text-xs font-black uppercase text-terra-ink/65 sm:grid-cols-[96px_116px_minmax(180px,1fr)_72px] sm:px-3 sm:text-sm sm:tracking-[0.10em]">
+        <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_70px] items-center gap-2 border-b border-terra-moss/15 bg-terra-paper px-2 py-3 text-xs font-black uppercase text-terra-ink/65 sm:grid-cols-[96px_116px_minmax(180px,1fr)_92px] sm:px-3 sm:text-sm sm:tracking-[0.10em]">
           <span>#</span>
           <span>
             <span className="sm:hidden">Foto</span>
             <span className="hidden sm:inline">Miniatura</span>
           </span>
-          <span>{readOnly ? "Estado" : "Disponible"}</span>
-          <span className="text-center">{readOnly ? "Ver" : "Editar"}</span>
+          <span>{readOnly ? "Estado" : "Mostrar"}</span>
+          <span className="text-center">{readOnly ? "Detalles" : "Editar"}</span>
         </div>
 
         <div className="divide-y divide-terra-moss/15">
@@ -68,7 +68,7 @@ export function AdminMomentList({
 
             return (
               <article className="bg-white" key={moment.id}>
-                <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_44px] items-center gap-2 px-2 py-3 sm:grid-cols-[96px_116px_minmax(180px,1fr)_72px] sm:px-3">
+                <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_70px] items-center gap-2 px-2 py-3 sm:grid-cols-[96px_116px_minmax(180px,1fr)_92px] sm:px-3">
                   <div>
                     <p className="text-base font-black text-terra-ink sm:text-lg">
                       #{moment.treeNumber.toString().padStart(2, "0")}
@@ -110,12 +110,12 @@ export function AdminMomentList({
                       />
                       <span className="min-w-0">
                         <span className="block text-sm font-black text-terra-ink sm:text-base">
-                          Disponible
+                          Mostrar
                         </span>
                         <span className="hidden text-xs font-bold text-terra-ink/55 sm:block">
                           {isAvailable
-                            ? "Visible para clientas"
-                            : "No aparece al cliente"}
+                            ? "Si aparece a clientas"
+                            : "No aparece a clientas"}
                         </span>
                       </span>
                     </label>
@@ -126,25 +126,13 @@ export function AdminMomentList({
                     aria-label={`${
                       readOnly ? "Ver detalles del" : "Editar"
                     } arbol ${moment.treeNumber}`}
-                    className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg border border-terra-moss/30 bg-white text-terra-ink shadow-sm transition hover:bg-terra-paper sm:h-11 sm:w-11"
+                    className="mx-auto inline-flex min-h-10 min-w-[64px] items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-2 text-xs font-black text-terra-ink shadow-sm transition hover:bg-terra-paper sm:min-h-11 sm:min-w-[84px] sm:text-sm"
                     onClick={() =>
                       setExpandedMomentId(isExpanded ? null : moment.id)
                     }
                     type="button"
                   >
-                    <svg
-                      aria-hidden="true"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2.4"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
+                    {readOnly ? "Ver" : "Editar"}
                   </button>
                 </div>
 
@@ -212,7 +200,7 @@ function AdminMomentAdvancedEditor({
       <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
-            Detalles del backup
+            Detalles de esta version
           </p>
           <StatusBadge compact status={moment.status} />
         </div>
@@ -251,7 +239,7 @@ function AdminMomentAdvancedEditor({
     <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
-          Edicion avanzada
+          Editar detalles
         </p>
         <StatusBadge compact status={moment.status} />
       </div>
