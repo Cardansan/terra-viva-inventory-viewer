@@ -1,5 +1,5 @@
 const DEFAULT_PUBLIC_DRIVE_CLIENT_ID =
-  "562489851418-4hh3di7q9pfjnhl8dnu9misune7rpodk.apps.googleusercontent.com";
+  "562489851418-ua1amvc7f5tla254ihdsjua1rqhs0gg8.apps.googleusercontent.com";
 const DEFAULT_PUBLIC_DRIVE_INBOX_FOLDER_ID = "13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ";
 
 export function getPublicDriveClientId(): string {
