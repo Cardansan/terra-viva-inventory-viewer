@@ -1,14 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getDriveInboxFolderPath } from "@/lib/drivePaths";
+import {
+  DRIVE_SESSION_UPDATED_EVENT,
+  readBrowserDriveSession
+} from "@/lib/driveSessionBrowser";
+import {
+  isDriveTokenExpiredError,
+  uploadVideoToDriveInbox
+} from "@/lib/browserDriveClient";
 
 type StagedVideo = {
   id: string;
+  file: File | null;
   fileName: string;
   sizeBytes: number;
-  status: "ready" | "warning" | "error";
+  status:
+    | "ready"
+    | "warning"
+    | "error"
+    | "uploading"
+    | "uploaded";
   message: string;
+  driveFileId?: string;
 };
 
 const MAX_VIDEO_COUNT = 3;
@@ -23,12 +38,48 @@ export function AdminVideoUploadPanel({
 }: AdminVideoUploadPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [stagedVideos, setStagedVideos] = useState<StagedVideo[]>([]);
+  const [accessToken, setAccessToken] = useState("");
+  const [inboxFolderId, setInboxFolderId] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const targetDriveFolder = getDriveInboxFolderPath();
 
+  useEffect(() => {
+    const storedSession = readBrowserDriveSession();
+    setAccessToken(storedSession.accessToken);
+    setInboxFolderId(storedSession.inboxFolderId);
+
+    function handleDriveSessionUpdated() {
+      const nextSession = readBrowserDriveSession();
+      setAccessToken(nextSession.accessToken);
+      setInboxFolderId(nextSession.inboxFolderId);
+    }
+
+    window.addEventListener(
+      DRIVE_SESSION_UPDATED_EVENT,
+      handleDriveSessionUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        DRIVE_SESSION_UPDATED_EVENT,
+        handleDriveSessionUpdated
+      );
+    };
+  }, []);
+
   const readyCount = useMemo(
-    () => stagedVideos.filter((video) => video.status === "ready").length,
+    () =>
+      stagedVideos.filter(
+        (video) => video.status === "ready" || video.status === "warning"
+      ).length,
     [stagedVideos]
   );
+  const uploadedCount = useMemo(
+    () => stagedVideos.filter((video) => video.status === "uploaded").length,
+    [stagedVideos]
+  );
+  const canUpload = accessToken.trim().length > 0 && inboxFolderId.trim().length > 0;
 
   function stageVideos(files: FileList | null) {
     if (!files) {
@@ -38,10 +89,11 @@ export function AdminVideoUploadPanel({
     const nextVideos = Array.from(files).map((file, index) => {
       const baseVideo: StagedVideo = {
         id: `${file.name}-${file.size}-${index}`,
+        file,
         fileName: file.name,
         sizeBytes: file.size,
         status: "ready",
-        message: "Listo para revisar"
+        message: "Listo para subir"
       };
 
       if (!file.type.startsWith("video/")) {
@@ -56,7 +108,7 @@ export function AdminVideoUploadPanel({
         return {
           ...baseVideo,
           status: "warning" as const,
-          message: "Archivo grande; confirmar antes de subir"
+          message: "Archivo grande; se sube con cuidado"
         };
       }
 
@@ -68,14 +120,108 @@ export function AdminVideoUploadPanel({
     if (nextVideos.length > MAX_VIDEO_COUNT) {
       limitedVideos.push({
         id: "too-many-files",
+        file: null,
         fileName: "Limite de videos",
         sizeBytes: 0,
         status: "warning",
-        message: `Solo se preparan ${MAX_VIDEO_COUNT} videos por catalogo`
+        message: `Solo se suben ${MAX_VIDEO_COUNT} videos por catalogo`
       });
     }
 
     setStagedVideos(limitedVideos);
+    setUploadMessage("");
+  }
+
+  async function uploadStagedVideos() {
+    if (!canUpload) {
+      setUploadMessage(
+        "Antes de subir videos, guarda el token de Drive y el ID del Inbox en la seccion de soporte."
+      );
+      return;
+    }
+
+    const pendingVideos = stagedVideos.filter(
+      (video) =>
+        video.file &&
+        (video.status === "ready" || video.status === "warning")
+    );
+
+    if (pendingVideos.length === 0) {
+      setUploadMessage("Selecciona al menos un video valido antes de subir.");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadMessage("");
+
+    let successCount = 0;
+
+    for (const pendingVideo of pendingVideos) {
+      const videoFile = pendingVideo.file;
+
+      if (!videoFile) {
+        continue;
+      }
+
+      setStagedVideos((currentVideos) =>
+        currentVideos.map((video) =>
+          video.id === pendingVideo.id
+            ? {
+                ...video,
+                status: "uploading",
+                message: "Subiendo al Inbox..."
+              }
+            : video
+        )
+      );
+
+      try {
+        const result = await uploadVideoToDriveInbox(
+          accessToken,
+          inboxFolderId,
+          videoFile
+        );
+
+        successCount += 1;
+        setStagedVideos((currentVideos) =>
+          currentVideos.map((video) =>
+            video.id === pendingVideo.id
+              ? {
+                  ...video,
+                  status: "uploaded",
+                  message: "Subido al Inbox",
+                  driveFileId: result.id
+                }
+              : video
+          )
+        );
+      } catch (error) {
+        const message = isDriveTokenExpiredError(error)
+          ? "El token de Drive vencio durante la subida"
+          : error instanceof Error
+            ? error.message
+            : "No se pudo subir el video";
+
+        setStagedVideos((currentVideos) =>
+          currentVideos.map((video) =>
+            video.id === pendingVideo.id
+              ? {
+                  ...video,
+                  status: "error",
+                  message
+                }
+              : video
+          )
+        );
+      }
+    }
+
+    setIsUploading(false);
+    setUploadMessage(
+      successCount > 0
+        ? `${successCount} video${successCount === 1 ? "" : "s"} subido${successCount === 1 ? "" : "s"} al Inbox. Ahora ya puedes crear el borrador nuevo.`
+        : "No se pudo completar la subida. Revisa los mensajes de cada video."
+    );
   }
 
   return (
@@ -114,11 +260,11 @@ export function AdminVideoUploadPanel({
               Seleccionar videos
             </span>
             <span className="mt-1 block text-sm font-bold text-terra-ink/60">
-              Maximo {MAX_VIDEO_COUNT} videos. En esta fase quedan preparados
-              localmente; el publicador toma Drive Inbox despues.
+              Maximo {MAX_VIDEO_COUNT} videos por tanda. Se suben directo al
+              Inbox de Drive para que la laptop los procese.
             </span>
             <span className="mt-2 block rounded-md bg-white px-3 py-2 text-xs font-bold text-terra-ink/55">
-              Carpeta futura: {targetDriveFolder}
+              Carpeta objetivo: {targetDriveFolder}
             </span>
             <input
               accept="video/*"
@@ -136,7 +282,9 @@ export function AdminVideoUploadPanel({
                   Videos preparados
                 </h2>
                 <span className="text-sm font-bold text-terra-ink/60">
-                  {readyCount} listos
+                  {uploadedCount > 0
+                    ? `${uploadedCount} subidos`
+                    : `${readyCount} listos`}
                 </span>
               </div>
               {stagedVideos.map((video) => (
@@ -158,7 +306,11 @@ export function AdminVideoUploadPanel({
                         ? "bg-green-50 text-green-800 ring-1 ring-green-700/20"
                         : video.status === "warning"
                           ? "bg-amber-50 text-amber-900 ring-1 ring-amber-700/20"
-                          : "bg-rose-50 text-rose-800 ring-1 ring-rose-700/20"
+                          : video.status === "uploading"
+                            ? "bg-sky-50 text-sky-800 ring-1 ring-sky-700/20"
+                            : video.status === "uploaded"
+                              ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-700/20"
+                              : "bg-rose-50 text-rose-800 ring-1 ring-rose-700/20"
                     }`}
                   >
                     {video.message}
@@ -166,6 +318,27 @@ export function AdminVideoUploadPanel({
                 </article>
               ))}
             </div>
+          ) : null}
+
+          <button
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-ink px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
+            disabled={!canUpload || isUploading}
+            onClick={() => void uploadStagedVideos()}
+            type="button"
+          >
+            {isUploading ? "Subiendo videos..." : "Subir videos al Inbox"}
+          </button>
+
+          {!canUpload ? (
+            <p className="text-sm font-bold text-terra-ink/60">
+              Primero guarda la conexion de Drive en la seccion de soporte.
+            </p>
+          ) : null}
+
+          {uploadMessage ? (
+            <p className="rounded-lg bg-white px-3 py-3 text-sm font-black text-terra-ink/75 ring-1 ring-terra-moss/15">
+              {uploadMessage}
+            </p>
           ) : null}
         </div>
       ) : null}

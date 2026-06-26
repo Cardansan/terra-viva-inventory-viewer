@@ -11,12 +11,12 @@
 6. Hecho: cambiar el CTA de WhatsApp para mostrar la cantidad antes de enviar, por ejemplo `Enviar seleccion por WhatsApp (3 arboles)`.
 7. Hecho: mejorar links compartidos de seleccion; cuando se abre `?selection=...`, muestra banner `Seleccion actual del cliente/a`, renderiza solo los arboles seleccionados y oculta la galeria completa del catalogo.
 8. Evaluar y corregir identificacion de arboles en links y WhatsApp: el numero visible se recalcula tras filtrar vendidos, pero el enlace debe usar un identificador estable del momento para evitar confusion. Propuesta base en `docs/TREE_IDENTIFICATION.md`.
-9. En progreso: subida de videos desde admin con seleccion multiple, validacion basica y estado de carga claro; ya existe panel local de preparacion, pendiente guardar en Drive Inbox.
+9. Hecho: subida de videos desde admin con seleccion multiple, validacion basica y guardado directo en Drive Inbox.
 10. En progreso: publicador Drive-first desde `Terra Viva/Inbox - Videos por publicar`; ya existe CLI, workflow self-hosted, lectura de catalogos generados, `ffmpeg` instalado y autenticacion temporal a Drive validada. El Inbox raiz funciona como cola de pendientes y los videos se mueven a `Procesados/YYYY-MM-DD` tras publicar.
 11. En progreso: borrador online separado del catalogo publicado. La arquitectura nueva usa `/drafts/current` y `/drafts/[date]` para revisar en linea antes de publicar; falta completar deploy limpio y amarrarlo al flujo de aprobacion desde admin.
 12. Pantalla de aprobacion antes de publicar con resumen de videos, momentos detectados y confirmacion final.
 13. Procesamiento con `ffmpeg` para generar miniaturas y candidatos de momentos desde los videos cargados.
-14. En progreso: preparar cola de acciones `procesar` / `publicar` para que la web de admin deje una orden y la laptop la recoja sin exponer puertos.
+14. En progreso: cola de acciones `procesar` / `publicar` ya conectada entre web y laptop; siguiente paso es dejar el worker prendido de forma rutinaria en la laptop operativa.
 15. En progreso: retencion de inventario conserva catalogo activo + dos backups; pendiente papelera real en Drive.
 16. Definir instalador minimo para laptop de mama: `.bat`, acceso directo o ejecutable que corra el publicador sin abrir Codex.
 17. Documentar procedimiento de recuperacion: restaurar desde `public/catalog`, Drive Procesados o git history.

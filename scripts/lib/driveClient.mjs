@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { ensureGoogleDriveAccessToken } from "./driveAuth.mjs";
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
@@ -10,8 +11,8 @@ function getAccessToken() {
   return process.env.GOOGLE_DRIVE_ACCESS_TOKEN || "";
 }
 
-async function driveFetch(url, options = {}) {
-  const token = getAccessToken();
+async function createDriveResponse(url, options = {}, forceRefresh = false) {
+  const token = await ensureGoogleDriveAccessToken(forceRefresh);
 
   if (!token) {
     throw new Error(
@@ -22,18 +23,35 @@ async function driveFetch(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      ...(options.headers || {})
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`
     }
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Drive API fallo (${response.status}): ${body}`);
+  return response;
+}
+
+async function driveFetch(url, options = {}) {
+  const response = await createDriveResponse(url, options);
+
+  if (response.status !== 401) {
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Drive API fallo (${response.status}): ${body}`);
+    }
+
+    return response;
   }
 
-  return response;
+  const retryResponse = await createDriveResponse(url, options, true);
+
+  if (!retryResponse.ok) {
+    const body = await retryResponse.text();
+    throw new Error(`Drive API fallo (${retryResponse.status}): ${body}`);
+  }
+
+  return retryResponse;
 }
 
 function driveQuery(value) {

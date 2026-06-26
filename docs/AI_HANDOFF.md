@@ -94,11 +94,11 @@ No asumir que GitHub Pages "ejecuta" procesos. La web solo muestra UI y mas adel
 - `AdminCatalogEditor` ya puede guardar el catalogo activo en un archivo y abrirlo en otro navegador/laptop.
 - Esto sobrevive refresh y permite mover trabajo entre dispositivos, pero todavia no reemplaza la publicacion automatica del estado admin al catalogo publico.
 
-## Carga de videos admin MVP
+## Carga de videos admin
 
-- `AdminVideoUploadPanel` permite seleccionar hasta 3 videos localmente y validar tipo/tamano.
+- `AdminVideoUploadPanel` permite seleccionar hasta 3 videos, validar tipo/tamano y subirlos al Inbox de Drive.
 - El panel queda colapsado por defecto para no distraer de la lista de arboles.
-- Todavia no sube archivos a Google Drive; es preparacion UI para la siguiente fase.
+- `AdminDriveSessionPanel` ya puede pedir un token de Drive desde navegador usando Google Identity Services o aceptar token manual.
 - `lib/drivePaths.ts` centraliza la convencion `Terra Viva/Inbox - Videos por publicar` y `Terra Viva/Procesados/YYYY-MM-DD`.
 
 ## Pipeline Drive-first por cola de pendientes
@@ -125,7 +125,7 @@ No asumir que GitHub Pages "ejecuta" procesos. La web solo muestra UI y mas adel
 - La direccion de producto es operar sin suscripciones mientras GitHub Pages + Drive + laptop publisher sean suficientes.
 - Avance real al 2026-06-19: `ffmpeg` ya esta instalado, el token temporal de Drive ya se obtuvo, la carpeta Inbox real ya esta configurada, la consulta a Drive funciona y ya hubo una corrida real que produjo `public/catalog-drafts/2026-06-19/` con thumbnails.
 - Bloqueante real al 2026-06-19: falta completar un build/deploy limpio para que el borrador online quede visible en GitHub Pages y cerrar el flujo de aprobacion/publicacion final.
-- Shortcuts actuales en escritorio: `Terra Viva - Procesar borrador` y `Terra Viva - Publicar catalogo`.
+- Shortcuts actuales en escritorio: `Terra Viva - Procesar borrador`, `Terra Viva - Publicar catalogo`, `Terra Viva - Escuchar ordenes web` e inicio/parada de escucha automatica.
 - Pendiente real: disparar la publicacion final desde un flujo mas amigable, credenciales Drive robustas de larga duracion y una corrida real con videos disponibles en Inbox.
 - La explicacion de por que solo salieron 9 momentos en la primera corrida ya esta documentada en `docs/PUBLISHING_PIPELINE.md`: el limite era hardcoded y no habia deteccion de estabilidad.
 - Los parametros nuevos de borrador viven en `terra-viva.publisher.example.json` y `scripts/publish-catalog.mjs`:

@@ -41,6 +41,8 @@ jobs:
         env:
           GITHUB_PAGES: "true"
           NEXT_PUBLIC_BASE_PATH: /terra-viva-inventory-viewer
+          NEXT_PUBLIC_GOOGLE_DRIVE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_DRIVE_CLIENT_ID }}
+          NEXT_PUBLIC_GOOGLE_DRIVE_INBOX_FOLDER_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_DRIVE_INBOX_FOLDER_ID }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

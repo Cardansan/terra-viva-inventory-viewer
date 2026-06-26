@@ -24,13 +24,14 @@ Este no es solo un puente temporal: es el plan operativo base para evitar suscri
 Ademas del flujo por accesos directos, ya existe un flujo semi-automatizado disparado desde la web:
 
 1. Admin abre `/admin`.
-2. Pega un token temporal de Drive en el navegador.
-3. La web guarda una orden en la metadata de la carpeta Inbox de Drive.
-4. La laptop con `scripts/process-drive-orders.mjs` consulta esa metadata.
-5. Cuando detecta una orden:
+2. Toca `Conectar con Google Drive` o guarda manualmente un token temporal y el ID de la carpeta Inbox.
+3. La web puede subir videos directo al Inbox de Drive.
+4. La web guarda una orden en la metadata de la carpeta Inbox de Drive.
+5. La laptop con `scripts/process-drive-orders.mjs` consulta esa metadata.
+6. Cuando detecta una orden:
    - corre `process_draft`, o
    - corre `publish_approved`.
-6. La laptop escribe de vuelta un estado:
+7. La laptop escribe de vuelta un estado:
    - `queued`
    - `running`
    - `succeeded`
@@ -62,6 +63,18 @@ Publicar catalogo aprobado desde Windows:
 
 ```text
 TerraViva - Publicar catalogo.cmd
+```
+
+Escuchar ordenes web desde Windows:
+
+```text
+TerraViva - Escuchar ordenes web.cmd
+```
+
+Iniciar escucha automatica en segundo plano:
+
+```text
+TerraViva - Iniciar escucha automatica.cmd
 ```
 
 Publicacion real:
@@ -137,8 +150,10 @@ Implementado:
 - Generacion real de thumbnails con `ffmpeg` cuando hay videos descargados y `ffmpeg` disponible.
 - `ffmpeg` instalado localmente via `winget`.
 - Shortcut de escritorio para `Procesar borrador` y `Publicar catalogo`.
+- Shortcut adicional para `Escuchar ordenes web`.
+- Atajos nuevos para iniciar y detener la escucha automatica en segundo plano.
 - Worker local que escucha ordenes web: `scripts/process-drive-orders.mjs`.
-- Panel admin para crear ordenes web y leer estado reciente.
+- Panel admin para guardar conexion Drive, subir videos al Inbox, crear ordenes web y leer estado reciente.
 
 Validacion real completada el `2026-06-22`:
 
@@ -152,11 +167,11 @@ Validacion real completada el `2026-06-22`:
 Pendiente antes de operacion real:
 
 - Autenticacion Drive robusta para laptop.
-- Renovacion o reemplazo del token temporal para que el feedback web no caiga en `401` cuando expira.
+- Renovacion simple del token temporal cuando el navegador lo marque vencido.
 - Validacion completa antes de mover archivos en Drive.
 - Retencion real conectada a carpetas `Procesados`.
 - Instalador minimo para que el publicador pueda correr sin Codex.
-- Confirmar que los videos reales se suben directamente a la carpeta Inbox correcta y no a una subcarpeta distinta.
+- Confirmar en Google Cloud que el client ID web permita el origen de GitHub Pages si cambia el dominio de despliegue.
 
 ## Por que solo salieron 9 momentos en la primera corrida real
 

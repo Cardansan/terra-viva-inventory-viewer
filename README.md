@@ -41,6 +41,7 @@ Rutas principales:
 - `npm run setup:drive-oauth`: inicia el flujo local para renovar `access_token` y `refresh_token` de Drive con callback por `localhost`.
 - `npm run process:catalog-draft`: procesa videos del Inbox y genera un borrador revisable.
 - `npm run publish:catalog`: publicador Drive-first para generar catalogos estaticos.
+- `npm run watch:drive-orders`: deja la laptop escuchando ordenes web de proceso/publicacion.
 
 ## Publicacion Drive-first
 
@@ -74,6 +75,14 @@ Flujo objetivo de Fase A:
 Grabar videos -> Drive Inbox -> Procesar borrador -> Revisar borrador online -> Aprobar -> Publicar catalogo
 ```
 
+En `/admin` ahora ya existe el flujo web completo para Fase A:
+
+- conectar Drive desde el navegador con Google,
+- subir videos directo al Inbox de Drive,
+- dejar la orden `process_draft`,
+- revisar el borrador,
+- y dejar la orden `publish_approved`.
+
 Ya existe la base para el paso de revision online:
 
 - `public/catalog-drafts/YYYY-MM-DD/catalog.json`
@@ -83,10 +92,13 @@ Ya existe la base para el paso de revision online:
 
 La intencion es que el borrador pueda abrirse desde cualquier telefono antes de tocar el catalogo publico.
 
-En Windows ya existen dos lanzadores listos para Fase A:
+En Windows ya existen lanzadores listos para Fase A:
 
 - `TerraViva - Procesar borrador.cmd`
 - `TerraViva - Publicar catalogo.cmd`
+- `TerraViva - Escuchar ordenes web.cmd`
+- `TerraViva - Iniciar escucha automatica.cmd`
+- `TerraViva - Detener escucha automatica.cmd`
 
 Los accesos directos de escritorio apuntan a esos lanzadores y muestran estado verboso en consola.
 
@@ -110,6 +122,7 @@ Documentos relacionados:
 
 - [`docs/PUBLISHING_PIPELINE.md`](docs/PUBLISHING_PIPELINE.md)
 - [`docs/DRIVE_INBOX_WORKFLOW.md`](docs/DRIVE_INBOX_WORKFLOW.md)
+- [`docs/PHONE_RUNBOOK.md`](docs/PHONE_RUNBOOK.md)
 - [`docs/SELF_HOSTED_RUNNER.md`](docs/SELF_HOSTED_RUNNER.md)
 - [`docs/RETENTION_POLICY.md`](docs/RETENTION_POLICY.md)
 - [`docs/COST_FREE_OPERATING_MODEL.md`](docs/COST_FREE_OPERATING_MODEL.md)
@@ -159,6 +172,7 @@ Importante sobre Drive:
 - Hay que configurar manualmente `driveFolderId` en `terra-viva.publisher.local.json`.
 - Tambien hace falta una credencial local de Drive; por ahora el lanzador acepta `googleDriveAccessToken` en ese archivo o `GOOGLE_DRIVE_ACCESS_TOKEN` en el entorno.
 - El proyecto ya soporta `googleDriveClientId`, `googleDriveClientSecret`, `googleDriveRefreshToken` y `googleDriveAccessTokenExpiresAt` para renovar la sesion automaticamente.
+- La web admin tambien puede pedir un access token en el celular usando Google Identity Services si el client ID publico del proyecto esta autorizado para GitHub Pages.
 - Si `ffmpeg` esta disponible, `Procesar borrador` ya genera thumbnails reales.
 - `Publicar catalogo` exige `catalogInputFile` para no publicar un catalogo no revisado.
 - El Inbox debe contener los videos directamente en esa carpeta raiz; si estan dentro de otra subcarpeta, el pipeline actual no los encontrara.

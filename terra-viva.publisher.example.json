@@ -5,6 +5,7 @@
   "catalogDateMode": "today",
   "nodePath": "C:/Program Files/nodejs/node.exe",
   "ffmpegPath": "C:/ffmpeg/bin/ffmpeg.exe",
+  "orderPollIntervalSeconds": 20,
   "googleDriveAccessToken": "PON_AQUI_UN_TOKEN_TEMPORAL_SI_AUN_NO_HAY_OAUTH",
   "googleDriveRefreshToken": "PON_AQUI_REFRESH_TOKEN",
   "googleDriveClientId": "PON_AQUI_GOOGLE_OAUTH_CLIENT_ID",

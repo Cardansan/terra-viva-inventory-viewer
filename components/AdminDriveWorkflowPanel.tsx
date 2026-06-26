@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
 import {
-  DRIVE_INBOX_ID_STORAGE_KEY,
-  DRIVE_SESSION_STORAGE_KEY,
   DRIVE_SESSION_UPDATED_EVENT,
-  DRIVE_STATUS_STORAGE_KEY
+  DRIVE_STATUS_STORAGE_KEY,
+  readBrowserDriveSession
 } from "@/lib/driveSessionBrowser";
 import {
   createDrivePublisherOrder,
@@ -44,11 +43,11 @@ export function AdminDriveWorkflowPanel({
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
-  const [isLoadingConfiguredSession, setIsLoadingConfiguredSession] =
-    useState(true);
 
   const latestStatus = statuses[0];
   const hasToken = accessToken.trim().length > 0;
+  const hasInboxFolderId = inboxFolderId.trim().length > 0;
+  const hasDriveSession = hasToken && hasInboxFolderId;
   const isDraftSelected = Boolean(draftCatalogId && selectedCatalogId === draftCatalogId);
   const isPublishedSelected = Boolean(
     publishedCatalogId && selectedCatalogId === publishedCatalogId
@@ -59,14 +58,11 @@ export function AdminDriveWorkflowPanel({
       return;
     }
 
-    const storedToken =
-      window.localStorage.getItem(DRIVE_SESSION_STORAGE_KEY) || "";
-    const storedInboxFolderId =
-      window.localStorage.getItem(DRIVE_INBOX_ID_STORAGE_KEY) || "";
+    const storedSession = readBrowserDriveSession();
     const storedStatuses =
       window.localStorage.getItem(DRIVE_STATUS_STORAGE_KEY) || "";
-    setAccessToken(storedToken);
-    setInboxFolderId(storedInboxFolderId);
+    setAccessToken(storedSession.accessToken);
+    setInboxFolderId(storedSession.inboxFolderId);
 
     if (storedStatuses) {
       try {
@@ -76,17 +72,10 @@ export function AdminDriveWorkflowPanel({
       }
     }
 
-    void loadConfiguredSession(storedToken, storedInboxFolderId);
-
     function handleDriveSessionUpdated() {
-      const nextStoredToken =
-        window.localStorage.getItem(DRIVE_SESSION_STORAGE_KEY) || "";
-      const nextStoredInboxFolderId =
-        window.localStorage.getItem(DRIVE_INBOX_ID_STORAGE_KEY) || "";
-
-      setAccessToken(nextStoredToken);
-      setInboxFolderId(nextStoredInboxFolderId);
-      void loadConfiguredSession(nextStoredToken, nextStoredInboxFolderId);
+      const nextStoredSession = readBrowserDriveSession();
+      setAccessToken(nextStoredSession.accessToken);
+      setInboxFolderId(nextStoredSession.inboxFolderId);
     }
 
     window.addEventListener(
@@ -103,7 +92,7 @@ export function AdminDriveWorkflowPanel({
   }, []);
 
   useEffect(() => {
-    if (!hasToken) {
+    if (!hasDriveSession) {
       return;
     }
 
@@ -113,11 +102,19 @@ export function AdminDriveWorkflowPanel({
     }, 15000);
 
     return () => window.clearInterval(intervalId);
-  }, [accessToken, hasToken]);
+  }, [accessToken, hasDriveSession, inboxFolderId]);
 
   const publishDisabledReason = useMemo(() => {
+    if (!hasToken && !hasInboxFolderId) {
+      return "Primero guarda el token de Drive y el ID del Inbox en soporte.";
+    }
+
     if (!hasToken) {
-      return "La publicacion automatica no esta lista todavia.";
+      return "Primero guarda el token temporal de Drive en soporte.";
+    }
+
+    if (!hasInboxFolderId) {
+      return "Primero guarda el ID de la carpeta Inbox en soporte.";
     }
 
     if (!canPublishDraft) {
@@ -125,7 +122,7 @@ export function AdminDriveWorkflowPanel({
     }
 
     return "";
-  }, [canPublishDraft, hasToken]);
+  }, [canPublishDraft, hasInboxFolderId, hasToken]);
 
   async function refreshStatuses(token: string) {
     try {
@@ -156,49 +153,17 @@ export function AdminDriveWorkflowPanel({
     }
   }
 
-  async function loadConfiguredSession(
-    storedToken: string,
-    storedInboxFolderId: string
-  ) {
-    try {
-      const response = await fetch("/api/drive-session", { cache: "no-store" });
-
-      if (!response.ok) {
-        return;
-      }
-
-      const configuredSession = (await response.json()) as {
-        driveFolderId?: string;
-        googleDriveAccessToken?: string;
-        message?: string;
-        severity?: "info" | "warning" | "error";
-      };
-
-      const nextToken =
-        configuredSession.googleDriveAccessToken || storedToken || "";
-      const nextInboxFolderId =
-        configuredSession.driveFolderId || storedInboxFolderId || "";
-
-      setAccessToken(nextToken);
-      setInboxFolderId(nextInboxFolderId);
-
-      if (
-        configuredSession.severity === "warning" ||
-        configuredSession.severity === "error"
-      ) {
-        setFeedback(
-          "La publicacion automatica necesita revision. Revisa la seccion de soporte."
-        );
-      }
-    } finally {
-      setIsLoadingConfiguredSession(false);
-    }
-  }
-
   async function submitOrder(action: PublisherOrderAction) {
     if (!hasToken) {
       setFeedback(
-        "La publicacion automatica no esta lista todavia. Revisa la seccion de soporte."
+        "Falta guardar el token temporal de Drive en la seccion de soporte."
+      );
+      return;
+    }
+
+    if (!hasInboxFolderId) {
+      setFeedback(
+        "Falta guardar el ID de la carpeta Inbox de Drive en la seccion de soporte."
       );
       return;
     }
@@ -376,7 +341,7 @@ export function AdminDriveWorkflowPanel({
             </div>
             <button
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
-              disabled={!hasToken || isBusy !== null}
+              disabled={!hasDriveSession || isBusy !== null}
               onClick={() => submitOrder("process_draft")}
               type="button"
             >
@@ -384,10 +349,10 @@ export function AdminDriveWorkflowPanel({
                 ? "Preparando borrador..."
                 : "Crear borrador nuevo"}
             </button>
-            {!hasToken && !isLoadingConfiguredSession ? (
+            {!hasDriveSession ? (
               <p className="mt-3 text-sm font-bold text-terra-ink/60">
-                La preparacion automatica no esta disponible por ahora. Revisa
-                la seccion de soporte.
+                Antes de crear el borrador, guarda la conexion de Drive en la
+                seccion de soporte.
               </p>
             ) : null}
           </div>
@@ -429,11 +394,9 @@ export function AdminDriveWorkflowPanel({
               </article>
             ) : (
               <p className="text-sm font-bold text-terra-ink/55">
-                {hasToken
+                {hasDriveSession
                   ? "Todavia no hay avances guardados."
-                  : isLoadingConfiguredSession
-                    ? "Revisando la conexion automatica..."
-                    : "La publicacion automatica no esta lista todavia."}
+                  : "La publicacion automatica todavia no esta lista."}
               </p>
             )}
           </div>

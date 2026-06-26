@@ -7,12 +7,33 @@ import type {
 } from "./drivePublisherTypes";
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
+const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
 
 type DriveFile = {
   id: string;
   name: string;
   parents?: string[];
   description?: string;
+  capabilities?: {
+    canAddChildren?: boolean;
+    canEdit?: boolean;
+  };
+  size?: string;
+  webViewLink?: string;
+};
+
+export type DriveSessionProbe = {
+  folderId: string;
+  folderName: string;
+  canAddChildren: boolean;
+  canEdit: boolean;
+};
+
+export type DriveUploadResult = {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  webViewLink?: string;
 };
 
 function getEmptyMailbox(): DrivePublisherMailbox {
@@ -56,12 +77,13 @@ async function driveFetch(
 
 async function getDriveFile(
   accessToken: string,
-  fileId: string
+  fileId: string,
+  fields = "id,name,parents,description"
 ): Promise<DriveFile> {
   const response = await driveFetch(
     accessToken,
     `${DRIVE_API_BASE}/files/${fileId}?fields=${encodeURIComponent(
-      "id,name,parents,description"
+      fields
     )}`
   );
   return (await response.json()) as DriveFile;
@@ -155,6 +177,83 @@ export async function getLatestDrivePublisherStatuses(
 
   const { mailbox } = await readMailbox(accessToken, inboxFolderId);
   return mailbox.status ? [mailbox.status].slice(0, limit) : [];
+}
+
+export async function probeDrivePublisherSession(
+  accessToken: string,
+  inboxFolderId: string
+): Promise<DriveSessionProbe> {
+  if (!accessToken.trim()) {
+    throw new Error("Pega primero un token temporal de Drive.");
+  }
+
+  if (!inboxFolderId.trim()) {
+    throw new Error("Falta el ID de la carpeta Inbox de Drive.");
+  }
+
+  const file = await getDriveFile(
+    accessToken,
+    inboxFolderId,
+    "id,name,capabilities(canAddChildren,canEdit)"
+  );
+
+  return {
+    folderId: file.id,
+    folderName: file.name || "Inbox",
+    canAddChildren: Boolean(file.capabilities?.canAddChildren),
+    canEdit: Boolean(file.capabilities?.canEdit)
+  };
+}
+
+export async function uploadVideoToDriveInbox(
+  accessToken: string,
+  inboxFolderId: string,
+  file: File
+): Promise<DriveUploadResult> {
+  if (!accessToken.trim()) {
+    throw new Error("Pega primero un token temporal de Drive.");
+  }
+
+  if (!inboxFolderId.trim()) {
+    throw new Error("Falta el ID de la carpeta Inbox de Drive.");
+  }
+
+  const boundary = `terra-viva-${crypto.randomUUID()}`;
+  const metadata = {
+    name: file.name,
+    parents: [inboxFolderId]
+  };
+  const response = await driveFetch(
+    accessToken,
+    `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=${encodeURIComponent(
+      "id,name,size,webViewLink"
+    )}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/related; boundary=${boundary}`
+      },
+      body: new Blob([
+        `--${boundary}\r\n`,
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n",
+        JSON.stringify(metadata),
+        "\r\n",
+        `--${boundary}\r\n`,
+        `Content-Type: ${file.type || "application/octet-stream"}\r\n\r\n`,
+        file,
+        "\r\n",
+        `--${boundary}--`
+      ])
+    }
+  );
+  const payload = (await response.json()) as DriveFile;
+
+  return {
+    id: payload.id,
+    name: payload.name,
+    sizeBytes: Number(payload.size || file.size || 0),
+    webViewLink: payload.webViewLink
+  };
 }
 
 export function isDriveTokenExpiredError(error: unknown): boolean {

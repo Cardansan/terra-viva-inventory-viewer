@@ -15,7 +15,8 @@
     "setup:drive-oauth": "node scripts/setup-drive-oauth.mjs",
     "stage:approved-catalog": "node scripts/stage-approved-catalog.mjs",
     "publish:catalog": "node scripts/publish-catalog.mjs",
-    "process:catalog-draft": "node scripts/publish-catalog.mjs --workflow draft"
+    "process:catalog-draft": "node scripts/publish-catalog.mjs --workflow draft",
+    "watch:drive-orders": "node scripts/process-drive-orders.mjs --once false"
   },
   "dependencies": {
     "next": "14.2.35",

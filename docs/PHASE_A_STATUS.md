@@ -110,7 +110,8 @@ El estado actual mejoro de `9` a `15`, pero sigue corto frente a la expectativa 
 
 ### 2. Resolver la fragilidad del token temporal en la web
 
-La capa web hoy depende de un access token temporal pegado en el navegador.
+La capa web ya guarda token temporal + Inbox ID en el navegador y puede
+probar la conexion sin depender de un backend.
 
 Ya se vio un fallo real:
 
@@ -118,6 +119,12 @@ Ya se vio un fallo real:
 - pero luego el panel web de estado mostro `401 UNAUTHENTICATED` al expirar el token.
 
 Eso no rompe el pipeline local, pero si ensucia la UX del feedback.
+
+Ya quedo mejorado:
+
+- el admin ya no depende de `/api/drive-session` para operar en GitHub Pages,
+- la conexion de Drive se guarda y valida en el propio navegador,
+- y la carga de videos ya puede subir directo al Inbox desde `/admin`.
 
 ### 3. Validar la operacion completa con menos asistencia manual
 
