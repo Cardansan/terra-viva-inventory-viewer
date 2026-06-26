@@ -39,6 +39,7 @@ export function AdminDriveSessionPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [showManualMode, setShowManualMode] = useState(false);
 
   useEffect(() => {
     const storedSession = readBrowserDriveSession();
@@ -67,7 +68,7 @@ export function AdminDriveSessionPanel() {
         setSessionInfo({
           severity: "warning",
           message:
-            "Pega aqui el token temporal de Drive y el ID del Inbox para activar carga, proceso y publicacion automatica."
+            "Toca Conectar con Google Drive para activar carga, proceso y publicacion automatica."
         });
         return;
       }
@@ -219,6 +220,10 @@ export function AdminDriveSessionPanel() {
             Esta conexion se guarda solo en este navegador para subir videos al
             Inbox y dejar ordenes a la laptop publicadora.
           </p>
+          <p className="mt-2 text-sm font-bold text-terra-ink/60">
+            Tu mama no necesita ver ni pegar ningun token. Lo normal es tocar
+            solo `Conectar con Google Drive`.
+          </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           {hasClientId ? (
@@ -253,35 +258,6 @@ export function AdminDriveSessionPanel() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3">
-        <label className="grid gap-2">
-          <span className="text-sm font-black text-terra-ink">
-            Token temporal de Drive
-          </span>
-          <textarea
-            className="min-h-28 rounded-lg border border-terra-moss/25 bg-white px-3 py-3 text-sm font-bold text-terra-ink"
-            onChange={(event) => setAccessToken(event.target.value)}
-            placeholder="Pega aqui el access token temporal"
-            spellCheck={false}
-            value={accessToken}
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-sm font-black text-terra-ink">
-            ID de la carpeta Inbox
-          </span>
-          <input
-            className="min-h-12 rounded-lg border border-terra-moss/25 bg-white px-3 text-sm font-bold text-terra-ink"
-            onChange={(event) => setInboxFolderId(event.target.value)}
-            placeholder="Ejemplo: 13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ"
-            spellCheck={false}
-            type="text"
-            value={inboxFolderId}
-          />
-        </label>
-      </div>
-
       <div
         className={`mt-4 rounded-lg border px-4 py-4 text-sm font-bold ${severityStyles}`}
       >
@@ -290,6 +266,13 @@ export function AdminDriveSessionPanel() {
             ? "Revisando la conexion de Drive..."
             : sessionInfo?.message || "No hay mensaje de estado disponible."}
         </p>
+        {!isLoading && sessionInfo?.severity === "error" ? (
+          <p className="mt-2 text-xs font-black text-current/70">
+            Si Google mostro `Error 401: invalid_client` o `no registered
+            origin`, el client web necesita autorizar el origen{" "}
+            `https://cardansan.github.io`.
+          </p>
+        ) : null}
         {sessionInfo?.probe ? (
           <p className="mt-2 text-xs font-black text-current/70">
             Carpeta encontrada: {sessionInfo.probe.folderName} | ID:{" "}
@@ -328,10 +311,55 @@ export function AdminDriveSessionPanel() {
         >
           Borrar conexion de este navegador
         </button>
+        <button
+          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
+          onClick={() => setShowManualMode((current) => !current)}
+          type="button"
+        >
+          {showManualMode ? "Ocultar modo manual" : "Mostrar modo manual"}
+        </button>
         <p className="text-sm font-bold text-terra-ink/55">
           Si el token vence, pega uno nuevo y vuelve a guardar.
         </p>
       </div>
+
+      {showManualMode ? (
+        <div className="mt-4 space-y-3 rounded-lg border border-terra-moss/15 bg-terra-paper/35 p-4">
+          <p className="text-sm font-black text-terra-ink">
+            Modo manual solo para soporte
+          </p>
+          <p className="text-sm font-bold text-terra-ink/60">
+            Esto solo se usa si Carlos necesita pegar un token temporal a mano.
+          </p>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-black text-terra-ink">
+              Token temporal de Drive
+            </span>
+            <textarea
+              className="min-h-28 rounded-lg border border-terra-moss/25 bg-white px-3 py-3 text-sm font-bold text-terra-ink"
+              onChange={(event) => setAccessToken(event.target.value)}
+              placeholder="Pega aqui el access token temporal"
+              spellCheck={false}
+              value={accessToken}
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-black text-terra-ink">
+              ID de la carpeta Inbox
+            </span>
+            <input
+              className="min-h-12 rounded-lg border border-terra-moss/25 bg-white px-3 text-sm font-bold text-terra-ink"
+              onChange={(event) => setInboxFolderId(event.target.value)}
+              placeholder="Ejemplo: 13fN49fIdYxKot07q7EeC6IWKqCFjO7IQ"
+              spellCheck={false}
+              type="text"
+              value={inboxFolderId}
+            />
+          </label>
+        </div>
+      ) : null}
     </section>
   );
 }
