@@ -302,34 +302,45 @@ export function AdminCatalogEditor({
   return (
     <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
       <header className="mb-5 rounded-lg bg-white p-5 shadow-soft ring-1 ring-terra-moss/20">
-        <div className="min-w-0">
-          <p className="text-sm font-black uppercase tracking-[0.20em] text-terra-clay">
-            Terra Viva Admin
-          </p>
-          <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
-            Revision de catalogo
-          </h1>
-          <p className="mt-2 text-base font-bold text-terra-ink/65">
-            {activeCatalog.title}
-          </p>
-          <p className="mt-2 text-sm font-bold text-terra-ink/55">
-            {isDraftActive
-              ? "Hoy estas revisando el borrador antes de publicarlo."
-              : "Estas viendo el catalogo que ya esta publicado."}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
-              Arboles: {activeCatalog.moments.length}
-            </span>
-            <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
-              Disponibles: {availableCount}
-            </span>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-black text-stone-700 ring-1 ring-stone-500/20">
-              <span className="sm:hidden">No disp.</span>
-              <span className="hidden sm:inline">No disponibles</span>:{" "}
-              {unavailableCount}
-            </span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-black uppercase tracking-[0.20em] text-terra-clay">
+              Terra Viva Admin
+            </p>
+            <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
+              Revision de catalogo
+            </h1>
+            <p className="mt-2 text-base font-bold text-terra-ink/65">
+              {activeCatalog.title}
+            </p>
+            <p className="mt-2 text-sm font-bold text-terra-ink/55">
+              {isDraftActive
+                ? "Hoy estas revisando el borrador antes de publicarlo."
+                : "Estas viendo el catalogo que ya esta publicado."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
+                Arboles: {activeCatalog.moments.length}
+              </span>
+              <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
+                Disponibles: {availableCount}
+              </span>
+              <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-black text-stone-700 ring-1 ring-stone-500/20">
+                <span className="sm:hidden">No disp.</span>
+                <span className="hidden sm:inline">No disponibles</span>:{" "}
+                {unavailableCount}
+              </span>
+            </div>
           </div>
+          <a
+            className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-lg bg-terra-leaf px-4 text-sm font-black text-white shadow-sm transition hover:bg-terra-ink"
+            href={publishedClientViewHref}
+          >
+            <span aria-hidden="true" className="text-base leading-none">
+              ←
+            </span>
+            <span>Ver catalogo como clienta</span>
+          </a>
         </div>
         {transferNotice ? (
           <p className="mt-3 text-sm font-bold text-terra-ink/65">
@@ -428,12 +439,6 @@ export function AdminCatalogEditor({
             </p>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <a
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-terra-leaf px-4 text-sm font-black text-white"
-                href={publishedClientViewHref}
-              >
-                Ver catalogo como clienta
-              </a>
               <button
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-4 text-sm font-black text-terra-ink"
                 onClick={exportActiveCatalog}
