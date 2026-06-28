@@ -5,13 +5,15 @@ import type { CatalogDay } from "@/lib/catalogTypes";
 import {
   DRIVE_SESSION_UPDATED_EVENT,
   DRIVE_STATUS_STORAGE_KEY,
-  readBrowserDriveSession
+  readBrowserDriveSession,
+  writeBrowserDriveSession
 } from "@/lib/driveSessionBrowser";
 import {
   createDrivePublisherOrder,
   getLatestDrivePublisherStatuses,
   isDriveTokenExpiredError
 } from "@/lib/browserDriveClient";
+import { ensureDriveBrowserSession } from "@/lib/browserDriveSessionFlow";
 import type {
   DrivePublisherOrder,
   DrivePublisherStatus,
@@ -105,24 +107,30 @@ export function AdminDriveWorkflowPanel({
   }, [accessToken, hasDriveSession, inboxFolderId]);
 
   const publishDisabledReason = useMemo(() => {
-    if (!hasToken && !hasInboxFolderId) {
-      return "Primero guarda el token de Drive y el ID del Inbox en soporte.";
-    }
-
-    if (!hasToken) {
-      return "Primero guarda el token temporal de Drive en soporte.";
-    }
-
-    if (!hasInboxFolderId) {
-      return "Primero guarda el ID de la carpeta Inbox en soporte.";
-    }
-
     if (!canPublishDraft) {
       return "Primero prepara un borrador nuevo.";
     }
 
     return "";
-  }, [canPublishDraft, hasInboxFolderId, hasToken]);
+  }, [canPublishDraft]);
+
+  function rememberDriveSession(nextSession: {
+    accessToken: string;
+    inboxFolderId: string;
+    expiresAt: string;
+  }) {
+    setAccessToken(nextSession.accessToken);
+    setInboxFolderId(nextSession.inboxFolderId);
+    writeBrowserDriveSession(nextSession);
+  }
+
+  async function requestSessionForAction() {
+    const nextSession = await ensureDriveBrowserSession({
+      inboxFolderId
+    });
+    rememberDriveSession(nextSession);
+    return nextSession;
+  }
 
   async function refreshStatuses(token: string) {
     try {
@@ -140,8 +148,14 @@ export function AdminDriveWorkflowPanel({
       }
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
+        writeBrowserDriveSession({
+          accessToken: "",
+          inboxFolderId,
+          expiresAt: ""
+        });
+        setAccessToken("");
         setFeedback(
-          "La conexion automatica de publicacion vencio. Revisa la seccion de soporte."
+          "La conexion de Google Drive vencio. Cuando sigas con una accion, la web la abrira otra vez."
         );
         return;
       }
@@ -154,20 +168,6 @@ export function AdminDriveWorkflowPanel({
   }
 
   async function submitOrder(action: PublisherOrderAction) {
-    if (!hasToken) {
-      setFeedback(
-        "Falta guardar el token temporal de Drive en la seccion de soporte."
-      );
-      return;
-    }
-
-    if (!hasInboxFolderId) {
-      setFeedback(
-        "Falta guardar el ID de la carpeta Inbox de Drive en la seccion de soporte."
-      );
-      return;
-    }
-
     const order: DrivePublisherOrder = {
       id: crypto.randomUUID(),
       action,
@@ -180,21 +180,46 @@ export function AdminDriveWorkflowPanel({
     try {
       setIsBusy(action);
       setFeedback("");
-      await createDrivePublisherOrder(
-        accessToken,
-        order,
-        inboxFolderId.trim() || undefined
-      );
+      let driveSession = await requestSessionForAction();
+
+      if (!hasToken) {
+        setFeedback("Vamos a conectar Google Drive para continuar.");
+      }
+
+      try {
+        await createDrivePublisherOrder(
+          driveSession.accessToken,
+          order,
+          driveSession.inboxFolderId.trim() || undefined
+        );
+      } catch (error) {
+        if (!isDriveTokenExpiredError(error)) {
+          throw error;
+        }
+
+        setFeedback("La conexion vencio. Vamos a reconectar Google Drive...");
+        writeBrowserDriveSession({
+          accessToken: "",
+          inboxFolderId: driveSession.inboxFolderId,
+          expiresAt: ""
+        });
+        driveSession = await requestSessionForAction();
+        await createDrivePublisherOrder(
+          driveSession.accessToken,
+          order,
+          driveSession.inboxFolderId.trim() || undefined
+        );
+      }
       setFeedback(
         action === "process_draft"
           ? "Listo. Ya se empezo a preparar un borrador nuevo."
           : "Listo. El catalogo se envio a publicacion con los cambios que acabas de revisar."
       );
-      await refreshStatuses(accessToken);
+      await refreshStatuses(driveSession.accessToken);
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         setFeedback(
-          "La conexion automatica de publicacion vencio. Revisa la seccion de soporte."
+          "La conexion de Google Drive se cerro antes de terminar. Intenta otra vez y la web la abrira de nuevo."
         );
         return;
       }
@@ -341,7 +366,7 @@ export function AdminDriveWorkflowPanel({
             </div>
             <button
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
-              disabled={!hasDriveSession || isBusy !== null}
+              disabled={isBusy !== null}
               onClick={() => submitOrder("process_draft")}
               type="button"
             >
@@ -351,8 +376,8 @@ export function AdminDriveWorkflowPanel({
             </button>
             {!hasDriveSession ? (
               <p className="mt-3 text-sm font-bold text-terra-ink/60">
-                Antes de crear el borrador, guarda la conexion de Drive en la
-                seccion de soporte.
+                Si hace falta, la web te pedira Google Drive al tocar este
+                boton.
               </p>
             ) : null}
           </div>
@@ -396,7 +421,7 @@ export function AdminDriveWorkflowPanel({
               <p className="text-sm font-bold text-terra-ink/55">
                 {hasDriveSession
                   ? "Todavia no hay avances guardados."
-                  : "La publicacion automatica todavia no esta lista."}
+                  : "Cuando empieces una accion, la web conectara Google Drive si hace falta."}
               </p>
             )}
           </div>

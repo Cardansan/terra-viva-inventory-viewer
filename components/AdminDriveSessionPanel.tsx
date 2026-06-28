@@ -7,13 +7,13 @@ import {
   tokenHasExpired,
   writeBrowserDriveSession
 } from "@/lib/driveSessionBrowser";
+import { ensureDriveBrowserSession } from "@/lib/browserDriveSessionFlow";
 import {
   isDriveTokenExpiredError,
   probeDrivePublisherSession,
   type DriveSessionProbe
 } from "@/lib/browserDriveClient";
 import {
-  requestGoogleDriveAccessToken,
   revokeGoogleDriveAccessToken
 } from "@/lib/googleIdentityBrowser";
 import {
@@ -68,7 +68,7 @@ export function AdminDriveSessionPanel() {
         setSessionInfo({
           severity: "warning",
           message:
-            "Toca Conectar con Google Drive para activar carga, proceso y publicacion automatica."
+            "La web abrira Google Drive solo cuando haga falta para subir videos o mandar ordenes."
         });
         return;
       }
@@ -78,7 +78,7 @@ export function AdminDriveSessionPanel() {
           severity: "warning",
           message:
             publicDriveClientId
-              ? "Toca Conectar con Google Drive para activar la carga y las ordenes automaticas."
+              ? "Todavia no hay una sesion activa en este navegador. Cuando haga falta, la web abrira Google Drive por ti."
               : "Falta el token temporal de Drive. Sin eso la web no puede subir videos ni dejar ordenes."
         });
         return;
@@ -88,7 +88,7 @@ export function AdminDriveSessionPanel() {
         setSessionInfo({
           severity: "warning",
           message:
-            "La sesion de Drive ya vencio en este navegador. Toca Conectar con Google Drive otra vez."
+            "La sesion de Drive ya vencio en este navegador. La proxima accion volvera a abrir Google Drive automaticamente."
         });
         return;
       }
@@ -119,7 +119,7 @@ export function AdminDriveSessionPanel() {
       setSessionInfo({
         severity: "error",
         message: isDriveTokenExpiredError(error)
-          ? "El token temporal de Drive ya vencio. Pega uno nuevo y vuelve a probar."
+          ? "La sesion de Google Drive ya vencio. Puedes reconectarla aqui o desde cualquier boton principal."
           : error instanceof Error
             ? error.message
             : "No se pudo revisar la conexion automatica de publicacion."
@@ -150,19 +150,16 @@ export function AdminDriveSessionPanel() {
     setIsAuthorizing(true);
 
     try {
-      const session = await requestGoogleDriveAccessToken(publicDriveClientId);
-      const nextInboxFolderId = inboxFolderId.trim() || defaultInboxFolderId;
+      const session = await ensureDriveBrowserSession({
+        inboxFolderId
+      });
       setAccessToken(session.accessToken);
       setExpiresAt(session.expiresAt);
-      setInboxFolderId(nextInboxFolderId);
-      writeBrowserDriveSession({
-        accessToken: session.accessToken,
-        inboxFolderId: nextInboxFolderId,
-        expiresAt: session.expiresAt
-      });
+      setInboxFolderId(session.inboxFolderId);
+      writeBrowserDriveSession(session);
       await validateSession(
         session.accessToken,
-        nextInboxFolderId,
+        session.inboxFolderId,
         session.expiresAt
       );
     } catch (error) {
@@ -190,7 +187,7 @@ export function AdminDriveSessionPanel() {
     setSessionInfo({
       severity: "warning",
       message:
-        "La conexion de Drive se borro de este navegador. Puedes pegarla otra vez cuando haga falta."
+        "La conexion de Drive se borro de este navegador. Cuando haga falta, la web volvera a pedir Google Drive."
     });
     setIsLoading(false);
   }
@@ -222,7 +219,8 @@ export function AdminDriveSessionPanel() {
           </p>
           <p className="mt-2 text-sm font-bold text-terra-ink/60">
             Tu mama no necesita ver ni pegar ningun token. Lo normal es tocar
-            solo `Conectar con Google Drive`.
+            los botones principales; la web abre Google Drive sola cuando haga
+            falta.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -319,7 +317,8 @@ export function AdminDriveSessionPanel() {
           {showManualMode ? "Ocultar modo manual" : "Mostrar modo manual"}
         </button>
         <p className="text-sm font-bold text-terra-ink/55">
-          Si el token vence, pega uno nuevo y vuelve a guardar.
+          Esto es solo apoyo y diagnostico. El flujo normal ya puede pedir
+          Google Drive desde los botones principales.
         </p>
       </div>
 

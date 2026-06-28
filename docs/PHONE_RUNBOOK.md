@@ -17,17 +17,22 @@ Objetivo: dejar la laptop escuchando y permitir que mama haga todo desde su celu
 ## Manana desde el celular
 
 1. Abre `/admin`.
-2. En `Conexion de publicacion`, toca `Conectar con Google Drive`.
-3. Si ves `Escritura web: lista`, ya puedes seguir.
-4. Abre `Cargar videos para preparar catalogo` y sube los videos al Inbox.
-5. Toca `Crear borrador nuevo`.
+2. Abre `Cargar videos para preparar catalogo` y sube los videos al Inbox.
+3. Si hace falta, la web abrira Google Drive sola durante esa accion.
+4. Toca `Crear borrador nuevo`.
+5. Si hace falta, la web abrira Google Drive sola durante esa accion.
 6. Espera en `Ver ultimo avance` hasta ver `Terminado`.
 7. Revisa el borrador, oculta lo que no deba salir y ajusta lo necesario.
 8. Toca `Publicar catalogo`.
-9. Espera otra vez a ver `Terminado`.
+9. Si hace falta, la web abrira Google Drive sola durante esa accion.
+10. Espera otra vez a ver `Terminado`.
+
+## Cuenta autorizada
+
+- Mientras la app OAuth siga en modo de prueba, `terravivapue@gmail.com` debe seguir dada de alta como usuaria autorizada en Google Cloud.
 
 ## Si algo falla
 
-- Si la web dice que Drive vencio: toca `Conectar con Google Drive` otra vez.
+- Si la web dice que Drive vencio: toca otra vez el boton principal que estabas usando y deja que abra Google Drive.
 - Si la laptop no procesa nada: revisa `.tools/logs/drive-worker-background.out.log` y `.tools/logs/drive-worker-background.err.log`.
 - Si hace falta reiniciar el worker: usa `TerraViva - Detener escucha automatica.cmd` y luego `TerraViva - Iniciar escucha automatica.cmd`.

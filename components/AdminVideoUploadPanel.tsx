@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { getDriveInboxFolderPath } from "@/lib/drivePaths";
 import {
   DRIVE_SESSION_UPDATED_EVENT,
-  readBrowserDriveSession
+  readBrowserDriveSession,
+  writeBrowserDriveSession
 } from "@/lib/driveSessionBrowser";
 import {
   isDriveTokenExpiredError,
   uploadVideoToDriveInbox
 } from "@/lib/browserDriveClient";
+import { ensureDriveBrowserSession } from "@/lib/browserDriveSessionFlow";
 
 type StagedVideo = {
   id: string;
@@ -79,7 +81,24 @@ export function AdminVideoUploadPanel({
     () => stagedVideos.filter((video) => video.status === "uploaded").length,
     [stagedVideos]
   );
-  const canUpload = accessToken.trim().length > 0 && inboxFolderId.trim().length > 0;
+
+  function rememberDriveSession(nextSession: {
+    accessToken: string;
+    inboxFolderId: string;
+    expiresAt: string;
+  }) {
+    setAccessToken(nextSession.accessToken);
+    setInboxFolderId(nextSession.inboxFolderId);
+    writeBrowserDriveSession(nextSession);
+  }
+
+  async function requestSessionForUpload() {
+    const nextSession = await ensureDriveBrowserSession({
+      inboxFolderId
+    });
+    rememberDriveSession(nextSession);
+    return nextSession;
+  }
 
   function stageVideos(files: FileList | null) {
     if (!files) {
@@ -133,13 +152,6 @@ export function AdminVideoUploadPanel({
   }
 
   async function uploadStagedVideos() {
-    if (!canUpload) {
-      setUploadMessage(
-        "Antes de subir videos, guarda el token de Drive y el ID del Inbox en la seccion de soporte."
-      );
-      return;
-    }
-
     const pendingVideos = stagedVideos.filter(
       (video) =>
         video.file &&
@@ -155,6 +167,20 @@ export function AdminVideoUploadPanel({
     setUploadMessage("");
 
     let successCount = 0;
+    let driveSession;
+
+    try {
+      driveSession = await requestSessionForUpload();
+      setUploadMessage("Conectando Google Drive para subir los videos...");
+    } catch (error) {
+      setIsUploading(false);
+      setUploadMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo abrir Google Drive para continuar."
+      );
+      return;
+    }
 
     for (const pendingVideo of pendingVideos) {
       const videoFile = pendingVideo.file;
@@ -176,11 +202,32 @@ export function AdminVideoUploadPanel({
       );
 
       try {
-        const result = await uploadVideoToDriveInbox(
-          accessToken,
-          inboxFolderId,
-          videoFile
-        );
+        let result;
+
+        try {
+          result = await uploadVideoToDriveInbox(
+            driveSession.accessToken,
+            driveSession.inboxFolderId,
+            videoFile
+          );
+        } catch (error) {
+          if (!isDriveTokenExpiredError(error)) {
+            throw error;
+          }
+
+          setUploadMessage("La conexion vencio. Vamos a reconectar Drive...");
+          writeBrowserDriveSession({
+            accessToken: "",
+            inboxFolderId: driveSession.inboxFolderId,
+            expiresAt: ""
+          });
+          driveSession = await requestSessionForUpload();
+          result = await uploadVideoToDriveInbox(
+            driveSession.accessToken,
+            driveSession.inboxFolderId,
+            videoFile
+          );
+        }
 
         successCount += 1;
         setStagedVideos((currentVideos) =>
@@ -197,7 +244,7 @@ export function AdminVideoUploadPanel({
         );
       } catch (error) {
         const message = isDriveTokenExpiredError(error)
-          ? "El token de Drive vencio durante la subida"
+          ? "Se cerro o vencio la conexion de Google Drive durante la subida"
           : error instanceof Error
             ? error.message
             : "No se pudo subir el video";
@@ -322,16 +369,16 @@ export function AdminVideoUploadPanel({
 
           <button
             className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-ink px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
-            disabled={!canUpload || isUploading}
+            disabled={isUploading}
             onClick={() => void uploadStagedVideos()}
             type="button"
           >
             {isUploading ? "Subiendo videos..." : "Subir videos al Inbox"}
           </button>
 
-          {!canUpload ? (
+          {!accessToken.trim() ? (
             <p className="text-sm font-bold text-terra-ink/60">
-              Primero guarda la conexion de Drive en la seccion de soporte.
+              Si hace falta, la web te pedira Google Drive al tocar subir.
             </p>
           ) : null}
 

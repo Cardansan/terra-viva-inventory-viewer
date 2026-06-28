@@ -24,7 +24,7 @@ Este no es solo un puente temporal: es el plan operativo base para evitar suscri
 Ademas del flujo por accesos directos, ya existe un flujo semi-automatizado disparado desde la web:
 
 1. Admin abre `/admin`.
-2. Toca `Conectar con Google Drive` o guarda manualmente un token temporal y el ID de la carpeta Inbox.
+2. Si no hay sesion activa, la web abre Google Drive automaticamente al tocar `Subir videos al Inbox`, `Crear borrador nuevo` o `Publicar catalogo`.
 3. La web puede subir videos directo al Inbox de Drive.
 4. La web guarda una orden en la metadata de la carpeta Inbox de Drive.
 5. La laptop con `scripts/process-drive-orders.mjs` consulta esa metadata.
@@ -154,6 +154,7 @@ Implementado:
 - Atajos nuevos para iniciar y detener la escucha automatica en segundo plano.
 - Worker local que escucha ordenes web: `scripts/process-drive-orders.mjs`.
 - Panel admin para guardar conexion Drive, subir videos al Inbox, crear ordenes web y leer estado reciente.
+- Los botones principales ya pueden reabrir OAuth sin pasar por soporte si la sesion vencio.
 
 Validacion real completada el `2026-06-22`:
 
@@ -172,6 +173,7 @@ Pendiente antes de operacion real:
 - Retencion real conectada a carpetas `Procesados`.
 - Instalador minimo para que el publicador pueda correr sin Codex.
 - Confirmar en Google Cloud que el client ID web permita el origen de GitHub Pages si cambia el dominio de despliegue.
+- Mientras la app OAuth siga en modo de prueba, mantener autorizada como test user a `terravivapue@gmail.com`.
 
 ## Por que solo salieron 9 momentos en la primera corrida real
 
