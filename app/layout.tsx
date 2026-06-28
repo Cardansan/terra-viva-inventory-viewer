@@ -1,5 +1,12 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
+import { Nunito_Sans } from "next/font/google";
 import "./globals.css";
+
+const nunitoSans = Nunito_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans"
+});
 
 export const metadata: Metadata = {
   title: "Terra Viva Inventory Viewer",
@@ -13,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-MX">
-      <body>{children}</body>
+      <body className={nunitoSans.variable}>{children}</body>
     </html>
   );
 }
