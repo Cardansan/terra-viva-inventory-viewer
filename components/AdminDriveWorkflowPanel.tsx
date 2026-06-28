@@ -36,6 +36,7 @@ export function AdminDriveWorkflowPanel({
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
+  const [lastStatusCheckedAt, setLastStatusCheckedAt] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
 
   const latestStatus = statuses[0];
@@ -142,12 +143,14 @@ export function AdminDriveWorkflowPanel({
         8
       );
       setStatuses(nextStatuses);
+      setLastStatusCheckedAt(new Date().toISOString());
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           DRIVE_STATUS_STORAGE_KEY,
           JSON.stringify(nextStatuses)
         );
       }
+      return nextStatuses;
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         writeBrowserDriveSession({
@@ -166,6 +169,7 @@ export function AdminDriveWorkflowPanel({
           ? error.message
           : "No se pudo leer el estado de publicación."
       );
+      return null;
     }
   }
 
@@ -176,8 +180,19 @@ export function AdminDriveWorkflowPanel({
 
     try {
       setIsRefreshingStatus(true);
-      await refreshStatuses(accessToken);
-      setFeedback("Estado actualizado.");
+      const previousUpdatedAt = latestStatus?.updatedAt || "";
+      const nextStatuses = await refreshStatuses(accessToken);
+
+      if (!nextStatuses) {
+        return;
+      }
+
+      const nextUpdatedAt = nextStatuses[0]?.updatedAt || "";
+      setFeedback(
+        previousUpdatedAt && previousUpdatedAt === nextUpdatedAt
+          ? "Se consultó Drive, pero no hubo cambios nuevos en el estado."
+          : "Estado actualizado con información nueva."
+      );
     } finally {
       setIsRefreshingStatus(false);
     }
@@ -377,8 +392,13 @@ export function AdminDriveWorkflowPanel({
                   {latestStatus.message}
                 </p>
                 <p className="mt-2 text-xs font-bold text-terra-ink/45">
-                  Actualizado: {formatTimestamp(latestStatus.updatedAt)}
+                  Último cambio del proceso: {formatTimestamp(latestStatus.updatedAt)}
                 </p>
+                {lastStatusCheckedAt ? (
+                  <p className="mt-1 text-xs font-bold text-terra-ink/45">
+                    Última consulta a Drive: {formatTimestamp(lastStatusCheckedAt)}
+                  </p>
+                ) : null}
                 {latestStatus.result?.momentCount ? (
                   <p className="mt-1 text-xs font-bold text-terra-ink/45">
                     Árboles detectados: {latestStatus.result.momentCount}
