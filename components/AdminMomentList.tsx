@@ -6,6 +6,7 @@ import { formatTimestamp } from "@/lib/time";
 import { StatusBadge } from "./StatusBadge";
 
 type AdminMomentListProps = {
+  embedded?: boolean;
   moments: TreeMoment[];
   onChangeMoment: (moment: TreeMoment) => void;
   readOnly?: boolean;
@@ -26,6 +27,7 @@ const statusLabels: Record<TreeMomentStatus, string> = {
 };
 
 export function AdminMomentList({
+  embedded = false,
   moments,
   onChangeMoment,
   readOnly = false
@@ -48,9 +50,15 @@ export function AdminMomentList({
     });
   }
 
-  return (
+  const listContent = (
     <>
-      <section className="overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
+      <section
+        className={`overflow-hidden ${
+          embedded
+            ? "border-t border-terra-moss/15 bg-white"
+            : "rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20"
+        }`}
+      >
         <div className="grid grid-cols-[54px_88px_minmax(112px,1fr)_70px] items-center gap-2 border-b border-terra-moss/15 bg-terra-paper px-2 py-3 text-xs font-black uppercase text-terra-ink/65 sm:grid-cols-[96px_116px_minmax(180px,1fr)_92px] sm:px-3 sm:text-sm sm:tracking-[0.10em]">
           <span>#</span>
           <span>
@@ -184,6 +192,8 @@ export function AdminMomentList({
       ) : null}
     </>
   );
+
+  return listContent;
 }
 
 function AdminMomentAdvancedEditor({

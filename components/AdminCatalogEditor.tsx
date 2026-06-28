@@ -352,74 +352,102 @@ export function AdminCatalogEditor({
       <AdminDriveWorkflowPanel
         activeCatalog={activeCatalog}
         canPublishDraft={isDraftActive}
-        draftCatalogId={draftVersion?.catalog.id}
-        onSelectDraft={
-          draftVersion
-            ? () => setSelectedCatalogId(draftVersion.catalog.id)
-            : undefined
-        }
-        onSelectPublished={
-          publishedVersion
-            ? () => setSelectedCatalogId(publishedVersion.catalog.id)
-            : undefined
-        }
-        publishedCatalogId={publishedVersion?.catalog.id}
-        selectedCatalogId={selectedCatalog.id}
       />
 
-      <section className="mb-4 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-          Lo que estas revisando
-        </p>
-        <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-terra-ink">
-              {selectedCatalog.status === "draft"
-                ? "Borrador de hoy"
-                : isViewingActive
-                  ? "Catalogo actual"
-                  : "Catalogo anterior"}
-            </h2>
-            <p className="mt-1 text-sm font-bold text-terra-ink/60">
-              {selectedCatalog.title}
-            </p>
-            <p className="mt-2 text-sm font-bold text-terra-ink/60">
-              {selectedCatalog.moments.length} arboles detectados ·{" "}
-              {selectedAvailableCount} visibles · {selectedUnavailableCount} no
-              visibles
-            </p>
-            <p className="mt-2 text-sm font-bold text-terra-ink/55">
-              {selectedCatalog.status === "draft"
-                ? "Marca aqui que arboles se muestran antes de publicar."
-                : isViewingActive
-                  ? "Esta es la version publicada que ven las clientas."
-                  : "Esta version es solo de consulta mientras comparas cambios."}
-            </p>
+      <section className="mb-4 overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
+        <div className="border-b border-terra-moss/15 px-4 py-4">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+            Elegir que quieres revisar
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {draftVersion ? (
+              <button
+                className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
+                  selectedCatalog.id === draftVersion.catalog.id
+                    ? "bg-terra-clay text-white"
+                    : "bg-terra-paper text-terra-ink ring-1 ring-terra-clay/20"
+                }`}
+                onClick={() => setSelectedCatalogId(draftVersion.catalog.id)}
+                type="button"
+              >
+                {selectedCatalog.id === draftVersion.catalog.id
+                  ? "Revisando borrador"
+                  : "Revisar borrador"}
+              </button>
+            ) : null}
+            {publishedVersion ? (
+              <button
+                className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
+                  selectedCatalog.id === publishedVersion.catalog.id
+                    ? "bg-terra-leaf text-white"
+                    : "bg-white text-terra-ink ring-1 ring-terra-moss/20"
+                }`}
+                onClick={() => setSelectedCatalogId(publishedVersion.catalog.id)}
+                type="button"
+              >
+                {selectedCatalog.id === publishedVersion.catalog.id
+                  ? "Viendo catalogo actual"
+                  : "Ver catalogo actual"}
+              </button>
+            ) : null}
           </div>
-
-          <span
-            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-black ${
-              selectedCatalog.status === "draft"
-                ? "bg-terra-paper text-terra-clay"
-                : isViewingActive
-                  ? "bg-green-50 text-terra-leaf ring-1 ring-green-700/15"
-                  : "bg-stone-100 text-stone-700 ring-1 ring-stone-500/15"
-            }`}
-          >
-            {selectedCatalog.status === "draft"
-              ? "Editando borrador"
-              : isViewingActive
-                ? "Publicado"
-                : "Solo lectura"}
-          </span>
         </div>
-      </section>
 
-      <AdminMomentList
-        moments={selectedCatalog.moments}
-        onChangeMoment={updateMoment}
-        readOnly={!isViewingActive}
-      />
+        <div className="px-4 py-4">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
+            Lo que estas revisando
+          </p>
+          <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-terra-ink">
+                {selectedCatalog.status === "draft"
+                  ? "Borrador de hoy"
+                  : isViewingActive
+                    ? "Catalogo actual"
+                    : "Catalogo anterior"}
+              </h2>
+              <p className="mt-1 text-sm font-bold text-terra-ink/60">
+                {selectedCatalog.title}
+              </p>
+              <p className="mt-2 text-sm font-bold text-terra-ink/60">
+                {selectedCatalog.moments.length} arboles detectados ·{" "}
+                {selectedAvailableCount} visibles · {selectedUnavailableCount} no
+                visibles
+              </p>
+              <p className="mt-2 text-sm font-bold text-terra-ink/55">
+                {selectedCatalog.status === "draft"
+                  ? "Marca aqui que arboles se muestran antes de publicar."
+                  : isViewingActive
+                    ? "Esta es la version publicada que ven las clientas."
+                    : "Esta version es solo de consulta mientras comparas cambios."}
+              </p>
+            </div>
+
+            <span
+              className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-black ${
+                selectedCatalog.status === "draft"
+                  ? "bg-terra-paper text-terra-clay"
+                  : isViewingActive
+                    ? "bg-green-50 text-terra-leaf ring-1 ring-green-700/15"
+                    : "bg-stone-100 text-stone-700 ring-1 ring-stone-500/15"
+              }`}
+            >
+              {selectedCatalog.status === "draft"
+                ? "Editando borrador"
+                : isViewingActive
+                  ? "Publicado"
+                  : "Solo lectura"}
+            </span>
+          </div>
+        </div>
+
+        <AdminMomentList
+          embedded
+          moments={selectedCatalog.moments}
+          onChangeMoment={updateMoment}
+          readOnly={!isViewingActive}
+        />
+      </section>
 
       <section className="mt-5 rounded-lg bg-white p-4 shadow-soft ring-1 ring-terra-moss/20">
         <details className="rounded-lg border border-terra-moss/20 bg-terra-paper/35">

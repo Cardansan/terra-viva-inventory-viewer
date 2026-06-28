@@ -24,36 +24,23 @@ import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 type AdminDriveWorkflowPanelProps = {
   activeCatalog: CatalogDay;
   canPublishDraft: boolean;
-  selectedCatalogId: string;
-  draftCatalogId?: string;
-  publishedCatalogId?: string;
-  onSelectDraft?: () => void;
-  onSelectPublished?: () => void;
 };
 
 export function AdminDriveWorkflowPanel({
   activeCatalog,
-  canPublishDraft,
-  selectedCatalogId,
-  draftCatalogId,
-  publishedCatalogId,
-  onSelectDraft,
-  onSelectPublished
+  canPublishDraft
 }: AdminDriveWorkflowPanelProps) {
   const [accessToken, setAccessToken] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
 
   const latestStatus = statuses[0];
   const hasToken = accessToken.trim().length > 0;
   const hasInboxFolderId = inboxFolderId.trim().length > 0;
   const hasDriveSession = hasToken && hasInboxFolderId;
-  const isDraftSelected = Boolean(draftCatalogId && selectedCatalogId === draftCatalogId);
-  const isPublishedSelected = Boolean(
-    publishedCatalogId && selectedCatalogId === publishedCatalogId
-  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -105,6 +92,20 @@ export function AdminDriveWorkflowPanel({
 
     return () => window.clearInterval(intervalId);
   }, [accessToken, hasDriveSession, inboxFolderId]);
+
+  useEffect(() => {
+    if (!feedback) {
+      setToastVisible(false);
+      return;
+    }
+
+    setToastVisible(true);
+    const timeoutId = window.setTimeout(() => {
+      setToastVisible(false);
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
 
   const publishDisabledReason = useMemo(() => {
     if (!canPublishDraft) {
@@ -210,6 +211,7 @@ export function AdminDriveWorkflowPanel({
           driveSession.inboxFolderId.trim() || undefined
         );
       }
+
       setFeedback(
         action === "process_draft"
           ? "Listo. Ya se empezo a preparar un borrador nuevo."
@@ -247,69 +249,8 @@ export function AdminDriveWorkflowPanel({
           cuando ya este listo.
         </p>
 
-        <div
-          className={`mt-4 rounded-2xl px-4 py-4 ring-1 ${
-            canPublishDraft
-              ? "bg-white/85 text-terra-ink ring-terra-moss/15"
-              : "bg-amber-50 text-amber-950 ring-amber-200"
-          }`}
-        >
-          <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
-            {canPublishDraft ? "Borrador listo" : "Sin borrador nuevo"}
-          </p>
-          <p className="mt-2 text-base font-black">
-            {canPublishDraft
-              ? `${activeCatalog.moments.length} arboles listos para revisar y publicar.`
-              : "Todavia no hay un borrador nuevo para revisar."}
-          </p>
-          <p className="mt-1 text-sm font-bold text-terra-ink/65">
-            {canPublishDraft
-              ? "Empieza tocando Revisar borrador y, cuando termines, usa Publicar catalogo."
-              : "Si hoy llegaron videos nuevos, usa la opcion de abajo para preparar el siguiente borrador."}
-          </p>
-        </div>
-
-        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
-          <div className="rounded-2xl bg-white/85 p-4 ring-1 ring-terra-moss/15">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
-              Paso 1
-            </p>
-            <h3 className="mt-1 text-lg font-black text-terra-ink">
-              Elegir que quieres revisar
-            </h3>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              {draftCatalogId ? (
-                <button
-                  className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
-                    isDraftSelected
-                      ? "bg-terra-clay text-white"
-                      : "bg-terra-paper text-terra-ink ring-1 ring-terra-clay/20"
-                  }`}
-                  onClick={onSelectDraft}
-                  type="button"
-                >
-                  {isDraftSelected ? "Revisando borrador" : "Revisar borrador"}
-                </button>
-              ) : null}
-              {publishedCatalogId ? (
-                <button
-                  className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-black ${
-                    isPublishedSelected
-                      ? "bg-terra-leaf text-white"
-                      : "bg-white text-terra-ink ring-1 ring-terra-moss/20"
-                  }`}
-                  onClick={onSelectPublished}
-                  type="button"
-                >
-                  {isPublishedSelected
-                    ? "Viendo catalogo actual"
-                    : "Ver catalogo actual"}
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm">
+        <div className="mt-4">
+          <div className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm lg:max-w-[30rem]">
             <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f2d0b1]">
               Paso 2
             </p>
@@ -340,24 +281,42 @@ export function AdminDriveWorkflowPanel({
         </div>
       </div>
 
-      {feedback ? (
-        <div className="border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
-          <p className="rounded-xl bg-terra-paper/70 px-4 py-3 text-sm font-black text-terra-ink/75">
-            {feedback}
-          </p>
-        </div>
-      ) : null}
-
       <div className="space-y-3 border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
         <details
           className="rounded-2xl bg-terra-paper/55"
           open={!canPublishDraft}
         >
           <summary className="cursor-pointer list-none px-4 py-4 text-base font-black text-terra-ink">
-            Preparar un borrador nuevo
+            <span className="inline-flex items-center gap-3">
+              <span className="rounded-md bg-terra-clay px-2 py-1 text-xs font-black uppercase tracking-[0.14em] text-white">
+                Paso 1
+              </span>
+              <span>Preparar un borrador nuevo</span>
+            </span>
           </summary>
           <div className="border-t border-terra-moss/10 px-4 py-4">
-            <p className="text-sm font-bold text-terra-ink/65">
+            <div
+              className={`rounded-2xl px-4 py-4 ring-1 ${
+                canPublishDraft
+                  ? "bg-white text-terra-ink ring-terra-moss/15"
+                  : "bg-amber-50 text-amber-950 ring-amber-200"
+              }`}
+            >
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                {canPublishDraft ? "Borrador listo" : "Sin borrador nuevo"}
+              </p>
+              <p className="mt-2 text-base font-black">
+                {canPublishDraft
+                  ? `${activeCatalog.moments.length} arboles listos para revisar y publicar.`
+                  : "Todavia no hay un borrador nuevo para revisar."}
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink/65">
+                {canPublishDraft
+                  ? "Ya puedes revisarlo en la seccion de abajo y luego publicarlo cuando termines."
+                  : "Si hoy llegaron videos nuevos, usa esta opcion para preparar el siguiente borrador."}
+              </p>
+            </div>
+            <p className="mt-4 text-sm font-bold text-terra-ink/65">
               Usa esta opcion solo cuando ya llegaron videos nuevos y hace falta
               crear el siguiente borrador.
             </p>
@@ -383,10 +342,10 @@ export function AdminDriveWorkflowPanel({
           </div>
         </details>
 
-        <details className="rounded-2xl bg-terra-paper/55">
-          <summary className="cursor-pointer list-none px-4 py-4 text-base font-black text-terra-ink">
+        <section className="rounded-2xl bg-terra-paper/55">
+          <div className="px-4 py-4 text-base font-black text-terra-ink">
             Ver ultimo avance
-          </summary>
+          </div>
           <div className="border-t border-terra-moss/10 px-4 py-4">
             {latestStatus ? (
               <article className="rounded-2xl bg-white p-4 ring-1 ring-terra-moss/15">
@@ -425,8 +384,37 @@ export function AdminDriveWorkflowPanel({
               </p>
             )}
           </div>
-        </details>
+        </section>
       </div>
+
+      {toastVisible && feedback ? (
+        <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+          <div
+            className={`pointer-events-auto w-full max-w-2xl rounded-2xl px-4 py-3 shadow-soft ring-1 ${
+              feedback.startsWith("Listo.")
+                ? "bg-white text-terra-ink ring-terra-leaf/25"
+                : "bg-[#fff7ef] text-terra-ink ring-terra-clay/25"
+            }`}
+            role="status"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                  {feedback.startsWith("Listo.") ? "Accion completada" : "Aviso"}
+                </p>
+                <p className="mt-1 text-sm font-black">{feedback}</p>
+              </div>
+              <button
+                className="rounded-lg border border-terra-moss/20 bg-white px-3 py-2 text-xs font-black text-terra-ink"
+                onClick={() => setToastVisible(false)}
+                type="button"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
