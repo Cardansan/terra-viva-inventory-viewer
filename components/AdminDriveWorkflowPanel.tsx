@@ -33,6 +33,7 @@ export function AdminDriveWorkflowPanel({
   const [accessToken, setAccessToken] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [statuses, setStatuses] = useState<DrivePublisherStatus[]>([]);
   const [inboxFolderId, setInboxFolderId] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -102,7 +103,7 @@ export function AdminDriveWorkflowPanel({
     setToastVisible(true);
     const timeoutId = window.setTimeout(() => {
       setToastVisible(false);
-    }, 5000);
+    }, 6000);
 
     return () => window.clearTimeout(timeoutId);
   }, [feedback]);
@@ -156,15 +157,29 @@ export function AdminDriveWorkflowPanel({
         });
         setAccessToken("");
         setFeedback(
-          "La conexion de Google Drive vencio. Cuando sigas con una accion, la web la abrira otra vez."
+          "La conexión de Google Drive venció. Cuando sigas con una acción, la web la abrirá otra vez."
         );
         return;
       }
       setFeedback(
         error instanceof Error
           ? error.message
-          : "No se pudo leer el estado de publicacion."
+          : "No se pudo leer el estado de publicación."
       );
+    }
+  }
+
+  async function handleRefreshStatuses() {
+    if (!hasToken || isRefreshingStatus) {
+      return;
+    }
+
+    try {
+      setIsRefreshingStatus(true);
+      await refreshStatuses(accessToken);
+      setFeedback("Estado actualizado.");
+    } finally {
+      setIsRefreshingStatus(false);
     }
   }
 
@@ -198,7 +213,7 @@ export function AdminDriveWorkflowPanel({
           throw error;
         }
 
-        setFeedback("La conexion vencio. Vamos a reconectar Google Drive...");
+        setFeedback("La conexión venció. Vamos a reconectar Google Drive...");
         writeBrowserDriveSession({
           accessToken: "",
           inboxFolderId: driveSession.inboxFolderId,
@@ -214,21 +229,21 @@ export function AdminDriveWorkflowPanel({
 
       setFeedback(
         action === "process_draft"
-          ? "Listo. Ya se empezo a preparar un borrador nuevo."
-          : "Listo. El catalogo se envio a publicacion con los cambios que acabas de revisar."
+          ? "Listo. Ya se empezó a preparar un borrador nuevo."
+          : "Listo. El catálogo se envió a publicación con los cambios que acabas de revisar."
       );
       await refreshStatuses(driveSession.accessToken);
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         setFeedback(
-          "La conexion de Google Drive se cerro antes de terminar. Intenta otra vez y la web la abrira de nuevo."
+          "La conexión de Google Drive se cerró antes de terminar. Intenta otra vez y la web la abrirá de nuevo."
         );
         return;
       }
       setFeedback(
         error instanceof Error
           ? error.message
-          : "No se pudo enviar la orden de publicacion."
+          : "No se pudo enviar la orden de publicación."
       );
     } finally {
       setIsBusy(null);
@@ -242,43 +257,12 @@ export function AdminDriveWorkflowPanel({
           Flujo principal
         </p>
         <h2 className="mt-2 text-2xl font-black leading-tight text-terra-ink">
-          Revisar y publicar catalogo
+          Revisar y publicar catálogo
         </h2>
         <p className="mt-2 max-w-2xl text-base font-bold text-terra-ink/70">
-          Abre el borrador de hoy, marca que arboles se muestran y publicalo
-          cuando ya este listo.
+          Abre el borrador de hoy, marca qué árboles se muestran y publícalo
+          cuando ya esté listo.
         </p>
-
-        <div className="mt-4">
-          <div className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm lg:max-w-[30rem]">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f2d0b1]">
-              Paso 2
-            </p>
-            <h3 className="mt-1 text-lg font-black">
-              Publicar cuando ya termine la revision
-            </h3>
-            <button
-              className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
-              disabled={Boolean(publishDisabledReason) || isBusy !== null}
-              onClick={() => submitOrder("publish_approved")}
-              type="button"
-            >
-              {isBusy === "publish_approved"
-                ? "Publicando catalogo..."
-                : "Publicar catalogo"}
-            </button>
-            {publishDisabledReason ? (
-              <p className="mt-3 text-sm font-bold text-white/75">
-                {publishDisabledReason}
-              </p>
-            ) : (
-              <p className="mt-3 text-sm font-bold text-white/75">
-                Se publica el catalogo exactamente como lo dejaste en esta
-                revision.
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       <div className="space-y-3 border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
@@ -286,12 +270,15 @@ export function AdminDriveWorkflowPanel({
           className="rounded-2xl bg-terra-paper/55"
           open={!canPublishDraft}
         >
-          <summary className="cursor-pointer list-none px-4 py-4 text-base font-black text-terra-ink">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-base font-black text-terra-ink">
             <span className="inline-flex items-center gap-3">
               <span className="rounded-md bg-terra-clay px-2 py-1 text-xs font-black uppercase tracking-[0.14em] text-white">
                 Paso 1
               </span>
               <span>Preparar un borrador nuevo</span>
+            </span>
+            <span aria-hidden="true" className="text-lg text-terra-ink/55">
+              ▾
             </span>
           </summary>
           <div className="border-t border-terra-moss/10 px-4 py-4">
@@ -307,17 +294,17 @@ export function AdminDriveWorkflowPanel({
               </p>
               <p className="mt-2 text-base font-black">
                 {canPublishDraft
-                  ? `${activeCatalog.moments.length} arboles listos para revisar y publicar.`
-                  : "Todavia no hay un borrador nuevo para revisar."}
+                  ? `${activeCatalog.moments.length} árboles listos para revisar y publicar.`
+                  : "Todavía no hay un borrador nuevo para revisar."}
               </p>
               <p className="mt-1 text-sm font-bold text-terra-ink/65">
                 {canPublishDraft
-                  ? "Ya puedes revisarlo en la seccion de abajo y luego publicarlo cuando termines."
-                  : "Si hoy llegaron videos nuevos, usa esta opcion para preparar el siguiente borrador."}
+                  ? "Ya puedes revisarlo en la sección de abajo y luego publicarlo cuando termines."
+                  : "Si hoy llegaron videos nuevos, usa esta opción para preparar el siguiente borrador."}
               </p>
             </div>
             <p className="mt-4 text-sm font-bold text-terra-ink/65">
-              Usa esta opcion solo cuando ya llegaron videos nuevos y hace falta
+              Usa esta opción solo cuando ya llegaron videos nuevos y hace falta
               crear el siguiente borrador.
             </p>
             <div className="mt-3">
@@ -335,16 +322,47 @@ export function AdminDriveWorkflowPanel({
             </button>
             {!hasDriveSession ? (
               <p className="mt-3 text-sm font-bold text-terra-ink/60">
-                Si hace falta, la web te pedira Google Drive al tocar este
-                boton.
+                Si hace falta, la web te pedirá Google Drive al tocar este
+                botón.
               </p>
             ) : null}
           </div>
         </details>
 
+        <section className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="rounded-md bg-[#f2d0b1] px-2 py-1 text-xs font-black uppercase tracking-[0.14em] text-terra-ink">
+              Paso 2
+            </span>
+            <h3 className="text-base font-black sm:text-lg">
+              Publicar cuando ya termine la revisión
+            </h3>
+          </div>
+          <button
+            className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
+            disabled={Boolean(publishDisabledReason) || isBusy !== null}
+            onClick={() => submitOrder("publish_approved")}
+            type="button"
+          >
+            {isBusy === "publish_approved"
+              ? "Publicando catálogo..."
+              : "Publicar catálogo"}
+          </button>
+          {publishDisabledReason ? (
+            <p className="mt-3 text-sm font-bold text-white/75">
+              {publishDisabledReason}
+            </p>
+          ) : (
+            <p className="mt-3 text-sm font-bold text-white/75">
+              Se publica el catálogo exactamente como lo dejaste en esta
+              revisión.
+            </p>
+          )}
+        </section>
+
         <section className="rounded-2xl bg-terra-paper/55">
           <div className="px-4 py-4 text-base font-black text-terra-ink">
-            Ver ultimo avance
+            Ver último avance
           </div>
           <div className="border-t border-terra-moss/10 px-4 py-4">
             {latestStatus ? (
@@ -363,24 +381,25 @@ export function AdminDriveWorkflowPanel({
                 </p>
                 {latestStatus.result?.momentCount ? (
                   <p className="mt-1 text-xs font-bold text-terra-ink/45">
-                    Arboles detectados: {latestStatus.result.momentCount}
+                    Árboles detectados: {latestStatus.result.momentCount}
                   </p>
                 ) : null}
                 {hasToken ? (
                   <button
-                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-terra-moss/20 bg-white px-4 text-sm font-black text-terra-ink"
-                    onClick={() => void refreshStatuses(accessToken)}
+                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-terra-moss/20 bg-white px-4 text-sm font-black text-terra-ink disabled:cursor-wait disabled:opacity-70"
+                    disabled={isRefreshingStatus}
+                    onClick={() => void handleRefreshStatuses()}
                     type="button"
                   >
-                    Actualizar estado
+                    {isRefreshingStatus ? "Actualizando estado..." : "Actualizar estado"}
                   </button>
                 ) : null}
               </article>
             ) : (
               <p className="text-sm font-bold text-terra-ink/55">
                 {hasDriveSession
-                  ? "Todavia no hay avances guardados."
-                  : "Cuando empieces una accion, la web conectara Google Drive si hace falta."}
+                  ? "Todavía no hay avances guardados."
+                  : "Cuando empieces una acción, la web conectará Google Drive si hace falta."}
               </p>
             )}
           </div>
@@ -400,7 +419,7 @@ export function AdminDriveWorkflowPanel({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
-                  {feedback.startsWith("Listo.") ? "Accion completada" : "Aviso"}
+                  {feedback.startsWith("Listo.") ? "Acción completada" : "Aviso"}
                 </p>
                 <p className="mt-1 text-sm font-black">{feedback}</p>
               </div>
@@ -422,7 +441,7 @@ export function AdminDriveWorkflowPanel({
 function getActionLabel(action: PublisherOrderAction): string {
   return action === "process_draft"
     ? "Preparando borrador"
-    : "Publicando catalogo";
+    : "Publicando catálogo";
 }
 
 function getStateLabel(state: DrivePublisherStatus["state"]): string {
@@ -434,7 +453,7 @@ function getStateLabel(state: DrivePublisherStatus["state"]): string {
     case "succeeded":
       return "Terminado";
     case "failed":
-      return "Necesita revision";
+      return "Necesita revisión";
     default:
       return state;
   }

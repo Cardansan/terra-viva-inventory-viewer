@@ -38,7 +38,7 @@ export function AdminMomentList({
   if (moments.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-terra-moss/50 bg-white p-6 text-center">
-        Este catalogo no tiene momentos todavia.
+        Este catálogo no tiene momentos todavía.
       </div>
     );
   }
@@ -87,7 +87,7 @@ export function AdminMomentList({
                   </div>
 
                   <button
-                    aria-label={`Agrandar arbol ${moment.treeNumber}`}
+                    aria-label={`Agrandar árbol ${moment.treeNumber}`}
                     className="h-14 w-20 overflow-hidden rounded-md bg-terra-paper shadow-sm ring-1 ring-terra-moss/20 focus:outline-none focus:ring-2 focus:ring-terra-clay sm:h-20 sm:w-24"
                     onClick={() => setPreviewMoment(moment)}
                     type="button"
@@ -108,7 +108,7 @@ export function AdminMomentList({
                   ) : (
                     <label className="flex min-h-14 items-center gap-2 rounded-lg bg-terra-paper/70 px-2 py-2 sm:gap-3 sm:px-3">
                       <input
-                        aria-label={`Disponible arbol ${moment.treeNumber}`}
+                        aria-label={`Disponible árbol ${moment.treeNumber}`}
                         checked={isAvailable}
                         className="h-7 w-7 shrink-0 accent-terra-leaf"
                         onChange={(event) =>
@@ -122,7 +122,7 @@ export function AdminMomentList({
                         </span>
                         <span className="hidden text-xs font-bold text-terra-ink/55 sm:block">
                           {isAvailable
-                            ? "Si aparece a clientas"
+                            ? "Sí aparece a clientas"
                             : "No aparece a clientas"}
                         </span>
                       </span>
@@ -133,7 +133,7 @@ export function AdminMomentList({
                     aria-expanded={isExpanded}
                     aria-label={`${
                       readOnly ? "Ver detalles del" : "Editar"
-                    } arbol ${moment.treeNumber}`}
+                    } árbol ${moment.treeNumber}`}
                     className="mx-auto inline-flex min-h-10 min-w-[64px] items-center justify-center rounded-lg border border-terra-moss/30 bg-white px-2 text-xs font-black text-terra-ink shadow-sm transition hover:bg-terra-paper sm:min-h-11 sm:min-w-[84px] sm:text-sm"
                     onClick={() =>
                       setExpandedMomentId(isExpanded ? null : moment.id)
@@ -183,7 +183,7 @@ export function AdminMomentList({
               </button>
             </div>
             <img
-              alt={`Miniatura ampliada del arbol ${previewMoment.treeNumber}`}
+              alt={`Miniatura ampliada del árbol ${previewMoment.treeNumber}`}
               className="max-h-[72vh] w-full rounded-lg object-contain"
               src={previewMoment.thumbnailUrl}
             />
@@ -210,14 +210,14 @@ function AdminMomentAdvancedEditor({
       <div className="border-t border-terra-moss/15 bg-terra-paper/50 px-3 py-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-black uppercase tracking-[0.12em] text-terra-clay">
-            Detalles de esta version
+            Detalles de esta versión
           </p>
           <StatusBadge compact status={moment.status} />
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
-            <dt className="font-bold text-terra-ink/60">Numero</dt>
+            <dt className="font-bold text-terra-ink/60">Número</dt>
             <dd className="mt-1 font-black text-terra-ink">
               #{moment.treeNumber.toString().padStart(2, "0")}
             </dd>
@@ -229,7 +229,7 @@ function AdminMomentAdvancedEditor({
             </dd>
           </div>
           <div className="rounded-md bg-white p-3 ring-1 ring-terra-moss/15">
-            <dt className="font-bold text-terra-ink/60">Seccion</dt>
+            <dt className="font-bold text-terra-ink/60">Sección</dt>
             <dd className="mt-1 font-black text-terra-ink">
               {moment.sectionLabel}
             </dd>
@@ -256,7 +256,7 @@ function AdminMomentAdvancedEditor({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="space-y-1">
-          <span className="text-sm font-bold text-terra-ink/70">Numero</span>
+          <span className="text-sm font-bold text-terra-ink/70">Número</span>
           <input
             className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
             min={1}
@@ -291,7 +291,7 @@ function AdminMomentAdvancedEditor({
         </label>
 
         <label className="space-y-1 sm:col-span-2 lg:col-span-1">
-          <span className="text-sm font-bold text-terra-ink/70">Seccion</span>
+          <span className="text-sm font-bold text-terra-ink/70">Sección</span>
           <input
             className="min-h-11 w-full rounded-md border border-terra-moss/30 px-3"
             onChange={(event) =>

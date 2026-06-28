@@ -159,7 +159,7 @@ export function AdminCatalogEditor({
     }
 
     const confirmed = window.confirm(
-      "Esta version volvera a ser el catalogo publicado. El catalogo actual quedara guardado como version anterior."
+      "Esta versión volverá a ser el catálogo publicado. El catálogo actual quedará guardado como versión anterior."
     );
 
     if (!confirmed) {
@@ -238,7 +238,7 @@ export function AdminCatalogEditor({
           : parsed;
 
       if (!isCatalogDay(nextCatalog)) {
-        throw new Error("El archivo no tiene un catalogo valido.");
+        throw new Error("El archivo no tiene un catálogo válido.");
       }
 
       setVersions((currentVersions) => {
@@ -263,12 +263,12 @@ export function AdminCatalogEditor({
         ].slice(0, 3);
       });
       setSelectedCatalogId(nextCatalog.id);
-      setTransferNotice("Catalogo cargado en este navegador.");
+      setTransferNotice("Catálogo cargado en este navegador.");
     } catch (error) {
       setTransferNotice(
         error instanceof Error
           ? error.message
-          : "No se pudo abrir el catalogo guardado."
+          : "No se pudo abrir el catálogo guardado."
       );
     }
   }
@@ -279,7 +279,7 @@ export function AdminCatalogEditor({
     }
 
     if (version.role === "active") {
-      return "Catalogo actual";
+      return "Catálogo actual";
     }
 
     if (publishedVersion && version.catalog.id === publishedVersion.catalog.id) {
@@ -308,19 +308,19 @@ export function AdminCatalogEditor({
               Terra Viva Admin
             </p>
             <h1 className="mt-1 text-2xl font-black leading-tight text-terra-ink sm:text-3xl">
-              Revision de catalogo
+              Revisión de catálogo
             </h1>
             <p className="mt-2 text-base font-bold text-terra-ink/65">
               {activeCatalog.title}
             </p>
             <p className="mt-2 text-sm font-bold text-terra-ink/55">
               {isDraftActive
-                ? "Hoy estas revisando el borrador antes de publicarlo."
-                : "Estas viendo el catalogo que ya esta publicado."}
+                ? "Hoy estás revisando el borrador antes de publicarlo."
+                : "Estás viendo el catálogo que ya está publicado."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-terra-paper px-3 py-1 text-sm font-black text-terra-ink">
-                Arboles: {activeCatalog.moments.length}
+                Árboles: {activeCatalog.moments.length}
               </span>
               <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-black text-green-800 ring-1 ring-green-700/20">
                 Disponibles: {availableCount}
@@ -339,7 +339,7 @@ export function AdminCatalogEditor({
             <span aria-hidden="true" className="text-base leading-none">
               ←
             </span>
-            <span>Ver catalogo como clienta</span>
+            <span>Ver catálogo como clienta</span>
           </a>
         </div>
         {transferNotice ? (
@@ -357,7 +357,7 @@ export function AdminCatalogEditor({
       <section className="mb-4 overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
         <div className="border-b border-terra-moss/15 px-4 py-4">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-            Elegir que quieres revisar
+            Elegir qué quieres revisar
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {draftVersion ? (
@@ -386,8 +386,8 @@ export function AdminCatalogEditor({
                 type="button"
               >
                 {selectedCatalog.id === publishedVersion.catalog.id
-                  ? "Viendo catalogo actual"
-                  : "Ver catalogo actual"}
+                  ? "Viendo catálogo actual"
+                  : "Ver catálogo actual"}
               </button>
             ) : null}
           </div>
@@ -395,7 +395,7 @@ export function AdminCatalogEditor({
 
         <div className="px-4 py-4">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-            Lo que estas revisando
+            Lo que estás revisando
           </p>
           <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -403,23 +403,23 @@ export function AdminCatalogEditor({
                 {selectedCatalog.status === "draft"
                   ? "Borrador de hoy"
                   : isViewingActive
-                    ? "Catalogo actual"
-                    : "Catalogo anterior"}
+                    ? "Catálogo actual"
+                    : "Catálogo anterior"}
               </h2>
               <p className="mt-1 text-sm font-bold text-terra-ink/60">
                 {selectedCatalog.title}
               </p>
               <p className="mt-2 text-sm font-bold text-terra-ink/60">
-                {selectedCatalog.moments.length} arboles detectados ·{" "}
+                {selectedCatalog.moments.length} árboles detectados ·{" "}
                 {selectedAvailableCount} visibles · {selectedUnavailableCount} no
                 visibles
               </p>
               <p className="mt-2 text-sm font-bold text-terra-ink/55">
                 {selectedCatalog.status === "draft"
-                  ? "Marca aqui que arboles se muestran antes de publicar."
+                  ? "Marca aquí qué árboles se muestran antes de publicar."
                   : isViewingActive
-                    ? "Esta es la version publicada que ven las clientas."
-                    : "Esta version es solo de consulta mientras comparas cambios."}
+                    ? "Esta es la versión publicada que ven las clientas."
+                    : "Esta versión es solo de consulta mientras comparas cambios."}
               </p>
             </div>
 
@@ -462,8 +462,8 @@ export function AdminCatalogEditor({
           </summary>
           <div className="space-y-5 border-t border-terra-moss/15 px-4 py-4">
             <p className="text-sm font-bold text-terra-ink/60">
-              Aqui quedan las opciones menos frecuentes: comparar versiones
-              anteriores, recuperar una version vieja o usar respaldos locales.
+              Aquí quedan las opciones menos frecuentes: comparar versiones
+              anteriores, recuperar una versión vieja o usar respaldos locales.
             </p>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -485,10 +485,10 @@ export function AdminCatalogEditor({
 
             <section className="rounded-lg bg-white p-3 ring-1 ring-terra-moss/15">
               <p className="text-sm font-black uppercase tracking-[0.16em] text-terra-clay">
-                Historial de catalogos
+                Historial de catálogos
               </p>
               <div
-                aria-label="Historial de catalogos"
+                aria-label="Historial de catálogos"
                 className="mt-3 flex gap-2 overflow-x-auto pb-1"
                 role="tablist"
               >
@@ -524,15 +524,15 @@ export function AdminCatalogEditor({
                     {isViewingActive
                       ? selectedCatalog.status === "draft"
                         ? "Borrador de hoy"
-                        : "Catalogo actual"
-                      : "Version anterior"}
+                        : "Catálogo actual"
+                      : "Versión anterior"}
                   </p>
                   <h2 className="mt-1 text-xl font-black text-terra-ink">
                     {selectedCatalog.title}
                   </h2>
                   <p className="mt-1 text-sm font-bold text-terra-ink/60">
                     {selectedCatalog.videos.length} videos recibidos ·{" "}
-                    {selectedCatalog.moments.length} arboles detectados ·{" "}
+                    {selectedCatalog.moments.length} árboles detectados ·{" "}
                     {selectedAvailableCount} visibles · {selectedUnavailableCount}{" "}
                     no visibles
                   </p>
@@ -547,8 +547,8 @@ export function AdminCatalogEditor({
                     }`}
                   >
                     {selectedCatalog.status === "draft"
-                      ? "Version que estas editando"
-                      : "Version publicada"}
+                      ? "Versión que estás editando"
+                      : "Versión publicada"}
                   </span>
                 ) : (
                   <button
@@ -556,7 +556,7 @@ export function AdminCatalogEditor({
                     onClick={() => restoreBackup(selectedCatalog.id)}
                     type="button"
                   >
-                    Usar esta version otra vez
+                    Usar esta versión otra vez
                   </button>
                 )}
               </div>
