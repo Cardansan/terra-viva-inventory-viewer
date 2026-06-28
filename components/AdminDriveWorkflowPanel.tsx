@@ -43,6 +43,16 @@ export function AdminDriveWorkflowPanel({
   const hasToken = accessToken.trim().length > 0;
   const hasInboxFolderId = inboxFolderId.trim().length > 0;
   const hasDriveSession = hasToken && hasInboxFolderId;
+  const canCancelDraft =
+    canPublishDraft ||
+    (latestStatus?.action === "process_draft" &&
+      (latestStatus.state === "queued" || latestStatus.state === "running"));
+  const shouldShowDraftReadyCard = canPublishDraft;
+  const shouldShowLatestStatusCard = !(
+    latestStatus?.action === "process_draft" &&
+    latestStatus.state === "succeeded" &&
+    canPublishDraft
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -245,6 +255,8 @@ export function AdminDriveWorkflowPanel({
       setFeedback(
         action === "process_draft"
           ? "Listo. Ya se empezó a preparar un borrador nuevo."
+          : action === "cancel_draft"
+            ? "Listo. Se envió la cancelación del borrador actual."
           : "Listo. El catálogo se envió a publicación con los cambios que acabas de revisar."
       );
       await refreshStatuses(driveSession.accessToken);
@@ -297,28 +309,7 @@ export function AdminDriveWorkflowPanel({
             </span>
           </summary>
           <div className="border-t border-terra-moss/10 px-4 py-4">
-            <div
-              className={`rounded-2xl px-4 py-4 ring-1 ${
-                canPublishDraft
-                  ? "bg-white text-terra-ink ring-terra-moss/15"
-                  : "bg-amber-50 text-amber-950 ring-amber-200"
-              }`}
-            >
-              <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
-                {canPublishDraft ? "Borrador listo" : "Sin borrador nuevo"}
-              </p>
-              <p className="mt-2 text-base font-black">
-                {canPublishDraft
-                  ? `${activeCatalog.moments.length} árboles listos para revisar y publicar.`
-                  : "Todavía no hay un borrador nuevo para revisar."}
-              </p>
-              <p className="mt-1 text-sm font-bold text-terra-ink/65">
-                {canPublishDraft
-                  ? "Ya puedes revisarlo en la sección de abajo y luego publicarlo cuando termines."
-                  : "Si hoy llegaron videos nuevos, usa esta opción para preparar el siguiente borrador."}
-              </p>
-            </div>
-            <p className="mt-4 text-sm font-bold text-terra-ink/65">
+            <p className="text-sm font-bold text-terra-ink/65">
               Usa esta opción solo cuando ya llegaron videos nuevos y hace falta
               crear el siguiente borrador.
             </p>
@@ -335,6 +326,28 @@ export function AdminDriveWorkflowPanel({
                 ? "Preparando borrador..."
                 : "Crear borrador nuevo"}
             </button>
+            {canCancelDraft ? (
+              <button
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-terra-clay/30 bg-white px-5 text-sm font-black text-terra-clay disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy !== null}
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    "Esto cancelará el borrador actual y dejará de usarse para esta revisión. ¿Quieres continuar?"
+                  );
+
+                  if (!confirmed) {
+                    return;
+                  }
+
+                  void submitOrder("cancel_draft");
+                }}
+                type="button"
+              >
+                {isBusy === "cancel_draft"
+                  ? "Cancelando borrador..."
+                  : "Cancelar borrador"}
+              </button>
+            ) : null}
             {!hasDriveSession ? (
               <p className="mt-3 text-sm font-bold text-terra-ink/60">
                 Si hace falta, la web te pedirá Google Drive al tocar este
@@ -344,43 +357,65 @@ export function AdminDriveWorkflowPanel({
           </div>
         </details>
 
-        <section className="rounded-2xl bg-terra-ink p-4 text-white shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="rounded-md bg-[#f2d0b1] px-2 py-1 text-xs font-black uppercase tracking-[0.14em] text-terra-ink">
-              Paso 2
+        <details className="rounded-2xl bg-terra-ink text-white shadow-sm" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+            <span className="flex items-center gap-3">
+              <span className="rounded-md bg-[#f2d0b1] px-2 py-1 text-xs font-black uppercase tracking-[0.14em] text-terra-ink">
+                Paso 2
+              </span>
+              <span className="text-base font-black sm:text-lg">
+                Publicar cuando ya termine la revisión
+              </span>
             </span>
-            <h3 className="text-base font-black sm:text-lg">
-              Publicar cuando ya termine la revisión
-            </h3>
+            <span aria-hidden="true" className="text-lg text-white/70">
+              ▾
+            </span>
+          </summary>
+          <div className="border-t border-white/10 px-4 pb-4 pt-4">
+            <button
+              className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
+              disabled={Boolean(publishDisabledReason) || isBusy !== null}
+              onClick={() => submitOrder("publish_approved")}
+              type="button"
+            >
+              {isBusy === "publish_approved"
+                ? "Publicando catálogo..."
+                : "Publicar catálogo"}
+            </button>
+            {publishDisabledReason ? (
+              <p className="mt-3 text-sm font-bold text-white/75">
+                {publishDisabledReason}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm font-bold text-white/75">
+                Se publica el catálogo exactamente como lo dejaste en esta
+                revisión.
+              </p>
+            )}
           </div>
-          <button
-            className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
-            disabled={Boolean(publishDisabledReason) || isBusy !== null}
-            onClick={() => submitOrder("publish_approved")}
-            type="button"
-          >
-            {isBusy === "publish_approved"
-              ? "Publicando catálogo..."
-              : "Publicar catálogo"}
-          </button>
-          {publishDisabledReason ? (
-            <p className="mt-3 text-sm font-bold text-white/75">
-              {publishDisabledReason}
-            </p>
-          ) : (
-            <p className="mt-3 text-sm font-bold text-white/75">
-              Se publica el catálogo exactamente como lo dejaste en esta
-              revisión.
-            </p>
-          )}
-        </section>
+        </details>
 
         <section className="rounded-2xl bg-terra-paper/55">
           <div className="px-4 py-4 text-base font-black text-terra-ink">
             Ver último avance
           </div>
           <div className="border-t border-terra-moss/10 px-4 py-4">
-            {latestStatus ? (
+            {shouldShowDraftReadyCard ? (
+              <article className="mb-4 rounded-2xl bg-white p-4 ring-1 ring-terra-moss/15">
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                  Borrador listo
+                </p>
+                <p className="mt-2 text-base font-black text-terra-ink">
+                  {activeCatalog.moments.length} árboles listos para revisar y
+                  publicar.
+                </p>
+                <p className="mt-1 text-sm font-bold text-terra-ink/65">
+                  Ya puedes revisarlo en la sección de abajo y luego publicarlo
+                  cuando termines.
+                </p>
+              </article>
+            ) : null}
+            {latestStatus && shouldShowLatestStatusCard ? (
               <article className="rounded-2xl bg-white p-4 ring-1 ring-terra-moss/15">
                 <p className="text-base font-black text-terra-ink">
                   {getStateLabel(latestStatus.state)}
@@ -461,7 +496,9 @@ export function AdminDriveWorkflowPanel({
 function getActionLabel(action: PublisherOrderAction): string {
   return action === "process_draft"
     ? "Preparando borrador"
-    : "Publicando catálogo";
+    : action === "cancel_draft"
+      ? "Cancelando borrador"
+      : "Publicando catálogo";
 }
 
 function getStateLabel(state: DrivePublisherStatus["state"]): string {
@@ -474,6 +511,8 @@ function getStateLabel(state: DrivePublisherStatus["state"]): string {
       return "Terminado";
     case "failed":
       return "Necesita revisión";
+    case "cancelled":
+      return "Cancelado";
     default:
       return state;
   }

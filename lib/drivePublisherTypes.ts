@@ -1,12 +1,16 @@
 import type { CatalogDay } from "./catalogTypes";
 
-export type PublisherOrderAction = "process_draft" | "publish_approved";
+export type PublisherOrderAction =
+  | "process_draft"
+  | "publish_approved"
+  | "cancel_draft";
 
 export type PublisherOrderState =
   | "queued"
   | "running"
   | "succeeded"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export type DrivePublisherOrder = {
   id: string;

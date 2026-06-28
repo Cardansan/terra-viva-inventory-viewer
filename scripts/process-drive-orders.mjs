@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -131,6 +131,91 @@ async function readCatalogJson(relativePath) {
   return JSON.parse(raw);
 }
 
+async function updateCurrentDraftReference() {
+  const draftsRoot = path.join(projectRoot, "public", "catalog-drafts");
+  const currentDraftPath = path.join(draftsRoot, "current-draft.json");
+
+  let draftDates = [];
+
+  try {
+    const entries = await readdir(draftsRoot, { withFileTypes: true });
+    draftDates = entries
+      .filter(
+        (entry) =>
+          entry.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(entry.name)
+      )
+      .map((entry) => entry.name)
+      .sort((left, right) => right.localeCompare(left));
+  } catch {
+    draftDates = [];
+  }
+
+  if (draftDates.length === 0) {
+    await rm(currentDraftPath, { force: true });
+    return null;
+  }
+
+  const nextDate = draftDates[0];
+  await writeFile(
+    currentDraftPath,
+    `${JSON.stringify(
+      {
+        date: nextDate,
+        catalogPath: `/catalog-drafts/${nextDate}/catalog.json`
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+
+  return nextDate;
+}
+
+async function cancelCurrentDraft() {
+  const currentDraftReferencePath = path.join(
+    "public",
+    "catalog-drafts",
+    "current-draft.json"
+  );
+
+  let currentDraftDate = null;
+
+  try {
+    const currentDraft = await readCatalogJson(currentDraftReferencePath);
+    currentDraftDate =
+      currentDraft && typeof currentDraft.date === "string"
+        ? currentDraft.date
+        : null;
+  } catch {
+    currentDraftDate = null;
+  }
+
+  if (!currentDraftDate) {
+    const nextDate = await updateCurrentDraftReference();
+
+    return {
+      catalogDate: nextDate || undefined,
+      draftReviewUrl: nextDate ? `/drafts/current/` : undefined,
+      draftCancelled: false
+    };
+  }
+
+  await rm(path.join(projectRoot, "public", "catalog-drafts", currentDraftDate), {
+    recursive: true,
+    force: true
+  });
+
+  const nextDate = await updateCurrentDraftReference();
+
+  return {
+    catalogDate: currentDraftDate,
+    draftReviewUrl: nextDate ? `/drafts/current/` : undefined,
+    draftCancelled: true,
+    nextDraftDate: nextDate || undefined
+  };
+}
+
 async function processOrder(order) {
   if (order.action === "process_draft") {
     await runPublisher([
@@ -155,6 +240,10 @@ async function processOrder(order) {
       momentCount: draftCatalog.moments.length,
       draftReviewUrl: `/drafts/current/`
     };
+  }
+
+  if (order.action === "cancel_draft") {
+    return cancelCurrentDraft();
   }
 
   let approvalCatalog = order.approvalCatalog;
@@ -262,7 +351,9 @@ async function main() {
         "running",
         order.action === "process_draft"
           ? "Ya se esta preparando el borrador."
-          : "Ya se esta publicando el catalogo."
+          : order.action === "cancel_draft"
+            ? "Ya se esta cancelando el borrador actual."
+            : "Ya se esta publicando el catalogo."
       )
     });
 
@@ -276,7 +367,9 @@ async function main() {
           "succeeded",
           order.action === "process_draft"
             ? "El borrador termino bien y ya puede revisarse en linea."
-            : "La publicacion termino bien y ya quedo disponible para clientas.",
+            : order.action === "cancel_draft"
+              ? "El borrador actual se cancelo y ya no quedo activo."
+              : "La publicacion termino bien y ya quedo disponible para clientas.",
           result
         )
       });
