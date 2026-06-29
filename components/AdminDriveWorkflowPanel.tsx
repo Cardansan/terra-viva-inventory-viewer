@@ -443,9 +443,9 @@ export function AdminDriveWorkflowPanel({
                       La publicación local sí terminó.
                     </p>
                     <p className="mt-1 text-sm font-bold text-terra-ink/70">
-                      Si la página pública todavía enseña una fecha anterior,
-                      normalmente falta redeployar GitHub Pages con estos
-                      archivos nuevos.
+                      {latestStatus.result?.deployment?.pushed
+                        ? "La laptop ya empujo el catalogo nuevo a GitHub. Pages deberia reflejarlo en cuanto termine su deploy."
+                        : "Si la pagina publica todavia enseña una fecha anterior, normalmente falta redeployar GitHub Pages con estos archivos nuevos."}
                     </p>
                   </div>
                 ) : null}

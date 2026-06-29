@@ -294,12 +294,40 @@ async function processOrder(order) {
   const publishedCatalog = await readCatalogJson(
     path.join("public", currentCatalog.catalogPath.replace(/^\//, ""))
   );
+  const gitPublishResult = await runPublisher([
+    "scripts/publish-pages-after-catalog.mjs",
+    publishedCatalog.date
+  ]);
+  const deployment = parseDeploymentResult(gitPublishResult.stdout);
 
   return {
     catalogDate: publishedCatalog.date,
     momentCount: publishedCatalog.moments.length,
-    publishedCatalogUrl: `/catalog/${publishedCatalog.date}/`
+    publishedCatalogUrl: `/catalog/${publishedCatalog.date}/`,
+    deployment
   };
+}
+
+function parseDeploymentResult(stdout) {
+  const lines = stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const lastLine = lines.at(-1);
+
+  if (!lastLine) {
+    throw new Error(
+      "No se pudo confirmar el push automatico hacia GitHub Pages."
+    );
+  }
+
+  try {
+    return JSON.parse(lastLine);
+  } catch {
+    throw new Error(
+      "El resultado del push automatico a GitHub Pages no tuvo formato valido."
+    );
+  }
 }
 
 async function readMailbox(inboxFolderId) {
@@ -370,7 +398,7 @@ async function main() {
             ? "El borrador termino bien y ya puede revisarse en linea."
             : order.action === "cancel_draft"
               ? "El borrador actual se cancelo y ya no quedo activo."
-              : "La publicacion local termino bien. Si la web publica sigue atrasada, falta desplegar GitHub Pages con estos archivos nuevos.",
+              : "La publicacion local termino bien y la laptop ya envio los cambios a GitHub Pages.",
           result
         )
       });

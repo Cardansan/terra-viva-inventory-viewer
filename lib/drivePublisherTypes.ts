@@ -33,6 +33,13 @@ export type DrivePublisherStatus = {
     momentCount?: number;
     draftReviewUrl?: string;
     publishedCatalogUrl?: string;
+    deployment?: {
+      branch: string;
+      catalogDate: string;
+      commitSha?: string;
+      committed: boolean;
+      pushed: boolean;
+    };
   };
 };
 
