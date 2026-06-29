@@ -21,8 +21,8 @@ La web no procesa video ni guarda secretos de larga duracion.
 
 ## Capas del repo
 
-- `app/`: rutas App Router para catalogo, borradores, admin y API local/no estatica.
-- `components/`: UI publica y admin.
+- `app/`: rutas App Router para catalogo, borradores, editor y API local/no estatica.
+- `components/`: UI publica y editor.
 - `lib/`: contratos, repositorios, helpers de frontend y cliente Drive del navegador.
 - `scripts/`: pipeline local de procesamiento/publicacion y worker de ordenes.
 - `public/`: catalogos generados, borradores generados, thumbnails y fixtures.
@@ -43,9 +43,9 @@ La web no procesa video ni guarda secretos de larga duracion.
 3. `lib/catalogRepository.ts` resuelve el borrador activo y borradores por fecha.
 4. `/drafts/current/` y `/drafts/[date]/` sirven para revision interna.
 
-## Flujo admin
+## Flujo de edicion
 
-`/admin/` integra tres capacidades:
+`/edicion-catalogo/` integra tres capacidades:
 
 1. revisar/editar momentos del borrador o catalogo activo,
 2. cargar videos al Inbox de Drive,
@@ -53,10 +53,11 @@ La web no procesa video ni guarda secretos de larga duracion.
 
 Componentes clave:
 
-- `AdminCatalogEditor`: coordinador de la experiencia admin.
+- `AdminCatalogEditor`: coordinador de la experiencia de edicion.
 - `AdminDriveWorkflowPanel`: flujo principal de proceso/publicacion.
 - `AdminVideoUploadPanel`: carga de videos al Inbox.
 - `AdminDriveSessionPanel`: diagnostico y soporte de la sesion web.
+- `AdminGoogleGate`: barrera ligera opcional de identidad si despues se activa el gate.
 
 ## Flujo OAuth web
 
@@ -72,6 +73,13 @@ Comportamiento actual:
 - si falta o expiro, la web abre Google OAuth en la accion principal;
 - la sesion se guarda en `localStorage`;
 - soporte queda como fallback manual.
+
+## Acceso y exposicion
+
+- La vista publica ya no expone link hacia la pagina de edicion.
+- `/edicion-catalogo/`, `/drafts/current/` y `/drafts/[date]/` salen con `noindex`.
+- El gate ligero con Google queda preparado pero apagado por default.
+- Ese gate no protege server-side; solo agrega una barrera practica en un sitio estatico.
 
 ## Buzon de ordenes en Drive
 

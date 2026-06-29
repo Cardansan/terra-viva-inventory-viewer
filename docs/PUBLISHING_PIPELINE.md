@@ -5,7 +5,7 @@
 El pipeline vigente es Drive-first y laptop-driven.
 
 ```text
-Celular/admin
+Celular/edicion
 -> Drive Inbox
 -> orden web
 -> laptop worker
@@ -18,21 +18,23 @@ No se usa backend pagado, puertos abiertos ni procesamiento de video en la web.
 ## Flujo operativo
 
 1. Subir videos al Inbox de Drive.
-2. Crear orden `process_draft` desde `/admin`.
+2. Crear orden `process_draft` desde `/edicion-catalogo/`.
 3. La laptop procesa el borrador.
-4. Revisar el borrador en `/drafts/current/` o `/admin/`.
+4. Revisar el borrador en `/drafts/current/` o `/edicion-catalogo/`.
 5. Crear orden `publish_approved`.
 6. La laptop publica el catalogo final.
 7. GitHub Pages despliega el resultado estatico.
 
 ## Flujo web
 
-Desde `/admin` la web ya puede:
+Desde `/edicion-catalogo/` la web ya puede:
 
 - pedir OAuth de Drive cuando haga falta,
 - subir videos directo al Inbox,
 - dejar ordenes en el mailbox de Drive,
 - leer el ultimo estado de proceso/publicacion.
+
+La misma pagina ya tiene preparada una barrera ligera con Google para activarse despues si se quiere reducir acceso casual, sin meter backend nuevo.
 
 Ordenes soportadas:
 

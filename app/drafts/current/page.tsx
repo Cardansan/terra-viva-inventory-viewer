@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { CatalogViewer } from "@/components/CatalogViewer";
 import { getCurrentDraftCatalog } from "@/lib/catalogRepository";
+import { buildNoIndexMetadata } from "@/lib/pageMetadata";
+import { ADMIN_EDITOR_PATH } from "@/lib/sitePaths";
+
+export const metadata = buildNoIndexMetadata({
+  title: "Borrador actual | Terra Viva",
+  description: "Vista interna del borrador actual antes de publicar."
+});
 
 export default function CurrentDraftCatalogPage() {
   const catalog = getCurrentDraftCatalog();
@@ -20,9 +27,9 @@ export default function CurrentDraftCatalogPage() {
           </p>
           <Link
             className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg bg-terra-leaf px-6 text-lg font-bold text-white"
-            href="/admin/"
+            href={ADMIN_EDITOR_PATH}
           >
-            Volver al admin
+            Volver a edicion
           </Link>
         </section>
       </main>

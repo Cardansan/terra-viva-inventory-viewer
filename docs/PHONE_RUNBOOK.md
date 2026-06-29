@@ -2,6 +2,10 @@
 
 Objetivo: dejar la laptop escuchando y permitir que mama haga todo desde su celular.
 
+Guia simple para ella:
+
+- `docs/GUIA_MAMA_INTERFAZ.pdf`
+
 ## Hoy en la laptop
 
 1. Verifica que `terra-viva.publisher.local.json` tenga:
@@ -16,7 +20,7 @@ Objetivo: dejar la laptop escuchando y permitir que mama haga todo desde su celu
 
 ## Manana desde el celular
 
-1. Abre `/admin`.
+1. Abre `/edicion-catalogo/`.
 2. Abre `Cargar videos para preparar catalogo` y sube los videos al Inbox.
 3. Si hace falta, la web abrira Google Drive sola durante esa accion.
 4. Toca `Crear borrador nuevo`.
@@ -29,7 +33,14 @@ Objetivo: dejar la laptop escuchando y permitir que mama haga todo desde su celu
 
 ## Cuenta autorizada
 
-- Mientras la app OAuth siga en modo de prueba, `terravivapue@gmail.com` debe seguir dada de alta como usuaria autorizada en Google Cloud.
+- Mientras la app OAuth siga en modo de prueba, `terravivapue@gmail.com` y `carlos.d.san25@gmail.com` deben seguir dadas de alta como usuarias autorizadas en Google Cloud.
+
+## Acceso y seguridad ligera
+
+- Las clientas ya no ven link al panel de edicion desde el catalogo publico.
+- La ruta de trabajo es `/edicion-catalogo/` y conviene guardarla como bookmark.
+- Los borradores usan `noindex`, pero eso no reemplaza autenticacion.
+- El gate ligero con Google existe, pero debe quedarse apagado hasta que Carlos decida activarlo.
 
 ## Si algo falla
 

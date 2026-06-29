@@ -7,7 +7,7 @@
 - [x] Desktop: el panel lateral no tapa el visor.
 - [x] Botones legibles y de alto contraste.
 - [x] Flechas anterior/siguiente muy visibles.
-- [x] Número de árbol claro en pantalla.
+- [x] Numero de arbol claro en pantalla.
 - [x] Boton de WhatsApp prominente.
 - [x] Estados disponible/vendido/apartado se entienden.
 - [x] Miniatura seleccionada destaca.
@@ -34,8 +34,8 @@
 
 Revisado en Browser con viewport movil `390x844` y desktop `1280x800`.
 
-- Navegación: al avanzar de árbol 01 a 02 se actualizó label, timestamp y link de WhatsApp.
-- Estado vendido: el árbol 06 mostró `Vendido` y cambió el CTA a `No disponible`.
+- Navegacion: al avanzar de arbol 01 a 02 se actualizo label, timestamp y link de WhatsApp.
+- Estado vendido: el arbol 06 mostro `Vendido` y cambio el CTA a `No disponible`.
 - Admin: cargo 27 momentos; editar el numero del primer momento actualizo el encabezado local.
 - Build: `next build` compilo correctamente.
 - Nota: la captura bitmap del navegador agoto tiempo en el entorno, asi que la revision se hizo con DOM, medidas de controles y pruebas interactivas.
@@ -58,7 +58,7 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] WhatsApp es la accion mas prominente.
 - [x] `Ver video de este arbol` se ve como accion secundaria.
 - [x] El boton grande de Play ya no aparece sobre el visor.
-- [x] `admin login` esta en el footer y se ve discreto.
+- [x] El catalogo publico no muestra link al panel de edicion.
 - [x] `Catalogo actualizado` aparece en el footer.
 - [x] `Compartir catalogo` aparece abajo y no compite con WhatsApp.
 - [x] Momentos `sold` no aparecen en contador publico, navegacion ni galeria.
@@ -70,10 +70,15 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 
 - [x] `/drafts/current` muestra mensaje de revision interna.
 - [x] `/catalog/[date]` publicado no muestra mensajes de borrador.
+- [x] `/drafts/current` y `/drafts/[date]` usan `noindex`.
+- [x] `/edicion-catalogo/` usa `noindex`.
 - [x] El header admin ya no es sticky en mobile.
 - [x] `Vista de Cliente` ya no vive en la parte superior del admin.
 - [x] Las herramientas manuales de respaldo quedaron relegadas a una seccion secundaria.
 - [x] La lista de arboles vuelve a ser el centro del admin en celular.
+- [x] La ruta principal del panel es `/edicion-catalogo/`.
+- [x] El gate ligero con Google existe y queda apagado por default.
+
 ## Checks seleccion multiple
 
 - [x] `Agregar a mi seleccion` agrega el arbol actual.
@@ -111,7 +116,8 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [ ] No manda nada a papelera si `trash_old=false`.
 - [ ] En dry-run muestra que mandaria a papelera.
 - [ ] No depura activo ni dos backups.
-- [ ] `/admin` sigue funcionando.
+- [x] `/admin` ya no es la ruta operativa normal y puede quedar fuera del flujo habitual.
 - [ ] No se guardan credenciales en frontend.
 - [ ] No se exponen puertos.
 - [ ] El flujo operativo no requiere Supabase, Apps Script, Cloudinary ni servidor propio.
+

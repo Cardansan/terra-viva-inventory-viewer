@@ -1,6 +1,6 @@
 # Fase A Status
 
-Ultima actualizacion: 2026-06-28
+Ultima actualizacion: 2026-06-29
 
 ## Estado ejecutivo
 
@@ -9,10 +9,10 @@ Fase A no esta cerrada, pero ya tiene una base operativa real.
 Hoy el repo ya soporta este flujo:
 
 1. subir videos al Inbox de Drive desde la web,
-2. disparar `process_draft` desde `/admin`,
+2. disparar `process_draft` desde `/edicion-catalogo/`,
 3. procesar el borrador en la laptop,
 4. revisar el borrador en rutas separadas,
-5. disparar `publish_approved` desde `/admin`,
+5. disparar `publish_approved` desde `/edicion-catalogo/`,
 6. publicar el catalogo estatico en GitHub Pages.
 
 ## Lo que ya esta resuelto
@@ -53,7 +53,16 @@ Ahora:
 
 pueden abrir Google Drive por si solos cuando la sesion falta o expira.
 
-### 4. Validacion real del pipeline
+### 4. Superficies internas separadas mejor
+
+Ya existe una separacion mas clara entre vista publica y herramientas internas:
+
+- el catalogo publico ya no expone link al panel de edicion,
+- la ruta principal de trabajo cambia a `/edicion-catalogo/`,
+- editor y borradores usan `noindex`,
+- y el gate ligero con Google queda preparado pero apagado por defecto.
+
+### 5. Validacion real del pipeline
 
 El pipeline ya tuvo validacion real previa con videos reales y thumbnails generados.
 
@@ -63,7 +72,7 @@ El repo refleja:
 - borrador activo mas reciente en `public/catalog-drafts/2026-06-28/`,
 - y flujo de draft/public separado en el frontend.
 
-### 5. Generacion de momentos ya no esta limitada artificialmente a 9
+### 6. Generacion de momentos ya no esta limitada artificialmente a 9
 
 La limitacion dura anterior ya fue corregida.
 

@@ -17,8 +17,8 @@ Ya existe:
 
 - catalogo publico navegable con seleccion multiple y WhatsApp,
 - rutas separadas para borrador y publicado,
-- admin mobile-first para revisar y editar momentos,
-- subida de videos al Inbox de Drive desde `/admin`,
+- editor mobile-first para revisar y editar momentos,
+- subida de videos al Inbox de Drive desde `/edicion-catalogo/`,
 - ordenes web `process_draft`, `publish_approved` y `cancel_draft`,
 - worker local que escucha ordenes desde Drive,
 - OAuth web para Drive con activacion just-in-time desde los botones principales,
@@ -37,7 +37,7 @@ Resumen mas detallado: [docs/PHASE_A_STATUS.md](docs/PHASE_A_STATUS.md)
 
 La web no procesa video.
 
-- GitHub Pages: sirve la interfaz publica, borradores y admin.
+- GitHub Pages: sirve la interfaz publica, borradores y editor.
 - Google Drive: recibe videos y funciona como buzon ligero de ordenes/estado.
 - Laptop publicadora: descarga, procesa, genera thumbnails, escribe JSON y publica.
 
@@ -71,7 +71,7 @@ Despues abre `http://localhost:3000`.
 - `/catalog/[date]/` muestra un catalogo publicado por fecha.
 - `/drafts/current/` muestra el borrador activo.
 - `/drafts/[date]/` muestra un borrador por fecha.
-- `/admin/` muestra el flujo de revision, carga y publicacion.
+- `/edicion-catalogo/` muestra el flujo de revision, carga y publicacion.
 
 ## Scripts principales
 
@@ -104,9 +104,9 @@ Configuracion local esperada:
 
 No se deben commitear tokens, secretos ni credenciales reales.
 
-## Frontend y OAuth web
+## Frontend, acceso y OAuth web
 
-La web admin ya puede pedir acceso a Drive desde el navegador usando Google Identity Services.
+La web de edicion ya puede pedir acceso a Drive desde el navegador usando Google Identity Services.
 
 - La sesion se guarda solo en el navegador actual.
 - Si falta sesion o expira, la web abre OAuth automaticamente al tocar:
@@ -115,7 +115,18 @@ La web admin ya puede pedir acceso a Drive desde el navegador usando Google Iden
   - `Publicar catalogo`
 - El panel de soporte queda como diagnostico manual, no como paso obligatorio.
 
-Mientras la app OAuth siga en modo de prueba, `terravivapue@gmail.com` debe seguir autorizada como test user en Google Cloud.
+## Security / Access model
+
+- El catalogo publico ya no expone link al panel de edicion.
+- La ruta de edicion se separa en `/edicion-catalogo/` para reducir accesos accidentales.
+- `/edicion-catalogo/`, `/drafts/current/` y `/drafts/[date]/` usan `noindex` para bajar exposicion en buscadores.
+- `noindex` no es autenticacion; solo reduce indexacion accidental.
+- Los borradores pueden seguir siendo visibles si alguien tiene el link, porque no cargan precios ni datos sensibles.
+- El gate ligero con Google queda preparado pero apagado por defecto con `NEXT_PUBLIC_ENABLE_ADMIN_GOOGLE_GATE=false`.
+- Cuando se active, ese gate sera una barrera practica de acceso casual, no seguridad server-side fuerte.
+- El JSON publicado y de borrador ya no debe arrastrar notas operativas automaticas innecesarias.
+
+Mientras la app OAuth de Drive siga en modo de prueba, `terravivapue@gmail.com` y `carlos.d.san25@gmail.com` deben seguir autorizadas como test users en Google Cloud.
 
 ## Documentos clave
 
@@ -126,6 +137,7 @@ Mientras la app OAuth siga en modo de prueba, `terravivapue@gmail.com` debe segu
 - [docs/ROADMAP.md](docs/ROADMAP.md): direccion futura y prioridades.
 - [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md): orientacion rapida para otra IA.
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): despliegue estatico actual.
+- [docs/GUIA_MAMA_INTERFAZ.md](docs/GUIA_MAMA_INTERFAZ.md) y `docs/GUIA_MAMA_INTERFAZ.pdf`: guia simple para operacion diaria desde celular.
 
 ## Direccion general del proyecto
 

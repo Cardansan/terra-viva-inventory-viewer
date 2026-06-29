@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CatalogViewer } from "@/components/CatalogViewer";
 import { getDraftCatalogByDate, getDraftCatalogDates } from "@/lib/catalogRepository";
+import { buildNoIndexMetadata } from "@/lib/pageMetadata";
+import { ADMIN_EDITOR_PATH } from "@/lib/sitePaths";
 
 type DraftCatalogPageProps = {
   params: {
@@ -15,6 +17,11 @@ export function generateStaticParams() {
 }
 
 export const dynamicParams = false;
+
+export const metadata = buildNoIndexMetadata({
+  title: "Borrador por fecha | Terra Viva",
+  description: "Vista interna de un borrador Terra Viva por fecha."
+});
 
 export default function DraftCatalogPage({ params }: DraftCatalogPageProps) {
   const catalog = getDraftCatalogByDate(params.date);
@@ -34,9 +41,9 @@ export default function DraftCatalogPage({ params }: DraftCatalogPageProps) {
           </p>
           <Link
             className="mt-6 inline-flex min-h-12 items-center justify-center rounded-lg bg-terra-leaf px-6 text-lg font-bold text-white"
-            href="/admin/"
+            href={ADMIN_EDITOR_PATH}
           >
-            Volver al admin
+            Volver a edicion
           </Link>
         </section>
       </main>

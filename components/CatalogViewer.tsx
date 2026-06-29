@@ -352,12 +352,6 @@ export function CatalogViewer({
         {viewerMode === "public" ? (
           <ShareCatalogButton title={catalog.title} />
         ) : null}
-        <a
-          className="inline-flex text-xs font-bold lowercase text-terra-ink/45 underline-offset-4 hover:text-terra-ink hover:underline"
-          href={assetPath("/admin/")}
-        >
-          admin login
-        </a>
       </footer>
     </main>
   );

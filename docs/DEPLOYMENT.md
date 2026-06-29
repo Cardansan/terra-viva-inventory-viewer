@@ -29,7 +29,7 @@ https://cardansan.github.io/terra-viva-inventory-viewer/
 
 - catalogo publicado,
 - borradores estaticos,
-- admin estatico,
+- editor estatico,
 - assets y thumbnails generados.
 
 ## Que no existe en GitHub Pages
@@ -54,12 +54,14 @@ Todo lo que deba funcionar en produccion debe ser:
 
 1. abrir `/`,
 2. abrir `/drafts/current/`,
-3. abrir `/admin/`,
+3. abrir `/edicion-catalogo/`,
 4. confirmar que thumbnails y assets cargan bajo el `basePath`,
-5. confirmar que el flujo OAuth web abre Google cuando hace falta.
+5. confirmar que el flujo OAuth web abre Google cuando hace falta,
+6. confirmar que `/edicion-catalogo/` y `/drafts/*` salgan con `noindex`.
 
 ## Notas operativas
 
 - Los videos reales no deben entrar al repo.
 - El repo puede contener catalogos JSON y thumbnails generados.
 - El procesamiento real sigue fuera de GitHub Pages.
+- El gate de Google para edicion puede activarse despues sin cambiar el modelo gratis/estatico.

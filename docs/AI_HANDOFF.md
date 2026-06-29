@@ -9,6 +9,7 @@ Guia corta para otra IA que retome el repo sin cargar contexto viejo.
 3. `docs/ARCHITECTURE.md`
 4. `docs/PUBLISHING_PIPELINE.md`
 5. `docs/ROADMAP.md`
+6. `docs/GUIA_MAMA_INTERFAZ.md`
 
 ## Archivos clave del codigo
 
@@ -19,6 +20,7 @@ Guia corta para otra IA que retome el repo sin cargar contexto viejo.
 - `components/AdminDriveWorkflowPanel.tsx`
 - `components/AdminVideoUploadPanel.tsx`
 - `components/AdminDriveSessionPanel.tsx`
+- `components/AdminGoogleGate.tsx`
 
 ### Helpers y contratos
 
@@ -27,6 +29,8 @@ Guia corta para otra IA que retome el repo sin cargar contexto viejo.
 - `lib/browserDriveClient.ts`
 - `lib/browserDriveSessionFlow.ts`
 - `lib/driveSessionBrowser.ts`
+- `lib/adminAccessConfig.ts`
+- `lib/pageMetadata.ts`
 
 ### Pipeline local
 
@@ -50,7 +54,9 @@ El sistema real es:
 - la web ya puede subir videos al Inbox,
 - la web ya puede disparar ordenes de proceso/publicacion,
 - OAuth web ya se activa desde los botones principales si hace falta,
-- el worker local ya procesa ordenes desde Drive.
+- el worker local ya procesa ordenes desde Drive,
+- la ruta operativa es `/edicion-catalogo/`,
+- el gate ligero con Google existe pero sigue apagado por default.
 
 ## Riesgos importantes
 

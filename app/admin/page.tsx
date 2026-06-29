@@ -1,16 +1,11 @@
-import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
-import { getAdminCatalogHistory } from "@/lib/catalogRepository";
+import { notFound } from "next/navigation";
+import { buildNoIndexMetadata } from "@/lib/pageMetadata";
 
-export default function AdminPage() {
-  const { activeCatalog, backupCatalogs, publishedCatalog, draftCatalog } =
-    getAdminCatalogHistory();
+export const metadata = buildNoIndexMetadata({
+  title: "Ruta desactivada | Terra Viva",
+  description: "Ruta antigua del panel interno desactivada."
+});
 
-  return (
-    <AdminCatalogEditor
-      initialActiveCatalog={activeCatalog}
-      initialBackupCatalogs={backupCatalogs}
-      initialDraftCatalog={draftCatalog}
-      initialPublishedCatalog={publishedCatalog}
-    />
-  );
+export default function LegacyAdminPage() {
+  notFound();
 }

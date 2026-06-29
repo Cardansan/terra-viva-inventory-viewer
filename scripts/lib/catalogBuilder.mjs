@@ -15,6 +15,9 @@ const DEFAULT_MOMENT_GENERATION = Object.freeze({
   dedupeSimilarityThreshold: 11,
   dedupeMinGapSeconds: 1
 });
+const INTERNAL_OPERATIONAL_NOTE_PREFIXES = [
+  "Generado automaticamente desde Drive Inbox"
+];
 
 function getCatalogAssetBasePath(date, workflow = "publish") {
   return workflow === "draft" ? `/catalog-drafts/${date}` : `/catalog/${date}`;
@@ -181,9 +184,7 @@ export function buildCatalogFromVideos({
         ? PLACEHOLDER_THUMBNAIL_URL
         : `${assetBasePath}/thumbnails/tree-${String(treeNumber).padStart(3, "0")}.jpg`,
       sectionLabel: video.sectionLabel,
-      status: "available",
-      notes:
-        "Generado automaticamente desde Drive Inbox; revisar disponibilidad y timestamps en admin."
+      status: "available"
     };
   });
 
@@ -297,12 +298,43 @@ export function publishApprovedCatalogFromAdmin({
   };
 }
 
+function sanitizePublishedMoment(moment) {
+  const noteValue =
+    typeof moment.notes === "string" ? moment.notes.trim() : undefined;
+  const shouldDropNote =
+    !noteValue ||
+    INTERNAL_OPERATIONAL_NOTE_PREFIXES.some((prefix) =>
+      noteValue.startsWith(prefix)
+    );
+
+  if (shouldDropNote) {
+    const { notes: _notes, ...momentWithoutNotes } = moment;
+    return momentWithoutNotes;
+  }
+
+  return {
+    ...moment,
+    notes: noteValue
+  };
+}
+
+export function sanitizeCatalogForPublishedJson(catalog) {
+  return {
+    ...catalog,
+    moments: catalog.moments.map(sanitizePublishedMoment)
+  };
+}
+
 export async function writeCatalogJson({ catalog, projectRoot }) {
   const catalogDir = path.join(projectRoot, "public", "catalog", catalog.date);
   await mkdir(path.join(catalogDir, "thumbnails"), { recursive: true });
 
   const catalogPath = path.join(catalogDir, "catalog.json");
-  await writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+  await writeFile(
+    catalogPath,
+    `${JSON.stringify(sanitizeCatalogForPublishedJson(catalog), null, 2)}\n`,
+    "utf8"
+  );
   return catalogPath;
 }
 
@@ -316,7 +348,11 @@ export async function writeDraftCatalogJson({ catalog, projectRoot }) {
   await mkdir(path.join(catalogDir, "thumbnails"), { recursive: true });
 
   const catalogPath = path.join(catalogDir, "catalog.json");
-  await writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+  await writeFile(
+    catalogPath,
+    `${JSON.stringify(sanitizeCatalogForPublishedJson(catalog), null, 2)}\n`,
+    "utf8"
+  );
   return catalogPath;
 }
 
