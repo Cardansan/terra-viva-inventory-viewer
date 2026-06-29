@@ -8,6 +8,20 @@ const localConfigPath = path.join(
 const tokenEndpoint = "https://oauth2.googleapis.com/token";
 const tokenRefreshBufferMs = 5 * 60 * 1000;
 
+function createDriveRefreshTokenRevokedError(message, details = "") {
+  const error = new Error(message);
+  error.name = "DriveRefreshTokenRevokedError";
+  error.details = details;
+  return error;
+}
+
+export function isDriveRefreshTokenRevokedError(error) {
+  return (
+    error instanceof Error &&
+    error.name === "DriveRefreshTokenRevokedError"
+  );
+}
+
 function tokenExpiresSoon(expiresAt) {
   if (!expiresAt) {
     return true;
@@ -67,6 +81,16 @@ async function refreshGoogleDriveAccessToken(config) {
   const body = await response.text();
 
   if (!response.ok) {
+    if (
+      response.status === 400 &&
+      body.includes("invalid_grant")
+    ) {
+      throw createDriveRefreshTokenRevokedError(
+        "El refresh token local de Drive vencio o fue revocado. Hace falta reautorizar la laptop con Google Drive.",
+        body
+      );
+    }
+
     throw new Error(
       `No se pudo renovar el token local de Drive (${response.status}): ${body}`
     );

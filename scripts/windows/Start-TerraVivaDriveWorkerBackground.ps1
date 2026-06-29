@@ -12,6 +12,21 @@ $watcherScriptPath = Join-Path $repoRoot "scripts\windows\Watch-TerraVivaDriveOr
 New-Item -ItemType Directory -Path $pidDir -Force | Out-Null
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 
+$existingWorkers = Get-CimInstance Win32_Process | Where-Object {
+  $_.Name -in @("node.exe", "powershell.exe") -and
+  $_.CommandLine -and (
+    $_.CommandLine.Contains("scripts/process-drive-orders.mjs") -or
+    $_.CommandLine.Contains("Watch-TerraVivaDriveOrders.ps1")
+  )
+}
+
+if ($existingWorkers) {
+  $existingPids = ($existingWorkers | Select-Object -ExpandProperty ProcessId) -join ", "
+  Write-Host "Ya hay procesos de escucha activos (PID: $existingPids)." -ForegroundColor Yellow
+  Write-Host "Log: $outLogPath"
+  return
+}
+
 if (Test-Path $pidPath) {
   $existingPid = (Get-Content -Raw -Path $pidPath).Trim()
 

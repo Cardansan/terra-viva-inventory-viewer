@@ -40,6 +40,9 @@ export function AdminDriveWorkflowPanel({
   const [toastVisible, setToastVisible] = useState(false);
 
   const latestStatus = statuses[0];
+  const latestStatusSignal = latestStatus
+    ? getStatusSignal(latestStatus)
+    : null;
   const hasToken = accessToken.trim().length > 0;
   const hasInboxFolderId = inboxFolderId.trim().length > 0;
   const hasDriveSession = hasToken && hasInboxFolderId;
@@ -257,7 +260,7 @@ export function AdminDriveWorkflowPanel({
           ? "Listo. Ya se empezó a preparar un borrador nuevo."
           : action === "cancel_draft"
             ? "Listo. Se envió la cancelación del borrador actual."
-          : "Listo. El catálogo se envió a publicación con los cambios que acabas de revisar."
+          : "Listo. La laptop ya empezó la publicación local con los cambios que acabas de revisar."
       );
       await refreshStatuses(driveSession.accessToken);
     } catch (error) {
@@ -387,10 +390,17 @@ export function AdminDriveWorkflowPanel({
                 {publishDisabledReason}
               </p>
             ) : (
-              <p className="mt-3 text-sm font-bold text-white/75">
-                Se publica el catálogo exactamente como lo dejaste en esta
-                revisión.
-              </p>
+              <div className="mt-3 space-y-2">
+                <p className="text-sm font-bold text-white/75">
+                  Se publica el catálogo exactamente como lo dejaste en esta
+                  revisión.
+                </p>
+                <p className="text-sm font-bold text-white/75">
+                  Este boton solo manda la orden a la laptop. Si el estado se
+                  queda igual varios minutos, casi siempre significa que la
+                  laptop no ha tomado la orden o perdio su sesion de Drive.
+                </p>
+              </div>
             )}
           </div>
         </details>
@@ -418,7 +428,7 @@ export function AdminDriveWorkflowPanel({
             {latestStatus && shouldShowLatestStatusCard ? (
               <article className="rounded-2xl bg-white p-4 ring-1 ring-terra-moss/15">
                 <p className="text-base font-black text-terra-ink">
-                  {getStateLabel(latestStatus.state)}
+                  {latestStatusSignal?.title || getStateLabel(latestStatus.state)}
                 </p>
                 <p className="mt-1 text-sm font-black text-terra-clay">
                   {getActionLabel(latestStatus.action)}
@@ -426,6 +436,35 @@ export function AdminDriveWorkflowPanel({
                 <p className="mt-2 text-sm font-bold text-terra-ink/65">
                   {latestStatus.message}
                 </p>
+                {latestStatus.action === "publish_approved" &&
+                latestStatus.state === "succeeded" ? (
+                  <div className="mt-3 rounded-2xl bg-[#fff7ef] px-4 py-3 text-terra-ink ring-1 ring-terra-clay/25">
+                    <p className="text-sm font-black">
+                      La publicación local sí terminó.
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-terra-ink/70">
+                      Si la página pública todavía enseña una fecha anterior,
+                      normalmente falta redeployar GitHub Pages con estos
+                      archivos nuevos.
+                    </p>
+                  </div>
+                ) : null}
+                {latestStatusSignal ? (
+                  <div
+                    className={`mt-3 rounded-2xl px-4 py-3 ring-1 ${
+                      latestStatusSignal.severity === "error"
+                        ? "bg-[#fff7ef] text-terra-ink ring-terra-clay/25"
+                        : "bg-[#f7fbf7] text-terra-ink ring-terra-leaf/20"
+                    }`}
+                  >
+                    <p className="text-sm font-black text-terra-ink">
+                      {latestStatusSignal.summary}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-terra-ink/70">
+                      {latestStatusSignal.details}
+                    </p>
+                  </div>
+                ) : null}
                 <p className="mt-2 text-xs font-bold text-terra-ink/45">
                   Último cambio del proceso: {formatTimestamp(latestStatus.updatedAt)}
                 </p>
@@ -516,6 +555,86 @@ function getStateLabel(state: DrivePublisherStatus["state"]): string {
     default:
       return state;
   }
+}
+
+function getStatusSignal(status: DrivePublisherStatus): {
+  severity: "warning" | "error";
+  title: string;
+  summary: string;
+  details: string;
+} | null {
+  const updatedAtMs = Date.parse(status.updatedAt);
+
+  if (!Number.isFinite(updatedAtMs)) {
+    return null;
+  }
+
+  const elapsedMs = Date.now() - updatedAtMs;
+
+  if (elapsedMs < 0) {
+    return null;
+  }
+
+  const elapsedLabel = formatElapsed(elapsedMs);
+
+  if (status.state === "queued" && elapsedMs >= 10 * 60 * 1000) {
+    return {
+      severity: "error",
+      title: "Parece atorado",
+      summary: `La orden sigue en espera desde hace ${elapsedLabel}.`,
+      details:
+        "La web ya mando la orden, pero la laptop todavia no la toma. Suele pasar cuando el worker local esta detenido o cuando la laptop perdio su sesion de Google Drive."
+    };
+  }
+
+  if (status.state === "queued" && elapsedMs >= 3 * 60 * 1000) {
+    return {
+      severity: "warning",
+      title: "Sigue en cola",
+      summary: `La orden sigue en espera desde hace ${elapsedLabel}.`,
+      details:
+        "Todavia depende de que la laptop lea la cola de Drive. Si no cambia pronto a 'Trabajando', conviene revisar la laptop."
+    };
+  }
+
+  if (status.state === "running" && elapsedMs >= 20 * 60 * 1000) {
+    return {
+      severity: "warning",
+      title: "Tardando mas de lo normal",
+      summary: `La laptop reporto actividad hace ${elapsedLabel}.`,
+      details:
+        "Si no cambia pronto a 'Terminado', conviene revisar los logs locales por si el publicador quedo esperando Drive o ffmpeg."
+    };
+  }
+
+  if (status.state === "failed") {
+    return {
+      severity: "error",
+      title: "Necesita revision",
+      summary: "La laptop devolvio un error y la accion no termino.",
+      details:
+        "Revisa el mensaje del estado y despues confirma en la laptop los logs del worker local para destrabarlo."
+    };
+  }
+
+  return null;
+}
+
+function formatElapsed(elapsedMs: number): string {
+  const totalMinutes = Math.max(1, Math.round(elapsedMs / 60000));
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${minutes} min`;
 }
 
 function formatTimestamp(value: string): string {

@@ -101,12 +101,31 @@ if (-not $pollIntervalSeconds) {
 
 Push-Location $repoRoot
 try {
-  Write-Host ""
-  Write-Host "Escuchando cola web cada $pollIntervalSeconds segundos..." -ForegroundColor Cyan
-  & $nodePath "scripts/process-drive-orders.mjs" "--once" "false" "--poll-interval-seconds" "$pollIntervalSeconds"
+  while ($true) {
+    Write-Host ""
+    Write-Host "Escuchando cola web cada $pollIntervalSeconds segundos..." -ForegroundColor Cyan
+    & $nodePath "scripts/process-drive-orders.mjs" "--once" "false" "--poll-interval-seconds" "$pollIntervalSeconds"
 
-  if ($LASTEXITCODE -ne 0) {
-    throw "El worker de ordenes termino con codigo $LASTEXITCODE."
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "El worker salio sin error. Reiniciando escucha..." -ForegroundColor Yellow
+      Start-Sleep -Seconds 2
+      continue
+    }
+
+    if ($LASTEXITCODE -ne 41) {
+      throw "El worker de ordenes termino con codigo $LASTEXITCODE."
+    }
+
+    Write-Host ""
+    Write-Host "La laptop perdio su sesion de Drive. Intentando reautorizar Google Drive..." -ForegroundColor Yellow
+    & $nodePath "scripts/setup-drive-oauth.mjs"
+
+    if ($LASTEXITCODE -ne 0) {
+      throw "No se pudo reautorizar Google Drive automaticamente. Revisa la ventana del navegador o los logs locales."
+    }
+
+    Write-Host "Drive quedo reautorizado. Reiniciando escucha..." -ForegroundColor Green
+    Start-Sleep -Seconds 2
   }
 } finally {
   Pop-Location

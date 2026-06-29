@@ -64,6 +64,9 @@ export function AdminCatalogEditor({
   const selectedCatalog = selectedVersion.catalog;
   const isViewingActive = selectedVersion.role === "active";
   const isDraftActive = activeCatalog.status === "draft";
+  const isViewingPublishedCatalog = Boolean(
+    publishedVersion && selectedCatalog.id === publishedVersion.catalog.id
+  );
 
   const availableCount = useMemo(
     () =>
@@ -402,7 +405,7 @@ export function AdminCatalogEditor({
               <h2 className="text-2xl font-black text-terra-ink">
                 {selectedCatalog.status === "draft"
                   ? "Borrador de hoy"
-                  : isViewingActive
+                  : isViewingPublishedCatalog
                     ? "Catálogo actual"
                     : "Catálogo anterior"}
               </h2>
@@ -417,7 +420,7 @@ export function AdminCatalogEditor({
               <p className="mt-2 text-sm font-bold text-terra-ink/55">
                 {selectedCatalog.status === "draft"
                   ? "Marca aquí qué árboles se muestran antes de publicar."
-                  : isViewingActive
+                  : isViewingPublishedCatalog
                     ? "Esta es la versión publicada que ven las clientas."
                     : "Esta versión es solo de consulta mientras comparas cambios."}
               </p>
@@ -427,14 +430,14 @@ export function AdminCatalogEditor({
               className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-black ${
                 selectedCatalog.status === "draft"
                   ? "bg-terra-paper text-terra-clay"
-                  : isViewingActive
+                  : isViewingPublishedCatalog
                     ? "bg-green-50 text-terra-leaf ring-1 ring-green-700/15"
                     : "bg-stone-100 text-stone-700 ring-1 ring-stone-500/15"
               }`}
             >
               {selectedCatalog.status === "draft"
                 ? "Editando borrador"
-                : isViewingActive
+                : isViewingPublishedCatalog
                   ? "Publicado"
                   : "Solo lectura"}
             </span>

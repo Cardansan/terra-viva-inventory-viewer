@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { isDriveRefreshTokenRevokedError } from "./lib/driveAuth.mjs";
 import { getFile, updateDriveFileMetadata } from "./lib/driveClient.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -369,7 +370,7 @@ async function main() {
             ? "El borrador termino bien y ya puede revisarse en linea."
             : order.action === "cancel_draft"
               ? "El borrador actual se cancelo y ya no quedo activo."
-              : "La publicacion termino bien y ya quedo disponible para clientas.",
+              : "La publicacion local termino bien. Si la web publica sigue atrasada, falta desplegar GitHub Pages con estos archivos nuevos.",
           result
         )
       });
@@ -398,6 +399,10 @@ async function main() {
       await handleQueueCycle();
     } catch (error) {
       console.error(error instanceof Error ? error.message : error);
+
+      if (isDriveRefreshTokenRevokedError(error)) {
+        throw error;
+      }
     }
 
     await new Promise((resolve) =>
@@ -408,5 +413,5 @@ async function main() {
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+  process.exitCode = isDriveRefreshTokenRevokedError(error) ? 41 : 1;
 });

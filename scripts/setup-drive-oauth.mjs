@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
+import { spawn } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -13,6 +14,41 @@ const tempDir = path.join(projectRoot, ".tmp");
 const sessionStatePath = path.join(tempDir, "drive-oauth-session.json");
 const tokenEndpoint = "https://oauth2.googleapis.com/token";
 const driveScope = "https://www.googleapis.com/auth/drive";
+
+function openBrowser(url) {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    if (process.platform === "win32") {
+      const child = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+      return true;
+    }
+
+    if (process.platform === "darwin") {
+      const child = spawn("open", [url], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+      return true;
+    }
+
+    const child = spawn("xdg-open", [url], {
+      detached: true,
+      stdio: "ignore"
+    });
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function base64Url(buffer) {
   return buffer
@@ -161,6 +197,7 @@ async function main() {
 
   await writeSessionState({
     authUrl: authUrl.toString(),
+    browserOpened: openBrowser(authUrl.toString()),
     pid: process.pid,
     startedAt: new Date().toISOString(),
     state: "awaiting_browser_consent",
