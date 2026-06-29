@@ -1,26 +1,33 @@
 # Self-Hosted Runner
 
-## Idea
+## Rol actual
 
-La laptop solo debe estar encendida durante la publicacion. No tiene que estar prendida 24/7 y no se abre ningun puerto a internet.
+El runner self-hosted es una ruta opcional de operacion para la laptop publicadora.
+
+No reemplaza el worker local por ordenes web; simplemente permite ejecutar el pipeline desde GitHub Actions usando la misma laptop como executor.
+
+## Cuando sirve
+
+- para corridas manuales controladas,
+- para publicar desde GitHub Actions sin mover el procesamiento fuera de la laptop,
+- para mantener la laptop sin puertos abiertos.
 
 ## Flujo
 
-1. Se prende la laptop.
-2. El runner self-hosted de GitHub queda disponible.
-3. Carlos ejecuta manualmente el workflow `Publish catalog from Drive Inbox`.
-4. El job corre en la laptop, lee Drive, genera catalogo y commitea cambios.
+1. Encender la laptop.
+2. Dejar activo el runner self-hosted.
+3. Lanzar el workflow que use la etiqueta `terra-viva-publisher`.
+4. El job corre en la laptop y usa sus dependencias locales.
 5. GitHub Pages despliega despues con el workflow normal.
 
-Si el job se queda esperando runner, significa que la laptop esta apagada, dormida o el servicio del runner no esta activo.
+## Requisitos
 
-## Software necesario
-
-- Node.js 20.
-- pnpm 9.15.4.
-- git.
-- ffmpeg para thumbnails reales.
-- GitHub Actions self-hosted runner con etiquetas:
+- Node.js 20
+- pnpm 9.x
+- git
+- `ffmpeg`
+- configuracion local de Drive
+- runner con etiquetas:
 
 ```text
 self-hosted
@@ -29,7 +36,11 @@ terra-viva-publisher
 
 ## Seguridad
 
-- No abrir puertos.
-- No exponer la laptop a internet.
-- No guardar tokens en el frontend.
-- Guardar credenciales solo como secretos locales/GitHub Actions mientras se define el metodo final.
+- no abrir puertos,
+- no exponer la laptop a internet,
+- no mover secretos al frontend,
+- mantener credenciales del runner y del publicador del lado confiable.
+
+## Nota
+
+La ruta principal actual para operacion cotidiana sigue siendo el worker local escuchando ordenes web en Drive. El self-hosted runner queda como herramienta complementaria.

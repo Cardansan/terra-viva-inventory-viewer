@@ -1,22 +1,35 @@
-# Workflow simple para subir videos
+# Drive Inbox Workflow
 
-## Para publicar un catalogo
-
-1. Graba todos los videos del inventario del dia.
-2. Sube los videos a esta carpeta:
+## Convencion vigente
 
 ```text
-Terra Viva / Inbox - Videos por publicar
+Terra Viva/
+  Inbox - Videos por publicar/
+  Procesados/
+    YYYY-MM-DD/
 ```
 
-3. No necesitas crear carpeta por fecha.
-4. No necesitas poner nombres perfectos.
-5. Sube todos los videos juntos cuando termines.
-6. Avisa a Carlos cuando ya esten arriba.
+## Regla principal
+
+El Inbox raiz funciona como cola de pendientes.
+
+- Mama sube videos al Inbox.
+- La web puede subir videos directo ahi.
+- El worker toma lo que siga pendiente en esa raiz.
+- La publicacion final mueve solo los archivos ya usados a `Procesados/YYYY-MM-DD`.
+
+## Flujo operativo
+
+1. Subir videos al Inbox.
+2. Crear orden `process_draft`.
+3. La laptop genera el borrador.
+4. Revisar el borrador.
+5. Crear orden `publish_approved`.
+6. La laptop publica y mueve procesados si corresponde.
 
 ## Importante
 
-- No borres los videos manualmente despues de subirlos.
-- El sistema los movera despues a `Procesados/YYYY-MM-DD`.
-- Si subiste un video equivocado, avisa antes de publicar.
-- Si se suben videos tarde, Carlos puede publicar con fecha manual.
+- No crear carpetas por fecha dentro del Inbox.
+- No borrar videos manualmente despues de subirlos.
+- Si hay un video equivocado, corregirlo antes de publicar.
+- El Inbox no debe usarse como archivo historico; solo como cola activa.

@@ -1,121 +1,146 @@
 # Arquitectura
 
-## Capas principales
+## Modelo actual
 
-- `app/`: rutas publicas y admin usando Next.js App Router.
-- `components/`: componentes de presentacion e interaccion. Mantienen estado local solo cuando es propio del MVP.
-- `lib/`: contratos de datos y funciones puras. Aqui deben vivir las reglas reutilizables antes de pasar a backend.
-- `public/`: placeholders locales, catalogos generados, borradores y assets estaticos.
+La arquitectura vigente de Terra Viva es intencionalmente simple:
 
-## Modelo operativo de Fase A
-
-La Fase A ya no debe pensarse como "la web procesa videos". El modelo correcto es:
-
-- GitHub Pages: interfaz publica y admin.
-- Google Drive: entrada de videos y futuro buzon de ordenes.
-- Laptop publicadora: motor que descarga, procesa y publica.
+- GitHub Pages sirve la app estatica.
+- Google Drive recibe videos y guarda el buzon de ordenes/estado.
+- La laptop publicadora hace el trabajo pesado.
 
 ```text
-GitHub Pages -> muestra catalogo/admin
-Google Drive -> guarda videos y archivos compartidos
-Laptop -> ejecuta ffmpeg, arma JSON y publica
+Admin web
+-> OAuth navegador
+-> Drive Inbox + mailbox
+-> Laptop worker
+-> JSON estatico publicado
+-> GitHub Pages
 ```
 
-Esto evita backend pagado, evita exponer la laptop a internet y prepara mejor la futura Fase B.
+La web no procesa video ni guarda secretos de larga duracion.
+
+## Capas del repo
+
+- `app/`: rutas App Router para catalogo, borradores, admin y API local/no estatica.
+- `components/`: UI publica y admin.
+- `lib/`: contratos, repositorios, helpers de frontend y cliente Drive del navegador.
+- `scripts/`: pipeline local de procesamiento/publicacion y worker de ordenes.
+- `public/`: catalogos generados, borradores generados, thumbnails y fixtures.
+- `docs/`: estado, arquitectura, runbooks y direccion del proyecto.
 
 ## Flujo publico
 
-1. `/` busca el catalogo publicado mas reciente en `lib/catalogRepository.ts`.
-2. `/catalog/[date]` carga un catalogo generado desde `public/catalog/YYYY-MM-DD/catalog.json` o cae al mock por fecha.
-3. `CatalogViewer` filtra momentos ocultos y mantiene el momento seleccionado.
-4. `VideoMomentPlayer` ejecuta `seekToMoment` al cambiar de momento.
-5. `MomentNavigator` cambia al árbol anterior o siguiente.
-6. `SendSelectionWhatsAppButton` genera el link `wa.me` con todos los arboles seleccionados.
+1. `lib/catalogRepository.ts` lee catalogos generados desde `public/catalog/`.
+2. `/` resuelve el catalogo publicado mas reciente.
+3. `/catalog/[date]/` muestra un catalogo publicado por fecha.
+4. `CatalogViewer` filtra momentos no publicos y maneja navegacion + seleccion.
+5. `SendSelectionWhatsAppButton` arma el mensaje de WhatsApp con IDs/numero publico.
 
-## Flujo de borrador online
+## Flujo de borrador
 
 1. `scripts/publish-catalog.mjs --workflow draft` genera `public/catalog-drafts/YYYY-MM-DD/catalog.json`.
 2. Ese paso actualiza `public/catalog-drafts/current-draft.json`.
-3. `lib/catalogRepository.ts` lee tanto borradores por fecha como el borrador actual.
-4. `/drafts/[date]` muestra un borrador especifico.
-5. `/drafts/current` muestra el borrador vigente para revision rapida.
-6. `CatalogViewer` en modo `draftReview` oculta compartir y WhatsApp para que el borrador sirva como revision interna antes de publicar.
-7. `CatalogViewer` en modo `public` puede sincronizar con estado admin solo si asi se solicita; las rutas publicadas y de borrador deben usar `syncWithAdminStorage={false}` para no mezclar estados locales con el catalogo compartido.
+3. `lib/catalogRepository.ts` resuelve el borrador activo y borradores por fecha.
+4. `/drafts/current/` y `/drafts/[date]/` sirven para revision interna.
 
 ## Flujo admin
 
-1. `/admin` carga el catalogo publicado mas reciente y prioriza un borrador si ya existe en `public/catalog-drafts/`.
-2. `AdminCatalogEditor` mantiene una copia local editable.
-3. `AdminMomentList` permite cambiar numero, timestamp, seccion, estado y notas.
-4. El admin ya puede guardar el catalogo en un archivo y volverlo a abrir en otro navegador o laptop.
-5. El admin debe enlazar claramente al borrador online para revisarlo desde cualquier telefono.
-6. La siguiente evolucion correcta es que el admin deje una orden de `procesar` o `publicar` y que la laptop la recoja.
-7. En mobile, `Vista de Cliente` va al final de la pagina como accion normal; las herramientas manuales de respaldo quedan relegadas a un bloque secundario para no tapar la lista principal.
+`/admin/` integra tres capacidades:
 
-## Estrategia sin suscripciones
+1. revisar/editar momentos del borrador o catalogo activo,
+2. cargar videos al Inbox de Drive,
+3. disparar ordenes de proceso/publicacion.
 
-El plan base evita servicios pagados durante los siguientes anos mientras el volumen sea manejable:
+Componentes clave:
 
-- GitHub Pages sirve la web publica.
-- Google Drive guarda videos crudos y procesados.
-- La laptop local corre el publicador y ffmpeg solo cuando se necesita publicar.
-- Los catalogos publicados son JSON estaticos en `public/catalog`.
-- Los borradores revisables viven en `public/catalog-drafts`.
-- Git history y Drive Procesados funcionan como respaldo operativo.
+- `AdminCatalogEditor`: coordinador de la experiencia admin.
+- `AdminDriveWorkflowPanel`: flujo principal de proceso/publicacion.
+- `AdminVideoUploadPanel`: carga de videos al Inbox.
+- `AdminDriveSessionPanel`: diagnostico y soporte de la sesion web.
 
-Esta decision reduce costo fijo y evita operar un backend 24/7. La consecuencia aceptada es que la publicacion sigue siendo semi-manual.
+## Flujo OAuth web
 
-## Integracion futura
+La sesion web de Drive vive solo en el navegador actual.
 
-- Google Drive es la carpeta de entrada gratuita para videos crudos del dia.
-- `scripts/publish-catalog.mjs` reemplaza por ahora la necesidad de backend.
-- Un worker local procesara videos, extraera frames con `ffmpeg` y creara candidatos de `TreeMoment`.
-- La siguiente pieza de integracion es usar Drive tambien como buzon de ordenes (`procesar`, `publicar`) para que `/admin` pueda disparar acciones sin puertos abiertos.
-- Supabase, Cloudinary u otro backend quedan fuera del plan base y solo se reconsideran si el negocio necesita multiusuario real, pagos, reservas automaticas o volumen alto.
-- La deteccion inicial debe enfocarse en pausas o estabilidad de video, no en deteccion perfecta de objetos.
+El helper compartido es:
 
-## Estrategia de videos
+- `lib/browserDriveSessionFlow.ts`
 
-El repositorio no debe ser la bodega de videos reales. Para el MVP se permite un video proto como fixture temporal, pero el flujo real sera:
+Comportamiento actual:
 
-1. Mama sube videos a Google Drive en `Terra Viva/Inbox - Videos por publicar`.
-2. Carlos prende la laptop y corre un procesamiento de borrador local o el workflow self-hosted.
-3. El worker local descarga/procesa video con `ffmpeg`.
-4. El sistema genera miniaturas y candidatos de momentos.
-5. El borrador se publica en una ruta separada para revision online.
-6. Admin revisa el borrador, corrige estados y aprueba la publicacion.
-7. `scripts/publish-catalog.mjs` publica el catalogo final aprobado.
+- si la sesion existe y no expiro, se reutiliza;
+- si falta o expiro, la web abre Google OAuth en la accion principal;
+- la sesion se guarda en `localStorage`;
+- soporte queda como fallback manual.
 
-Se mantendran activo + dos backups funcionales para controlar almacenamiento y mantener costo cero.
+## Buzon de ordenes en Drive
 
-## Decisiones tecnicas
+La web y la laptop se coordinan usando la metadata `description` de la carpeta Inbox.
 
-- Next.js App Router para rutas publicas y admin simples.
-- TypeScript estricto para facilitar migracion a backend real.
-- Tailwind CSS para iterar rapido y mantener una UI mobile-first.
-- Datos mock separados para evitar hardcodear reglas en componentes.
-- WhatsApp y formato de tiempo viven en `/lib` para ser probables puntos de prueba.
-- `getPublicMoments` vive en `lib/videoMoments.ts` y centraliza la regla de vista publica: excluir `hidden` y `sold`.
-- `CatalogViewer` calcula la numeracion publica por posicion visible, no por `treeNumber` interno.
-- `ShareCatalogButton` usa Web Share API si existe y cae a clipboard si no esta disponible.
-- `catalogRepository.ts` permite que Next lea catalogos generados sin romper el mock actual.
-- `catalogRepository.ts` ahora tambien distingue entre catalogo publicado, borradores por fecha y borrador actual.
-- El pipeline Drive-first vive en `scripts/` para no acoplar credenciales ni procesamiento a la UI.
-- En Windows/Fase B, el camino robusto es: Node arma el borrador y un manifest; PowerShell ejecuta `ffmpeg` y escribe thumbnails reales.
-- La generacion actual de momentos en borrador vive en `scripts/lib/catalogBuilder.mjs` y por ahora es muestreo temporal configurable, no deteccion por estabilidad.
+Schema actual:
 
-## Iteracion UX publica
+- `terra-viva-web-publisher/v1`
 
-- La vista publica muestra imagen/momento, navegacion, WhatsApp, accion secundaria de video y galeria.
-- El reproductor ya no muestra un boton principal de Play sobre el video.
-- `Ver video de este arbol` dispara reproduccion del clip del momento como accion secundaria.
-- El acceso `/admin` se conserva, pero el link publico ahora es `admin login` al fondo.
-## Seleccion multiple publica
+Acciones ya soportadas:
 
-- `lib/selection.ts` concentra helpers puros para agregar, quitar, podar IDs no visibles y construir URLs compartibles.
-- `CatalogViewer` mantiene `selectedMomentIds` y los sincroniza con `localStorage`.
-- La URL compartible usa `?selection=moment-03,moment-08` con IDs estables de `TreeMoment`.
-- Si la URL trae `selection`, tiene prioridad sobre `localStorage`.
-- Si no hay query param, la app restaura `localStorage` con llave `selection:terra-viva:YYYY-MM-DD`.
-- `pruneSelectionToPublicMoments` evita que momentos `sold` o `hidden` entren a la seleccion publica.
-- `SendSelectionWhatsAppButton` genera un mensaje unico con todos los arboles seleccionados.
+- `process_draft`
+- `publish_approved`
+- `cancel_draft`
+
+Estados ya soportados:
+
+- `queued`
+- `running`
+- `succeeded`
+- `failed`
+
+## Worker local
+
+El worker principal es:
+
+- `scripts/process-drive-orders.mjs`
+
+Responsabilidades:
+
+- leer la carpeta Inbox,
+- detectar orden pendiente,
+- correr el publicador en modo draft o publish,
+- escribir resultado de vuelta al mailbox.
+
+## Publicador local
+
+El script principal es:
+
+- `scripts/publish-catalog.mjs`
+
+Responsabilidades:
+
+- leer videos pendientes del Inbox,
+- generar thumbnails con `ffmpeg`,
+- crear `catalog.json`,
+- actualizar `current-draft.json` o `current-catalog.json`,
+- mover procesados cuando aplica.
+
+## Decisiones deliberadas
+
+- No backend pagado por ahora.
+- No puertos abiertos.
+- No secretos de larga duracion en frontend.
+- Borrador y publicado son superficies separadas.
+- La laptop es el motor del sistema.
+
+## Limites actuales
+
+- La calidad del borrador sigue siendo heuristica.
+- El estado web depende de una sesion de navegador, no de identidad compartida.
+- El worker local aun necesita mayor robustez operativa.
+
+## Direccion siguiente
+
+La siguiente arquitectura deseada sigue siendo la misma base, pero mas robusta:
+
+- misma web estatica,
+- misma coordinacion por Drive,
+- mejor worker local,
+- mejor calidad de borrador,
+- menos friccion operativa para mama.

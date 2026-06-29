@@ -1,57 +1,65 @@
 # Deployment
 
-Terra Viva Inventory Viewer is currently ready for two free deployment paths.
+## Superficie actual
 
-## Current GitHub Repository
+El despliegue principal del proyecto es GitHub Pages con export estatico de Next.js.
 
-- Repository: `Cardansan/terra-viva-inventory-viewer`
-- Default branch: `main`
-- Visibility: private
-- Static build: supported through `next.config.mjs`
-- GitHub Pages workflow: `.github/workflows/deploy-github-pages.yml`
-- Build runtime: Node 20, declared in `package.json` and `.nvmrc`.
+Repositorio:
 
-## Option A: GitHub Pages
+- `Cardansan/terra-viva-inventory-viewer`
+- branch principal: `main`
 
-GitHub Pages is configured, but the current GitHub plan does not allow Pages for this private repository.
+Workflow principal:
 
-To publish with GitHub Pages:
+- `.github/workflows/deploy-github-pages.yml`
 
-1. Make the repository public, after confirming the proto video can be public.
-2. Enable Pages from GitHub Actions.
-3. Run the `Deploy GitHub Pages` workflow.
+Configuracion relevante:
 
-Expected URL:
+- `GITHUB_PAGES=true`
+- `NEXT_PUBLIC_BASE_PATH=/terra-viva-inventory-viewer`
+- `next.config.mjs` usa `output: "export"` para Pages
+
+## URL esperada
 
 ```text
-https://Cardansan.github.io/terra-viva-inventory-viewer/
+https://cardansan.github.io/terra-viva-inventory-viewer/
 ```
 
-The workflow builds with:
+## Que si se despliega
 
-```text
-Node 20
-GITHUB_PAGES=true
-NEXT_PUBLIC_BASE_PATH=/terra-viva-inventory-viewer
-```
+- catalogo publicado,
+- borradores estaticos,
+- admin estatico,
+- assets y thumbnails generados.
 
-Those variables make video and thumbnail URLs work under the repository subpath.
+## Que no existe en GitHub Pages
 
-## Option B: Vercel
+GitHub Pages no expone rutas API de Next.
 
-Vercel is the recommended path if the repository should stay private.
+Por eso el flujo de produccion no debe depender de:
 
-Steps:
+- `app/api/*` como backend operativo,
+- secretos de servidor,
+- procesamiento de video en la web.
 
-1. Go to Vercel and import `Cardansan/terra-viva-inventory-viewer`.
-2. Keep the default Next.js settings.
-3. Deploy from the `main` branch.
-4. Add a custom domain later if needed.
+## Regla importante
 
-No secrets are required for the current mock MVP.
+Todo lo que deba funcionar en produccion debe ser:
 
-## Notes
+- estatico,
+- browser-side,
+- o coordinado por Drive + laptop.
 
-- The current video is stored in `public/videos/terra-viva-proto-inventory.mp4`.
-- If the repo becomes public, that video becomes public too.
-- For production, keep real videos in Google Drive and publish static catalog JSON/assets through GitHub Pages. Do not add Supabase Storage, Cloudinary, or another paid storage layer unless volume clearly justifies the fixed cost.
+## Verificacion recomendada despues de publicar
+
+1. abrir `/`,
+2. abrir `/drafts/current/`,
+3. abrir `/admin/`,
+4. confirmar que thumbnails y assets cargan bajo el `basePath`,
+5. confirmar que el flujo OAuth web abre Google cuando hace falta.
+
+## Notas operativas
+
+- Los videos reales no deben entrar al repo.
+- El repo puede contener catalogos JSON y thumbnails generados.
+- El procesamiento real sigue fuera de GitHub Pages.
