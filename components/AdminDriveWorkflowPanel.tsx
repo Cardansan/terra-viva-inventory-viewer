@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState
+} from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
 import {
   DRIVE_SESSION_UPDATED_EVENT,
@@ -24,12 +30,20 @@ import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 type AdminDriveWorkflowPanelProps = {
   activeCatalog: CatalogDay;
   canPublishDraft: boolean;
+  onPublishStatusChange?: (status: DrivePublisherStatus | null) => void;
 };
 
-export function AdminDriveWorkflowPanel({
-  activeCatalog,
-  canPublishDraft
-}: AdminDriveWorkflowPanelProps) {
+export type AdminDriveWorkflowPanelHandle = {
+  publishApproved: () => Promise<boolean>;
+};
+
+export const AdminDriveWorkflowPanel = forwardRef<
+  AdminDriveWorkflowPanelHandle,
+  AdminDriveWorkflowPanelProps
+>(function AdminDriveWorkflowPanel(
+  { activeCatalog, canPublishDraft, onPublishStatusChange },
+  ref
+) {
   const [accessToken, setAccessToken] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isBusy, setIsBusy] = useState<PublisherOrderAction | null>(null);
@@ -122,6 +136,12 @@ export function AdminDriveWorkflowPanel({
     return () => window.clearTimeout(timeoutId);
   }, [feedback]);
 
+  useEffect(() => {
+    onPublishStatusChange?.(
+      latestStatus?.action === "publish_approved" ? latestStatus : null
+    );
+  }, [latestStatus, onPublishStatusChange]);
+
   const publishDisabledReason = useMemo(() => {
     if (!canPublishDraft) {
       return "Primero prepara un borrador nuevo.";
@@ -129,6 +149,14 @@ export function AdminDriveWorkflowPanel({
 
     return "";
   }, [canPublishDraft]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      publishApproved: () => submitOrder("publish_approved")
+    }),
+    [activeCatalog, canPublishDraft, accessToken, inboxFolderId, hasToken]
+  );
 
   function rememberDriveSession(nextSession: {
     accessToken: string;
@@ -211,7 +239,7 @@ export function AdminDriveWorkflowPanel({
     }
   }
 
-  async function submitOrder(action: PublisherOrderAction) {
+  async function submitOrder(action: PublisherOrderAction): Promise<boolean> {
     const order: DrivePublisherOrder = {
       id: crypto.randomUUID(),
       action,
@@ -263,18 +291,20 @@ export function AdminDriveWorkflowPanel({
           : "Listo. La laptop ya empezó la publicación local con los cambios que acabas de revisar."
       );
       await refreshStatuses(driveSession.accessToken);
+      return true;
     } catch (error) {
       if (isDriveTokenExpiredError(error)) {
         setFeedback(
           "La conexión de Google Drive se cerró antes de terminar. Intenta otra vez y la web la abrirá de nuevo."
         );
-        return;
+        return false;
       }
       setFeedback(
         error instanceof Error
           ? error.message
           : "No se pudo enviar la orden de publicación."
       );
+      return false;
     } finally {
       setIsBusy(null);
     }
@@ -322,7 +352,9 @@ export function AdminDriveWorkflowPanel({
             <button
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
               disabled={isBusy !== null}
-              onClick={() => submitOrder("process_draft")}
+              onClick={() => {
+                void submitOrder("process_draft");
+              }}
               type="button"
             >
               {isBusy === "process_draft"
@@ -378,7 +410,9 @@ export function AdminDriveWorkflowPanel({
             <button
               className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-terra-leaf px-5 text-lg font-black text-white disabled:cursor-not-allowed disabled:bg-white/25"
               disabled={Boolean(publishDisabledReason) || isBusy !== null}
-              onClick={() => submitOrder("publish_approved")}
+              onClick={() => {
+                void submitOrder("publish_approved");
+              }}
               type="button"
             >
               {isBusy === "publish_approved"
@@ -530,7 +564,7 @@ export function AdminDriveWorkflowPanel({
       ) : null}
     </section>
   );
-}
+});
 
 function getActionLabel(action: PublisherOrderAction): string {
   return action === "process_draft"

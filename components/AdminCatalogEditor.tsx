@@ -14,8 +14,12 @@ import {
   type AdminCatalogVersion
 } from "@/lib/adminCatalogPersistence";
 import { AdminMomentList } from "./AdminMomentList";
-import { AdminDriveWorkflowPanel } from "./AdminDriveWorkflowPanel";
+import {
+  AdminDriveWorkflowPanel,
+  type AdminDriveWorkflowPanelHandle
+} from "./AdminDriveWorkflowPanel";
 import { AdminDriveSessionPanel } from "./AdminDriveSessionPanel";
+import type { DrivePublisherStatus } from "@/lib/drivePublisherTypes";
 
 type AdminCatalogEditorProps = {
   initialActiveCatalog: CatalogDay;
@@ -45,7 +49,14 @@ export function AdminCatalogEditor({
   );
   const [hasLoadedStoredVersions, setHasLoadedStoredVersions] = useState(false);
   const [transferNotice, setTransferNotice] = useState("");
+  const [draftPublishBaseline, setDraftPublishBaseline] = useState("");
+  const [lastSubmittedDraftSignature, setLastSubmittedDraftSignature] =
+    useState("");
+  const [publishBannerState, setPublishBannerState] = useState<
+    "idle" | "waiting" | "failed"
+  >("idle");
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const workflowPanelRef = useRef<AdminDriveWorkflowPanelHandle | null>(null);
 
   const activeVersion = versions.find((version) => version.role === "active");
   const selectedVersion =
@@ -89,6 +100,27 @@ export function AdminCatalogEditor({
   );
   const selectedUnavailableCount =
     selectedCatalog.moments.length - selectedAvailableCount;
+  const currentDraftCatalog =
+    draftVersion?.catalog ?? (isDraftActive ? activeCatalog : undefined);
+  const currentDraftSignature = useMemo(
+    () => getDraftPublishSignature(currentDraftCatalog),
+    [currentDraftCatalog]
+  );
+  const hasUnpublishedBrowserChanges = Boolean(
+    currentDraftCatalog &&
+      currentDraftSignature &&
+      currentDraftSignature !== draftPublishBaseline
+  );
+  const isWaitingForCurrentDraftPublication = Boolean(
+    publishBannerState === "waiting" &&
+      currentDraftSignature &&
+      currentDraftSignature === lastSubmittedDraftSignature
+  );
+  const hasFailedCurrentDraftPublication = Boolean(
+    publishBannerState === "failed" &&
+      currentDraftSignature &&
+      currentDraftSignature === lastSubmittedDraftSignature
+  );
 
   useEffect(() => {
     const storedVersions = loadAdminCatalogVersions(initialVersions);
@@ -104,6 +136,14 @@ export function AdminCatalogEditor({
 
     setVersions(prioritizedVersions);
     setSelectedCatalogId(storedActiveVersion.catalog.id);
+    setDraftPublishBaseline(
+      getDraftPublishSignature(
+        prioritizedVersions.find((version) => version.catalog.status === "draft")
+          ?.catalog
+      )
+    );
+    setLastSubmittedDraftSignature("");
+    setPublishBannerState("idle");
     setHasLoadedStoredVersions(true);
   }, [
     initialBackupCatalogs,
@@ -119,6 +159,21 @@ export function AdminCatalogEditor({
 
     saveAdminCatalogVersions(versions);
   }, [hasLoadedStoredVersions, versions]);
+
+  useEffect(() => {
+    if (
+      lastSubmittedDraftSignature &&
+      currentDraftSignature &&
+      currentDraftSignature !== lastSubmittedDraftSignature &&
+      publishBannerState !== "idle"
+    ) {
+      setPublishBannerState("idle");
+    }
+  }, [
+    currentDraftSignature,
+    lastSubmittedDraftSignature,
+    publishBannerState
+  ]);
 
   function updateMoment(updatedMoment: TreeMoment) {
     if (!isViewingActive) {
@@ -140,6 +195,48 @@ export function AdminCatalogEditor({
           : version
       )
     );
+  }
+
+  async function handlePublishFromBanner() {
+    if (!currentDraftCatalog || !currentDraftSignature) {
+      return;
+    }
+
+    const publishStarted = await workflowPanelRef.current?.publishApproved();
+
+    if (!publishStarted) {
+      setPublishBannerState("failed");
+      return;
+    }
+
+    setDraftPublishBaseline(currentDraftSignature);
+    setLastSubmittedDraftSignature(currentDraftSignature);
+    setPublishBannerState("waiting");
+  }
+
+  function handlePublishStatusChange(status: DrivePublisherStatus | null) {
+    if (!lastSubmittedDraftSignature || !currentDraftSignature) {
+      return;
+    }
+
+    if (currentDraftSignature !== lastSubmittedDraftSignature || !status) {
+      return;
+    }
+
+    if (status.state === "queued" || status.state === "running") {
+      setPublishBannerState("waiting");
+      return;
+    }
+
+    if (status.state === "failed") {
+      setPublishBannerState("failed");
+      return;
+    }
+
+    if (status.state === "succeeded") {
+      setPublishBannerState("idle");
+      setLastSubmittedDraftSignature("");
+    }
   }
 
   function restoreBackup(catalogId: string) {
@@ -342,9 +439,81 @@ export function AdminCatalogEditor({
         ) : null}
       </header>
 
+      {currentDraftCatalog && hasUnpublishedBrowserChanges ? (
+        <section className="mb-4 rounded-2xl bg-[#fff7ef] px-4 py-4 shadow-soft ring-1 ring-terra-clay/25">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                Cambios sin publicar
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink">
+                Tienes cambios sin publicar en este navegador.
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink/65">
+                Si este borrador ya quedó revisado, publícalo desde aquí para
+                mandar exactamente esta versión a la laptop.
+              </p>
+            </div>
+            <button
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink"
+              onClick={() => {
+                void handlePublishFromBanner();
+              }}
+              type="button"
+            >
+              Publicar ahora
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {currentDraftCatalog && isWaitingForCurrentDraftPublication ? (
+        <section className="mb-4 rounded-2xl bg-[#f7fbf7] px-4 py-4 shadow-soft ring-1 ring-terra-leaf/20">
+          <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-leaf">
+            Publicación en curso
+          </p>
+          <p className="mt-1 text-sm font-bold text-terra-ink">
+            Ok. Ahora espera unos minutos a que se publique.
+          </p>
+          <p className="mt-1 text-sm font-bold text-terra-ink/65">
+            La laptop debe seguir encendida y con internet mientras termina el
+            proceso.
+          </p>
+        </section>
+      ) : null}
+
+      {currentDraftCatalog && hasFailedCurrentDraftPublication ? (
+        <section className="mb-4 rounded-2xl bg-[#fff7ef] px-4 py-4 shadow-soft ring-1 ring-terra-clay/25">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-clay">
+                Publicación pendiente
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink">
+                Esta publicación no terminó bien.
+              </p>
+              <p className="mt-1 text-sm font-bold text-terra-ink/65">
+                Puedes intentar publicarla otra vez desde este mismo navegador.
+              </p>
+            </div>
+            <button
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink"
+              onClick={() => {
+                void handlePublishFromBanner();
+              }}
+              type="button"
+            >
+              Publicar otra vez
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <AdminDriveWorkflowPanel
         activeCatalog={activeCatalog}
         canPublishDraft={isDraftActive}
+        onPublishStatusChange={handlePublishStatusChange}
+        ref={workflowPanelRef}
       />
 
       <section className="mb-4 overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-terra-moss/20">
@@ -568,5 +737,26 @@ export function AdminCatalogEditor({
       </section>
     </main>
   );
+}
+
+function getDraftPublishSignature(catalog?: CatalogDay): string {
+  if (!catalog || catalog.status !== "draft") {
+    return "";
+  }
+
+  return JSON.stringify({
+    id: catalog.id,
+    date: catalog.date,
+    title: catalog.title,
+    moments: catalog.moments.map((moment) => ({
+      id: moment.id,
+      treeNumber: moment.treeNumber,
+      timestampSeconds: moment.timestampSeconds,
+      sectionLabel: moment.sectionLabel,
+      status: moment.status,
+      notes: moment.notes || "",
+      crop: moment.crop || null
+    }))
+  });
 }
 
