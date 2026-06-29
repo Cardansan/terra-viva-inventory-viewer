@@ -8,6 +8,7 @@ import {
   getCatalogTransferPayload,
   isCatalogDay,
   loadAdminCatalogVersions,
+  reconcileAdminCatalogVersions,
   saveAdminCatalogVersions,
   stripUtf8Bom,
   type AdminCatalogVersion
@@ -91,23 +92,12 @@ export function AdminCatalogEditor({
 
   useEffect(() => {
     const storedVersions = loadAdminCatalogVersions(initialVersions);
-    const publishedBackups = [
+    const prioritizedVersions = reconcileAdminCatalogVersions({
+      storedVersions,
       initialPublishedCatalog,
-      ...initialBackupCatalogs
-    ].filter(
-      (catalog, index, catalogs) =>
-        catalogs.findIndex((candidate) => candidate.id === catalog.id) === index
-    );
-    const prioritizedVersions =
-      initialDraftCatalog &&
-      !storedVersions.some(
-        (version) => version.catalog.id === initialDraftCatalog.id
-      )
-        ? createInitialAdminCatalogVersions(
-            initialDraftCatalog,
-            publishedBackups
-          )
-        : storedVersions;
+      initialBackupCatalogs,
+      initialDraftCatalog
+    });
     const storedActiveVersion =
       prioritizedVersions.find((version) => version.role === "active") ??
       prioritizedVersions[0];

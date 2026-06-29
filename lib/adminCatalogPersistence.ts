@@ -23,6 +23,51 @@ export function createInitialAdminCatalogVersions(
   ].slice(0, MAX_CATALOG_VERSIONS);
 }
 
+export function reconcileAdminCatalogVersions(params: {
+  storedVersions: AdminCatalogVersion[];
+  initialPublishedCatalog: CatalogDay;
+  initialBackupCatalogs: CatalogDay[];
+  initialDraftCatalog?: CatalogDay;
+}): AdminCatalogVersion[] {
+  const {
+    storedVersions,
+    initialPublishedCatalog,
+    initialBackupCatalogs,
+    initialDraftCatalog
+  } = params;
+
+  const normalizedStored = normalizeAdminCatalogVersions(storedVersions, []);
+  const storedDraft =
+    normalizedStored.find(
+      (version) =>
+        version.catalog.status === "draft" &&
+        (!initialDraftCatalog || version.catalog.id === initialDraftCatalog.id)
+    )?.catalog ?? initialDraftCatalog;
+
+  const activeCatalog = storedDraft || initialPublishedCatalog;
+  const catalogsById = new Map<string, CatalogDay>();
+
+  catalogsById.set(initialPublishedCatalog.id, initialPublishedCatalog);
+
+  for (const catalog of initialBackupCatalogs) {
+    if (catalog.status === "published") {
+      catalogsById.set(catalog.id, catalog);
+    }
+  }
+
+  for (const version of normalizedStored) {
+    if (version.catalog.status === "published") {
+      catalogsById.set(version.catalog.id, version.catalog);
+    }
+  }
+
+  const backupCatalogs = Array.from(catalogsById.values())
+    .filter((catalog) => catalog.id !== activeCatalog.id)
+    .sort((left, right) => right.date.localeCompare(left.date));
+
+  return createInitialAdminCatalogVersions(activeCatalog, backupCatalogs);
+}
+
 export function normalizeAdminCatalogVersions(
   versions: AdminCatalogVersion[],
   fallback: AdminCatalogVersion[]
