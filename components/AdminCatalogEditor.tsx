@@ -56,6 +56,7 @@ export function AdminCatalogEditor({
   const [publishBannerState, setPublishBannerState] = useState<
     "idle" | "waiting" | "failed"
   >("idle");
+  const [isFloatingBannerExpanded, setIsFloatingBannerExpanded] = useState(true);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const workflowPanelRef = useRef<AdminDriveWorkflowPanelHandle | null>(null);
 
@@ -170,6 +171,15 @@ export function AdminCatalogEditor({
     lastSubmittedDraftSignature,
     publishBannerState
   ]);
+
+  useEffect(() => {
+    if (shouldShowUnpublishedChangesBanner) {
+      setIsFloatingBannerExpanded(true);
+      return;
+    }
+
+    setIsFloatingBannerExpanded(false);
+  }, [shouldShowUnpublishedChangesBanner]);
 
   function updateMoment(updatedMoment: TreeMoment) {
     if (!isViewingActive) {
@@ -426,7 +436,11 @@ export function AdminCatalogEditor({
   return (
     <main
       className={`safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8 ${
-        shouldShowUnpublishedChangesBanner ? "pb-80 sm:pb-48" : ""
+        shouldShowUnpublishedChangesBanner
+          ? isFloatingBannerExpanded
+            ? "pb-80 sm:pb-48"
+            : "pb-32 sm:pb-24"
+          : ""
       }`}
     >
       <header className="mb-5 rounded-lg bg-white p-5 shadow-soft ring-1 ring-terra-moss/20">
@@ -516,17 +530,27 @@ export function AdminCatalogEditor({
 
       {shouldShowUnpublishedChangesBanner ? (
         <div className="pointer-events-none fixed inset-x-3 bottom-3 z-40 sm:inset-x-4 sm:bottom-4">
-          <section className="pointer-events-auto mx-auto max-w-4xl rounded-2xl bg-terra-ink px-4 py-4 text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f7c9aa]">
-                  Cambios sin publicar
-                </p>
-                <p className="mt-1 text-sm font-bold text-white/95">
-                  Este navegador tiene cambios que todavía no están en el catálogo publicado.
-                </p>
+          {isFloatingBannerExpanded ? (
+            <section className="pointer-events-auto mx-auto max-w-4xl rounded-2xl bg-terra-ink px-4 py-4 text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f7c9aa]">
+                    Cambios sin publicar
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-white/95">
+                    Este navegador tiene cambios que todavía no están en el catálogo publicado.
+                  </p>
+                </div>
+                <button
+                  aria-label="Minimizar acciones de cambios sin publicar"
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 text-xl font-black text-white transition hover:bg-white/15"
+                  onClick={() => setIsFloatingBannerExpanded(false)}
+                  type="button"
+                >
+                  -
+                </button>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <button
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white shadow-sm transition hover:bg-white/15 sm:min-h-12 sm:text-base"
                   onClick={handleRevertDraftFromBanner}
@@ -544,8 +568,21 @@ export function AdminCatalogEditor({
                   Publicar ahora
                 </button>
               </div>
-            </div>
-          </section>
+            </section>
+          ) : (
+            <button
+              className="pointer-events-auto ml-auto inline-flex min-h-12 items-center gap-3 rounded-full bg-terra-ink px-4 py-3 text-left text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10"
+              onClick={() => setIsFloatingBannerExpanded(true)}
+              type="button"
+            >
+              <span className="text-sm font-black uppercase tracking-[0.14em] text-[#f7c9aa]">
+                Cambios sin publicar
+              </span>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-black text-white">
+                Ver acciones
+              </span>
+            </button>
+          )}
         </div>
       ) : null}
 
