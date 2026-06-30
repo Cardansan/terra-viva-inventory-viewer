@@ -8,6 +8,7 @@ type DriveSessionSeverity = "info" | "warning" | "error";
 
 export type DriveSessionDiagnostics = {
   driveFolderId: string;
+  driveRootFolderId: string;
   googleDriveAccessToken: string;
   hasAccessToken: boolean;
   hasRefreshToken: boolean;
@@ -134,6 +135,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
     } catch (error) {
       return {
         driveFolderId: sessionConfig.driveFolderId,
+        driveRootFolderId: sessionConfig.driveRootFolderId,
         googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
         hasAccessToken,
         hasRefreshToken,
@@ -150,6 +152,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
   if (!sessionConfig.googleDriveAccessToken) {
     return {
       driveFolderId: sessionConfig.driveFolderId,
+      driveRootFolderId: sessionConfig.driveRootFolderId,
       googleDriveAccessToken: "",
       hasAccessToken: false,
       hasRefreshToken,
@@ -166,6 +169,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
     if (!driveProbe.capabilities?.canAddChildren && !driveProbe.capabilities?.canEdit) {
       return {
         driveFolderId: sessionConfig.driveFolderId,
+        driveRootFolderId: sessionConfig.driveRootFolderId,
         googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
         hasAccessToken: true,
         hasRefreshToken,
@@ -183,6 +187,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
       } catch (refreshError) {
         return {
           driveFolderId: sessionConfig.driveFolderId,
+          driveRootFolderId: sessionConfig.driveRootFolderId,
           googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
           hasAccessToken: true,
           hasRefreshToken,
@@ -197,6 +202,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
     } else {
       return {
         driveFolderId: sessionConfig.driveFolderId,
+        driveRootFolderId: sessionConfig.driveRootFolderId,
         googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
         hasAccessToken: true,
         hasRefreshToken,
@@ -213,6 +219,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
   if (canAutoRefresh) {
     return {
       driveFolderId: sessionConfig.driveFolderId,
+      driveRootFolderId: sessionConfig.driveRootFolderId,
       googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
       hasAccessToken: true,
       hasRefreshToken: true,
@@ -226,6 +233,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
   if (hasRefreshToken) {
     return {
       driveFolderId: sessionConfig.driveFolderId,
+      driveRootFolderId: sessionConfig.driveRootFolderId,
       googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
       hasAccessToken: true,
       hasRefreshToken: true,
@@ -238,6 +246,7 @@ export async function resolveDriveSessionDiagnostics(): Promise<DriveSessionDiag
 
   return {
     driveFolderId: sessionConfig.driveFolderId,
+    driveRootFolderId: sessionConfig.driveRootFolderId,
     googleDriveAccessToken: sessionConfig.googleDriveAccessToken,
     hasAccessToken: true,
     hasRefreshToken: false,

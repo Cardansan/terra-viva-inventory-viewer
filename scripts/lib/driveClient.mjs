@@ -5,7 +5,11 @@ import { ensureGoogleDriveAccessToken } from "./driveAuth.mjs";
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
+export const TERRA_VIVA_ROOT_FOLDER_NAME = "Terra Viva Catalogue";
+export const INBOX_FOLDER_NAME = "Inbox - Videos por publicar";
 const PROCESSED_ROOT_NAME = "Procesados";
+const WEB_ORDERS_FOLDER_NAME = "Ordenes - Publicador Web";
+const WEB_STATUS_FOLDER_NAME = "Estado - Publicador Web";
 
 function getAccessToken() {
   return process.env.GOOGLE_DRIVE_ACCESS_TOKEN || "";
@@ -90,6 +94,25 @@ export async function getFile(fileId) {
   return response.json();
 }
 
+export async function listFolderChildren(folderId) {
+  const query = `'${folderId}' in parents and trashed = false`;
+  const fields =
+    "files(id,name,mimeType,createdTime,modifiedTime,webViewLink,webContentLink,parents,size)";
+  const url = `${DRIVE_API_BASE}/files?q=${driveQuery(query)}&fields=${encodeURIComponent(fields)}&orderBy=folder,name`;
+  const response = await driveFetch(url);
+  const data = await response.json();
+  return data.files || [];
+}
+
+export async function listFoldersByQuery(query) {
+  const fields =
+    "files(id,name,mimeType,createdTime,modifiedTime,webViewLink,webContentLink,parents,size)";
+  const url = `${DRIVE_API_BASE}/files?q=${driveQuery(query)}&fields=${encodeURIComponent(fields)}&orderBy=folder,name`;
+  const response = await driveFetch(url);
+  const data = await response.json();
+  return data.files || [];
+}
+
 export async function updateDriveFileMetadata(fileId, payload) {
   const response = await driveFetch(`${DRIVE_API_BASE}/files/${fileId}`, {
     method: "PATCH",
@@ -159,36 +182,71 @@ export async function uploadJsonFile(parentId, name, payload) {
   return response.json();
 }
 
-export async function ensureProcessedFolder(date, inboxFolderId) {
-  const inbox = await getFile(inboxFolderId);
-  const terraVivaRootId = inbox.parents?.[0];
-
-  if (!terraVivaRootId) {
-    throw new Error("No se pudo encontrar la carpeta padre del Inbox en Drive.");
-  }
-
+export async function ensureProcessedFolder(
+  date,
+  inboxFolderId,
+  configuredRootFolderId = ""
+) {
+  const terraVivaRootId = await resolveTerraVivaRootFolderId(
+    inboxFolderId,
+    configuredRootFolderId
+  );
   const processedRoot = await ensureChildFolder(terraVivaRootId, PROCESSED_ROOT_NAME);
   return ensureChildFolder(processedRoot.id, date);
 }
 
 export async function ensureWebPublisherFolders(inboxFolderId) {
-  const inbox = await getFile(inboxFolderId);
-  const terraVivaRootId = inbox.parents?.[0];
+  const terraVivaRootId = await resolveTerraVivaRootFolderId(inboxFolderId);
+  const ordersFolder = await ensureChildFolder(terraVivaRootId, WEB_ORDERS_FOLDER_NAME);
+  const statusFolder = await ensureChildFolder(terraVivaRootId, WEB_STATUS_FOLDER_NAME);
 
-  if (!terraVivaRootId) {
-    throw new Error("No se pudo encontrar la carpeta padre del Inbox en Drive.");
+  return { ordersFolder, statusFolder };
+}
+
+export async function resolveTerraVivaRootFolderId(inboxFolderId, configuredRootFolderId = "") {
+  if (configuredRootFolderId) {
+    return configuredRootFolderId;
   }
 
+  const inboxOrRoot = await getFile(inboxFolderId);
+
+  if (!inboxOrRoot.parents?.[0]) {
+    return inboxOrRoot.id;
+  }
+
+  if (inboxOrRoot.name === INBOX_FOLDER_NAME) {
+    return inboxOrRoot.parents[0];
+  }
+
+  return inboxOrRoot.id;
+}
+
+export async function ensureTerraVivaFolderLayout({
+  inboxFolderId,
+  rootFolderId = ""
+}) {
+  const terraVivaRootId = await resolveTerraVivaRootFolderId(inboxFolderId, rootFolderId);
+  const inboxFolder = await ensureChildFolder(terraVivaRootId, INBOX_FOLDER_NAME);
+  const processedRootFolder = await ensureChildFolder(
+    terraVivaRootId,
+    PROCESSED_ROOT_NAME
+  );
   const ordersFolder = await ensureChildFolder(
     terraVivaRootId,
-    "Ordenes - Publicador Web"
+    WEB_ORDERS_FOLDER_NAME
   );
   const statusFolder = await ensureChildFolder(
     terraVivaRootId,
-    "Estado - Publicador Web"
+    WEB_STATUS_FOLDER_NAME
   );
 
-  return { ordersFolder, statusFolder };
+  return {
+    rootFolderId: terraVivaRootId,
+    inboxFolder,
+    processedRootFolder,
+    ordersFolder,
+    statusFolder
+  };
 }
 
 export async function moveFileToProcessed(fileId, processedFolderId, inboxFolderId) {
@@ -198,6 +256,23 @@ export async function moveFileToProcessed(fileId, processedFolderId, inboxFolder
     fields: "id,name,parents"
   });
   const response = await driveFetch(`${DRIVE_API_BASE}/files/${fileId}?${params}`, {
+    method: "PATCH",
+    body: JSON.stringify({})
+  });
+  return response.json();
+}
+
+export async function moveDriveItemToFolder(itemId, destinationFolderId, currentParentId) {
+  const params = new URLSearchParams({
+    addParents: destinationFolderId,
+    fields: "id,name,parents"
+  });
+
+  if (currentParentId) {
+    params.set("removeParents", currentParentId);
+  }
+
+  const response = await driveFetch(`${DRIVE_API_BASE}/files/${itemId}?${params}`, {
     method: "PATCH",
     body: JSON.stringify({})
   });

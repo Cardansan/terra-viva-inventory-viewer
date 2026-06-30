@@ -1,4 +1,4 @@
-const DRIVE_ROOT_FOLDER = "Terra Viva";
+const DRIVE_ROOT_FOLDER = "Terra Viva Catalogue";
 const DRIVE_INBOX_FOLDER = "Inbox - Videos por publicar";
 const DRIVE_PROCESSED_FOLDER = "Procesados";
 const DRIVE_WEB_ORDERS_FOLDER = "Ordenes - Publicador Web";

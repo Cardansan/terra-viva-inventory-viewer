@@ -1,5 +1,6 @@
 {
   "driveFolderId": "DRIVE_INBOX_FOLDER_ID",
+  "driveRootFolderId": "DRIVE_ROOT_FOLDER_ID",
   "moveProcessed": true,
   "trashOld": false,
   "catalogDateMode": "today",

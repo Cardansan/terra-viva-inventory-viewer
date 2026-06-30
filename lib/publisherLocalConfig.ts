@@ -3,6 +3,7 @@ import path from "node:path";
 
 type PublisherLocalConfig = {
   driveFolderId?: string;
+  driveRootFolderId?: string;
   googleDriveAccessToken?: string;
   googleDriveRefreshToken?: string;
   googleDriveClientId?: string;
@@ -12,6 +13,7 @@ type PublisherLocalConfig = {
 
 export type PublisherSessionConfig = {
   driveFolderId: string;
+  driveRootFolderId: string;
   googleDriveAccessToken: string;
   googleDriveRefreshToken: string;
   googleDriveClientId: string;
@@ -31,6 +33,7 @@ export async function readPublisherSessionConfig(): Promise<PublisherSessionConf
 
     return {
       driveFolderId: parsed.driveFolderId?.trim() || "",
+      driveRootFolderId: parsed.driveRootFolderId?.trim() || "",
       googleDriveAccessToken: parsed.googleDriveAccessToken?.trim() || "",
       googleDriveRefreshToken: parsed.googleDriveRefreshToken?.trim() || "",
       googleDriveClientId: parsed.googleDriveClientId?.trim() || "",
@@ -41,6 +44,7 @@ export async function readPublisherSessionConfig(): Promise<PublisherSessionConf
   } catch {
     return {
       driveFolderId: "",
+      driveRootFolderId: "",
       googleDriveAccessToken: "",
       googleDriveRefreshToken: "",
       googleDriveClientId: "",
@@ -69,6 +73,7 @@ export async function writePublisherSessionConfig(
       {
         ...existingConfig,
         driveFolderId: nextConfig.driveFolderId,
+        driveRootFolderId: nextConfig.driveRootFolderId,
         googleDriveAccessToken: nextConfig.googleDriveAccessToken,
         googleDriveRefreshToken: nextConfig.googleDriveRefreshToken,
         googleDriveClientId: nextConfig.googleDriveClientId,

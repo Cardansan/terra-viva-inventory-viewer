@@ -15,6 +15,7 @@ import {
 } from "./lib/catalogBuilder.mjs";
 import {
   downloadDriveFile,
+  ensureTerraVivaFolderLayout,
   ensureProcessedFolder,
   listInboxVideos,
   moveFileToProcessed
@@ -174,6 +175,7 @@ async function main() {
     process.env.TERRA_VIVA_FFMPEG_PATH = path.resolve(projectRoot, config.ffmpegPath);
   }
   const driveFolderId = cli["drive-folder-id"] || config.driveFolderId;
+  const driveRootFolderId = cli["drive-root-folder-id"] || config.driveRootFolderId;
   const dryRun = toBoolean(cli["dry-run"], true);
   const moveProcessed = toBoolean(cli["move-processed"], Boolean(config.moveProcessed));
   const trashOld = toBoolean(cli["trash-old"], Boolean(config.trashOld));
@@ -246,6 +248,15 @@ async function main() {
     requireDriveConfigured(driveFolderId);
   }
 
+  const driveLayout =
+    !usePlaceholderMedia && driveFolderId
+      ? await ensureTerraVivaFolderLayout({
+          inboxFolderId: driveFolderId,
+          rootFolderId: driveRootFolderId
+        })
+      : null;
+  const resolvedDriveFolderId = driveLayout?.inboxFolder.id || driveFolderId;
+
   console.log(`Terra Viva publisher`);
   console.log(`Fecha de catalogo: ${date}`);
   console.log(`Dry-run: ${dryRun}`);
@@ -273,14 +284,14 @@ async function main() {
   console.log(
     usePlaceholderMedia
       ? "Origen de medios: placeholder local"
-      : `Origen de medios: Google Drive folder ${driveFolderId}`
+      : `Origen de medios: Google Drive folder ${resolvedDriveFolderId}`
   );
   logDivider();
 
   const inboxFiles = usePlaceholderMedia
     ? makePlaceholderDriveVideos(now)
     : needsDriveLookup
-      ? await listInboxVideos(driveFolderId)
+      ? await listInboxVideos(resolvedDriveFolderId)
       : [];
 
   const pendingVideos = sortDriveVideos(
@@ -497,11 +508,15 @@ async function main() {
     if (filesToMove.length === 0) {
       console.log("No habia videos pendientes asociados para mover a Procesados.");
     } else {
-    const processedFolder = await ensureProcessedFolder(date, driveFolderId);
-    for (const file of filesToMove) {
-      await moveFileToProcessed(file.id, processedFolder.id, driveFolderId);
-      console.log(`Movido a Procesados/${date}: ${file.name}`);
-    }
+      const processedFolder = await ensureProcessedFolder(
+        date,
+        resolvedDriveFolderId,
+        driveLayout?.rootFolderId || driveRootFolderId
+      );
+      for (const file of filesToMove) {
+        await moveFileToProcessed(file.id, processedFolder.id, resolvedDriveFolderId);
+        console.log(`Movido a Procesados/${date}: ${file.name}`);
+      }
     }
   } else if (moveProcessed && dryRun) {
     const moveCount =

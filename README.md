@@ -91,7 +91,7 @@ Despues abre `http://localhost:3000`.
 Convencion vigente:
 
 ```text
-Terra Viva/
+Terra Viva Catalogue/
   Inbox - Videos por publicar/
   Procesados/
     YYYY-MM-DD/
