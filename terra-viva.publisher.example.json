@@ -1,6 +1,10 @@
 {
   "driveFolderId": "DRIVE_INBOX_FOLDER_ID",
   "driveRootFolderId": "DRIVE_ROOT_FOLDER_ID",
+  "allowedDriveEditorEmails": [
+    "terravivapue@gmail.com",
+    "carlos.d.san25@gmail.com"
+  ],
   "moveProcessed": true,
   "trashOld": false,
   "catalogDateMode": "today",

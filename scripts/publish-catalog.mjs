@@ -24,6 +24,7 @@ import { dedupeMomentTimestamps } from "./lib/frameDedup.mjs";
 import { isDriveVideo, sortDriveVideos } from "./lib/dateFilters.mjs";
 import { generateThumbnailsForCatalog } from "./lib/ffmpegThumbnails.mjs";
 import { probeVideoDurationSeconds } from "./lib/videoMetadata.mjs";
+import { syncTerraVivaDrivePermissions } from "./lib/drivePermissions.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -526,6 +527,21 @@ async function main() {
     console.log(`Dry-run: se moverian ${moveCount} videos a Procesados/${date}.`);
   } else if (workflow === "publish" && adminCatalog && !moveProcessed) {
     console.log("Publicacion final hecha desde aprobacion guardada; no se movieron videos de Inbox.");
+  }
+
+  if (!dryRun && workflow === "publish" && !usePlaceholderMedia) {
+    const permissionResult = await syncTerraVivaDrivePermissions({
+      projectRoot,
+      config
+    });
+    console.log(
+      `Permisos Drive sincronizados: ${permissionResult.publicVideoIds.length} videos publicados y ${permissionResult.restrictedItemsUpdated} elementos restringidos.`
+    );
+    if (permissionResult.publishedMissing.length > 0) {
+      console.warn(
+        `Aviso: faltan ${permissionResult.publishedMissing.length} videos publicados en Drive.`
+      );
+    }
   }
 
   if (trashOld) {
