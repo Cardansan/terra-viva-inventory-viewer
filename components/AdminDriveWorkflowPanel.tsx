@@ -5,6 +5,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState
 } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
@@ -52,6 +53,8 @@ export const AdminDriveWorkflowPanel = forwardRef<
   const [inboxFolderId, setInboxFolderId] = useState("");
   const [lastStatusCheckedAt, setLastStatusCheckedAt] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [isStepOneOpen, setIsStepOneOpen] = useState(!canPublishDraft);
+  const latestStatusSectionRef = useRef<HTMLElement | null>(null);
 
   const latestStatus = statuses[0];
   const latestStatusSignal = latestStatus
@@ -141,6 +144,12 @@ export const AdminDriveWorkflowPanel = forwardRef<
       latestStatus?.action === "publish_approved" ? latestStatus : null
     );
   }, [latestStatus, onPublishStatusChange]);
+
+  useEffect(() => {
+    if (!canPublishDraft) {
+      setIsStepOneOpen(true);
+    }
+  }, [canPublishDraft]);
 
   const publishDisabledReason = useMemo(() => {
     if (!canPublishDraft) {
@@ -310,6 +319,15 @@ export const AdminDriveWorkflowPanel = forwardRef<
     }
   }
 
+  async function handleCreateDraftClick() {
+    setIsStepOneOpen(false);
+    latestStatusSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+    await submitOrder("process_draft");
+  }
+
   return (
     <section className="mb-4 overflow-hidden rounded-[24px] bg-white shadow-soft ring-1 ring-terra-moss/20">
       <div className="bg-[linear-gradient(135deg,#f8f3e8_0%,#eef6ef_100%)] px-4 py-5 sm:px-5">
@@ -328,7 +346,10 @@ export const AdminDriveWorkflowPanel = forwardRef<
       <div className="space-y-3 border-t border-terra-moss/10 bg-white px-4 py-4 sm:px-5">
         <details
           className="rounded-2xl bg-terra-paper/55"
-          open={!canPublishDraft}
+          onToggle={(event) =>
+            setIsStepOneOpen((event.currentTarget as HTMLDetailsElement).open)
+          }
+          open={isStepOneOpen}
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-base font-black text-terra-ink">
             <span className="inline-flex items-center gap-3">
@@ -353,7 +374,7 @@ export const AdminDriveWorkflowPanel = forwardRef<
               className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white disabled:cursor-not-allowed disabled:bg-terra-moss/40"
               disabled={isBusy !== null}
               onClick={() => {
-                void submitOrder("process_draft");
+                void handleCreateDraftClick();
               }}
               type="button"
             >
@@ -439,7 +460,10 @@ export const AdminDriveWorkflowPanel = forwardRef<
           </div>
         </details>
 
-        <section className="rounded-2xl bg-terra-paper/55">
+        <section
+          className="rounded-2xl bg-terra-paper/55"
+          ref={latestStatusSectionRef}
+        >
           <div className="px-4 py-4 text-base font-black text-terra-ink">
             Ver último avance
           </div>
