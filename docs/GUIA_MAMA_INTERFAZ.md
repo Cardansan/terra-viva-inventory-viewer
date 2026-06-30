@@ -1,144 +1,85 @@
 # Guia sencilla para usar Terra Viva desde el celular
 
-Esta guia es para usar la pagina de trabajo de Terra Viva desde el celular.
+Esta guia es para trabajar desde el celular sin complicarse.
 
-Ruta de trabajo:
-
-- `/edicion-catalogo/`
-
-La idea es muy simple:
+La idea es siempre la misma:
 
 1. subir videos,
-2. esperar a que se arme el borrador,
-3. revisar que piezas si se muestran,
+2. crear borrador,
+3. revisar piezas,
 4. publicar.
 
 ## Antes de empezar
 
 Antes de usar el celular:
 
-1. La laptop debe estar prendida.
-2. La laptop debe estar conectada a internet.
-3. La laptop debe quedarse sin suspenderse.
+1. El servidor debe estar encendido (la laptop de Carlos).
+2. El servidor debe tener internet.
+3. El servidor no debe quedarse dormido.
 
-Si eso ya esta listo, el resto se hace desde el celular.
+Si eso ya esta listo, lo demas se hace desde el celular.
 
-## Paso 1. Abrir la pagina correcta
+## Enlaces utiles
 
-Abre la pagina de trabajo de Terra Viva.
+- Edicion de catalogo:
+  `https://cardansan.github.io/terra-viva-inventory-viewer/edicion-catalogo/`
+  Aqui se suben videos, se crea el borrador, se revisa y se publica.
 
-Busca esta parte arriba:
+- Borrador actual:
+  `https://cardansan.github.io/terra-viva-inventory-viewer/drafts/current/`
+  Aqui se puede ver como va quedando la revision antes de publicar.
 
-- `Edicion de catalogo`
+- Catalogo publicado:
+  `https://cardansan.github.io/terra-viva-inventory-viewer/`
+  Aqui se ve lo que ya quedo publicado para las clientas.
 
-Si entras al catalogo de clientas por error, vuelve atras y abre tu marcador de la pagina de trabajo.
+## Pasos
 
-## Paso 2. Subir los videos del dia
+### 1. Subir videos
 
-1. Abre la tarjeta que dice:
-   `Cargar videos para preparar catalogo`
-2. Toca:
-   `Seleccionar videos`
-3. Elige los videos del dia.
-4. Toca:
-   `Subir videos al Inbox`
+1. Abre `Edicion de catalogo`.
+2. Entra a `Cargar videos para preparar catalogo`.
+3. Toca `Seleccionar videos`.
+4. Elige los videos del dia.
+5. Toca `Subir videos al Inbox`.
 
-Si sale una ventana de Google:
+## 2. Crear borrador
 
-1. Elige la cuenta correcta.
-2. Continúa.
-3. Regresa a la página si el celular no vuelve solo.
+1. Busca `Paso 1`.
+2. Toca `Crear borrador nuevo`.
+3. Revisa `Ver ultimo avance`.
+4. Cuando salga `Terminado`, ya puedes revisar.
 
-Cuando termine, debe salir un aviso diciendo que los videos ya se subieron.
+## 3. Revisar piezas
 
-## Paso 3. Crear el borrador nuevo
+1. Mira las piezas una por una.
+2. Si una si debe salir, dejala como `Disponible`.
+3. Si una no debe salir, cambiala para que no quede visible.
 
-1. Busca el bloque:
-   `Paso 1`
-2. Toca:
-   `Crear borrador nuevo`
+## 4. Publicar
 
-Luego espera un poco.
+1. Busca `Paso 2`.
+2. Toca `Publicar catalogo`.
+3. Vuelve a revisar `Ver ultimo avance`.
+4. Cuando salga `Terminado`, ya quedo enviado.
 
-Más abajo hay una parte que dice:
-
-- `Ver ultimo avance`
-
-Ahí puedes revisar cómo va.
-
-Cuando aparezca algo como:
-
-- `Terminado`
-
-ya puedes revisar el borrador.
-
-## Paso 4. Revisar las piezas
-
-En la lista de árboles:
-
-1. Revisa cada pieza.
-2. Si una pieza sí debe salir, déjala como:
-   `Disponible`
-3. Si una pieza no debe salir, cámbiala para que no quede visible.
-
-La idea de esta parte es dejar solo lo que sí quieres enseñar.
-
-No hace falta mover nada técnico.
-
-Solo revisar qué sí se muestra y qué no.
-
-## Paso 5. Publicar el catalogo
-
-Cuando ya terminaste de revisar:
-
-1. Busca el bloque:
-   `Paso 2`
-2. Toca:
-   `Publicar catalogo`
-
-Después vuelve a mirar:
-
-- `Ver ultimo avance`
-
-Cuando aparezca:
-
-- `Terminado`
-
-el catálogo ya quedó mandado a publicación.
-
-## Si sale Google otra vez
+## Si sale una ventana de Google
 
 Es normal.
 
-A veces la página vuelve a pedir Google para continuar.
-
-Solo:
-
-1. elige la cuenta correcta,
-2. acepta,
-3. y vuelve a la página.
+1. Elige la cuenta correcta.
+2. Acepta.
+3. Vuelve a la pagina.
 
 ## Si algo no avanza
 
-Si tocas un botón y pasan varios minutos sin cambio:
-
-1. toca `Actualizar estado`,
-2. espera un poco más.
-
-Si aún no cambia, casi siempre significa que la laptop no está trabajando en ese momento.
-
-## Resumen rapido
-
-El orden de siempre es:
-
-1. `Subir videos al Inbox`
-2. `Crear borrador nuevo`
-3. revisar piezas
-4. `Publicar catalogo`
+1. Toca `Actualizar estado`.
+2. Espera un poco mas.
+3. Si sigue igual varios minutos, normalmente el servidor (la laptop de Carlos) no esta trabajando en ese momento.
 
 ## Lo mas importante
 
-No necesitas usar palabras técnicas ni mover configuraciones.
+No hace falta mover configuraciones.
 
 Solo recuerda:
 
