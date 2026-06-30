@@ -112,6 +112,9 @@ export function AdminCatalogEditor({
       currentDraftSignature &&
       currentDraftSignature !== lastPublishedDraftSignature
   );
+  const shouldShowUnpublishedChangesBanner = Boolean(
+    currentDraftCatalog && hasUnpublishedBrowserChanges
+  );
   const isWaitingForCurrentDraftPublication = Boolean(
     publishBannerState === "waiting" &&
       currentDraftSignature &&
@@ -432,7 +435,7 @@ export function AdminCatalogEditor({
         ) : null}
       </header>
 
-      {currentDraftCatalog && hasUnpublishedBrowserChanges ? (
+      {shouldShowUnpublishedChangesBanner ? (
         <section className="mb-4 rounded-2xl bg-[#fff7ef] px-4 py-4 shadow-soft ring-1 ring-terra-clay/25">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -458,6 +461,32 @@ export function AdminCatalogEditor({
             </button>
           </div>
         </section>
+      ) : null}
+
+      {shouldShowUnpublishedChangesBanner ? (
+        <div className="pointer-events-none fixed inset-x-3 bottom-3 z-40 sm:inset-x-4 sm:bottom-4">
+          <section className="pointer-events-auto mx-auto max-w-4xl rounded-2xl bg-terra-ink px-4 py-4 text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#f7c9aa]">
+                  Cambios sin publicar
+                </p>
+                <p className="mt-1 text-sm font-bold text-white/95">
+                  Este navegador tiene cambios que todavía no están en el catálogo publicado.
+                </p>
+              </div>
+              <button
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-[#507a61]"
+                onClick={() => {
+                  void handlePublishFromBanner();
+                }}
+                type="button"
+              >
+                Publicar ahora
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {currentDraftCatalog && isWaitingForCurrentDraftPublication ? (
