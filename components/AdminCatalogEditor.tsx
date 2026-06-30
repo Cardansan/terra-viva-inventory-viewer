@@ -424,7 +424,11 @@ export function AdminCatalogEditor({
   );
 
   return (
-    <main className="safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8">
+    <main
+      className={`safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8 ${
+        shouldShowUnpublishedChangesBanner ? "pb-80 sm:pb-48" : ""
+      }`}
+    >
       <header className="mb-5 rounded-lg bg-white p-5 shadow-soft ring-1 ring-terra-moss/20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -524,14 +528,14 @@ export function AdminCatalogEditor({
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 text-base font-black text-white shadow-sm transition hover:bg-white/15"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white shadow-sm transition hover:bg-white/15 sm:min-h-12 sm:text-base"
                   onClick={handleRevertDraftFromBanner}
                   type="button"
                 >
                   Revertir cambios
                 </button>
                 <button
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-[#507a61]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-terra-leaf px-5 text-sm font-black text-white shadow-sm transition hover:bg-[#507a61] sm:min-h-12 sm:text-base"
                   onClick={() => {
                     void handlePublishFromBanner();
                   }}
