@@ -87,7 +87,21 @@ export const AdminDriveWorkflowPanel = forwardRef<
 
     if (storedStatuses) {
       try {
-        setStatuses(JSON.parse(storedStatuses) as DrivePublisherStatus[]);
+        const parsedStatuses = JSON.parse(storedStatuses) as DrivePublisherStatus[];
+        const nextStatuses = parsedStatuses.filter((status) =>
+          shouldKeepCachedStatus(status, Boolean(storedSession.accessToken))
+        );
+
+        setStatuses(nextStatuses);
+
+        if (nextStatuses.length > 0) {
+          window.localStorage.setItem(
+            DRIVE_STATUS_STORAGE_KEY,
+            JSON.stringify(nextStatuses)
+          );
+        } else {
+          window.localStorage.removeItem(DRIVE_STATUS_STORAGE_KEY);
+        }
       } catch {
         window.localStorage.removeItem(DRIVE_STATUS_STORAGE_KEY);
       }
@@ -701,6 +715,37 @@ function getStatusSignal(status: DrivePublisherStatus): {
   }
 
   return null;
+}
+
+function shouldKeepCachedStatus(
+  status: DrivePublisherStatus,
+  hasActiveDriveSession: boolean
+): boolean {
+  if (hasActiveDriveSession) {
+    return true;
+  }
+
+  const updatedAtMs = Date.parse(status.updatedAt || "");
+
+  if (Number.isNaN(updatedAtMs)) {
+    return false;
+  }
+
+  const ageMs = Date.now() - updatedAtMs;
+
+  if (status.state === "queued") {
+    return ageMs < 10 * 60 * 1000;
+  }
+
+  if (status.state === "running") {
+    return ageMs < 30 * 60 * 1000;
+  }
+
+  if (status.state === "succeeded" || status.state === "failed") {
+    return ageMs < 12 * 60 * 60 * 1000;
+  }
+
+  return false;
 }
 
 function formatElapsed(elapsedMs: number): string {
