@@ -19,6 +19,7 @@ export type DrivePublisherOrder = {
   createdBy: "admin-web";
   catalogDate?: string;
   approvalCatalog?: CatalogDay;
+  approvalCatalogSignature?: string;
 };
 
 export type DrivePublisherStatus = {
@@ -33,6 +34,7 @@ export type DrivePublisherStatus = {
     momentCount?: number;
     draftReviewUrl?: string;
     publishedCatalogUrl?: string;
+    approvalCatalogSignature?: string;
     deployment?: {
       branch: string;
       catalogDate: string;

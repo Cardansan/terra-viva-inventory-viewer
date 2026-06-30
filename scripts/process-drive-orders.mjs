@@ -123,7 +123,12 @@ function buildStatusPayload(order, state, message, result = undefined) {
     createdAt: order.createdAt,
     updatedAt: now,
     message,
-    result
+    result: order.approvalCatalogSignature
+      ? {
+          ...(result || {}),
+          approvalCatalogSignature: order.approvalCatalogSignature
+        }
+      : result
   };
 }
 

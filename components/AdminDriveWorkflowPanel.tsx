@@ -263,7 +263,24 @@ export const AdminDriveWorkflowPanel = forwardRef<
       createdAt: new Date().toISOString(),
       createdBy: "admin-web",
       catalogDate: activeCatalog.date,
-      approvalCatalog: action === "publish_approved" ? activeCatalog : undefined
+      approvalCatalog: action === "publish_approved" ? activeCatalog : undefined,
+      approvalCatalogSignature:
+        action === "publish_approved"
+          ? JSON.stringify({
+              id: activeCatalog.id,
+              date: activeCatalog.date,
+              title: activeCatalog.title,
+              moments: activeCatalog.moments.map((moment) => ({
+                id: moment.id,
+                treeNumber: moment.treeNumber,
+                timestampSeconds: moment.timestampSeconds,
+                sectionLabel: moment.sectionLabel,
+                status: moment.status,
+                notes: moment.notes || "",
+                crop: moment.crop || null
+              }))
+            })
+          : undefined
     };
 
     try {

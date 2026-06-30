@@ -157,7 +157,12 @@ export async function createDrivePublisherOrder(
           ? "La preparacion del borrador ya quedo en fila."
           : order.action === "cancel_draft"
             ? "La cancelacion del borrador ya quedo en fila."
-            : "La publicacion del catalogo ya quedo en fila."
+            : "La publicacion del catalogo ya quedo en fila.",
+      result: order.approvalCatalogSignature
+        ? {
+            approvalCatalogSignature: order.approvalCatalogSignature
+          }
+        : undefined
     }
   };
 

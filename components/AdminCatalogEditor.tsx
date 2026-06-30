@@ -57,6 +57,8 @@ export function AdminCatalogEditor({
     "idle" | "waiting" | "failed"
   >("idle");
   const [isFloatingBannerExpanded, setIsFloatingBannerExpanded] = useState(true);
+  const [latestSharedPublishStatus, setLatestSharedPublishStatus] =
+    useState<DrivePublisherStatus | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const workflowPanelRef = useRef<AdminDriveWorkflowPanelHandle | null>(null);
 
@@ -126,13 +128,25 @@ export function AdminCatalogEditor({
       currentDraftSignature &&
       currentDraftSignature === lastSubmittedDraftSignature
   );
+  const hasSharedWaitingPublication = Boolean(
+    currentDraftCatalog &&
+      publishBannerState !== "failed" &&
+      currentDraftSignature &&
+      latestSharedPublishStatus?.action === "publish_approved" &&
+      (latestSharedPublishStatus.state === "queued" ||
+        latestSharedPublishStatus.state === "running") &&
+      latestSharedPublishStatus.result?.approvalCatalogSignature ===
+        currentDraftSignature
+  );
   const shouldShowPublishActionsBanner = Boolean(
     shouldShowUnpublishedChangesBanner &&
       !isWaitingForCurrentDraftPublication &&
-      !hasFailedCurrentDraftPublication
+      !hasFailedCurrentDraftPublication &&
+      !hasSharedWaitingPublication
   );
   const shouldShowWaitingBanner = Boolean(
-    currentDraftCatalog && isWaitingForCurrentDraftPublication
+    currentDraftCatalog &&
+      (isWaitingForCurrentDraftPublication || hasSharedWaitingPublication)
   );
 
   useEffect(() => {
@@ -266,6 +280,19 @@ export function AdminCatalogEditor({
   }
 
   function handlePublishStatusChange(status: DrivePublisherStatus | null) {
+    setLatestSharedPublishStatus(status);
+
+    if (
+      status?.action === "publish_approved" &&
+      status.state === "succeeded" &&
+      status.result?.approvalCatalogSignature === currentDraftSignature
+    ) {
+      setLastPublishedDraftSignature(currentDraftSignature || "");
+      setPublishBannerState("idle");
+      setLastSubmittedDraftSignature("");
+      return;
+    }
+
     if (!lastSubmittedDraftSignature || !currentDraftSignature) {
       return;
     }
