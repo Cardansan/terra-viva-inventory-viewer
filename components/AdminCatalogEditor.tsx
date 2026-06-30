@@ -209,6 +209,44 @@ export function AdminCatalogEditor({
     setPublishBannerState("waiting");
   }
 
+  function handleRevertDraftFromBanner() {
+    if (!currentDraftCatalog) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Esto deshará los cambios locales de este navegador y regresará el borrador a lo que ya está publicado. ¿Quieres continuar?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const publishedCatalog = publishedVersion?.catalog ?? initialPublishedCatalog;
+    const revertedDraftCatalog = createDraftFromPublishedCatalog(
+      currentDraftCatalog,
+      publishedCatalog
+    );
+
+    setVersions((currentVersions) =>
+      currentVersions.map((version) =>
+        version.role === "active"
+          ? {
+              ...version,
+              catalog: revertedDraftCatalog
+            }
+          : version
+      )
+    );
+    setSelectedCatalogId(revertedDraftCatalog.id);
+    setLastPublishedDraftSignature(
+      getCatalogPublishSignature(revertedDraftCatalog)
+    );
+    setLastSubmittedDraftSignature("");
+    setPublishBannerState("idle");
+    setTransferNotice("Los cambios locales de este navegador se revirtieron.");
+  }
+
   function handlePublishStatusChange(status: DrivePublisherStatus | null) {
     if (!lastSubmittedDraftSignature || !currentDraftSignature) {
       return;
@@ -450,15 +488,24 @@ export function AdminCatalogEditor({
                 mandar exactamente esta versión a la laptop.
               </p>
             </div>
-            <button
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink"
-              onClick={() => {
-                void handlePublishFromBanner();
-              }}
-              type="button"
-            >
-              Publicar ahora
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-terra-moss/20 bg-white px-5 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper"
+                onClick={handleRevertDraftFromBanner}
+                type="button"
+              >
+                Revertir cambios
+              </button>
+              <button
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink"
+                onClick={() => {
+                  void handlePublishFromBanner();
+                }}
+                type="button"
+              >
+                Publicar ahora
+              </button>
+            </div>
           </div>
         </section>
       ) : null}
@@ -475,15 +522,24 @@ export function AdminCatalogEditor({
                   Este navegador tiene cambios que todavía no están en el catálogo publicado.
                 </p>
               </div>
-              <button
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-[#507a61]"
-                onClick={() => {
-                  void handlePublishFromBanner();
-                }}
-                type="button"
-              >
-                Publicar ahora
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 text-base font-black text-white shadow-sm transition hover:bg-white/15"
+                  onClick={handleRevertDraftFromBanner}
+                  type="button"
+                >
+                  Revertir cambios
+                </button>
+                <button
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-leaf px-5 text-base font-black text-white shadow-sm transition hover:bg-[#507a61]"
+                  onClick={() => {
+                    void handlePublishFromBanner();
+                  }}
+                  type="button"
+                >
+                  Publicar ahora
+                </button>
+              </div>
             </div>
           </section>
         </div>
@@ -780,5 +836,22 @@ function getCatalogPublishSignature(catalog?: CatalogDay): string {
       crop: moment.crop || null
     }))
   });
+}
+
+function createDraftFromPublishedCatalog(
+  draftCatalog: CatalogDay,
+  publishedCatalog: CatalogDay
+): CatalogDay {
+  return {
+    ...draftCatalog,
+    videos: publishedCatalog.videos.map((video) => ({
+      ...video,
+      catalogDayId: draftCatalog.id
+    })),
+    moments: publishedCatalog.moments.map((moment) => ({
+      ...moment,
+      catalogDayId: draftCatalog.id
+    }))
+  };
 }
 
