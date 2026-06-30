@@ -230,10 +230,18 @@ export const AdminDriveWorkflowPanel = forwardRef<
 
     try {
       setIsRefreshingStatus(true);
+      const previousStatus = latestStatus;
       const previousUpdatedAt = latestStatus?.updatedAt || "";
       const nextStatuses = await refreshStatuses(accessToken);
 
       if (!nextStatuses) {
+        return;
+      }
+
+      if (previousStatus && nextStatuses.length === 0) {
+        setFeedback(
+          "Drive ya no reporta una orden activa. Se limpio el estado anterior en este navegador."
+        );
         return;
       }
 
