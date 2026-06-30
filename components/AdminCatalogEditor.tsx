@@ -126,6 +126,14 @@ export function AdminCatalogEditor({
       currentDraftSignature &&
       currentDraftSignature === lastSubmittedDraftSignature
   );
+  const shouldShowPublishActionsBanner = Boolean(
+    shouldShowUnpublishedChangesBanner &&
+      !isWaitingForCurrentDraftPublication &&
+      !hasFailedCurrentDraftPublication
+  );
+  const shouldShowWaitingBanner = Boolean(
+    currentDraftCatalog && isWaitingForCurrentDraftPublication
+  );
 
   useEffect(() => {
     const storedVersions = loadAdminCatalogVersions(initialVersions);
@@ -173,13 +181,13 @@ export function AdminCatalogEditor({
   ]);
 
   useEffect(() => {
-    if (shouldShowUnpublishedChangesBanner) {
+    if (shouldShowPublishActionsBanner) {
       setIsFloatingBannerExpanded(true);
       return;
     }
 
     setIsFloatingBannerExpanded(false);
-  }, [shouldShowUnpublishedChangesBanner]);
+  }, [shouldShowPublishActionsBanner]);
 
   function updateMoment(updatedMoment: TreeMoment) {
     if (!isViewingActive) {
@@ -436,7 +444,7 @@ export function AdminCatalogEditor({
   return (
     <main
       className={`safe-bottom mx-auto min-h-screen max-w-6xl px-3 py-4 sm:px-6 lg:py-8 ${
-        shouldShowUnpublishedChangesBanner
+        shouldShowPublishActionsBanner || shouldShowWaitingBanner
           ? isFloatingBannerExpanded
             ? "pb-80 sm:pb-48"
             : "pb-32 sm:pb-24"
@@ -491,7 +499,7 @@ export function AdminCatalogEditor({
         ) : null}
       </header>
 
-      {shouldShowUnpublishedChangesBanner ? (
+      {shouldShowPublishActionsBanner ? (
         <section className="mb-4 rounded-2xl bg-[#fff7ef] px-4 py-4 shadow-soft ring-1 ring-terra-clay/25">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -528,7 +536,7 @@ export function AdminCatalogEditor({
         </section>
       ) : null}
 
-      {shouldShowUnpublishedChangesBanner ? (
+      {shouldShowPublishActionsBanner ? (
         <div className="pointer-events-none fixed inset-x-3 bottom-3 z-40 sm:inset-x-4 sm:bottom-4">
           {isFloatingBannerExpanded ? (
             <section className="pointer-events-auto mx-auto max-w-4xl rounded-2xl bg-terra-ink px-4 py-4 text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10">
@@ -586,19 +594,34 @@ export function AdminCatalogEditor({
         </div>
       ) : null}
 
-      {currentDraftCatalog && isWaitingForCurrentDraftPublication ? (
+      {shouldShowWaitingBanner ? (
         <section className="mb-4 rounded-2xl bg-[#f7fbf7] px-4 py-4 shadow-soft ring-1 ring-terra-leaf/20">
           <p className="text-sm font-black uppercase tracking-[0.14em] text-terra-leaf">
             Publicación en curso
           </p>
           <p className="mt-1 text-sm font-bold text-terra-ink">
-            Ok. Ahora espera unos minutos a que se publique.
+            Se están publicando tus cambios.
           </p>
           <p className="mt-1 text-sm font-bold text-terra-ink/65">
-            La laptop debe seguir encendida y con internet mientras termina el
-            proceso.
+            Espera unos minutos. Cuando termine la publicación, este aviso desaparecerá solo.
           </p>
         </section>
+      ) : null}
+
+      {shouldShowWaitingBanner ? (
+        <div className="pointer-events-none fixed inset-x-3 bottom-3 z-40 sm:inset-x-4 sm:bottom-4">
+          <section className="pointer-events-auto mx-auto max-w-4xl rounded-2xl bg-terra-ink px-4 py-4 text-white shadow-[0_18px_45px_rgba(24,35,27,0.28)] ring-1 ring-white/10">
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-[#b9dfc7]">
+              Publicación en curso
+            </p>
+            <p className="mt-1 text-sm font-bold text-white/95">
+              Se están publicando tus cambios.
+            </p>
+            <p className="mt-1 text-sm font-bold text-white/80">
+              Espera unos minutos. En cuanto termine, este aviso desaparecerá solo.
+            </p>
+          </section>
+        </div>
       ) : null}
 
       {currentDraftCatalog && hasFailedCurrentDraftPublication ? (
