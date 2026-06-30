@@ -49,7 +49,8 @@ export function AdminCatalogEditor({
   );
   const [hasLoadedStoredVersions, setHasLoadedStoredVersions] = useState(false);
   const [transferNotice, setTransferNotice] = useState("");
-  const [draftPublishBaseline, setDraftPublishBaseline] = useState("");
+  const [lastPublishedDraftSignature, setLastPublishedDraftSignature] =
+    useState("");
   const [lastSubmittedDraftSignature, setLastSubmittedDraftSignature] =
     useState("");
   const [publishBannerState, setPublishBannerState] = useState<
@@ -103,13 +104,13 @@ export function AdminCatalogEditor({
   const currentDraftCatalog =
     draftVersion?.catalog ?? (isDraftActive ? activeCatalog : undefined);
   const currentDraftSignature = useMemo(
-    () => getDraftPublishSignature(currentDraftCatalog),
+    () => getCatalogPublishSignature(currentDraftCatalog),
     [currentDraftCatalog]
   );
   const hasUnpublishedBrowserChanges = Boolean(
     currentDraftCatalog &&
       currentDraftSignature &&
-      currentDraftSignature !== draftPublishBaseline
+      currentDraftSignature !== lastPublishedDraftSignature
   );
   const isWaitingForCurrentDraftPublication = Boolean(
     publishBannerState === "waiting" &&
@@ -136,11 +137,8 @@ export function AdminCatalogEditor({
 
     setVersions(prioritizedVersions);
     setSelectedCatalogId(storedActiveVersion.catalog.id);
-    setDraftPublishBaseline(
-      getDraftPublishSignature(
-        prioritizedVersions.find((version) => version.catalog.status === "draft")
-          ?.catalog
-      )
+    setLastPublishedDraftSignature(
+      getCatalogPublishSignature(initialPublishedCatalog)
     );
     setLastSubmittedDraftSignature("");
     setPublishBannerState("idle");
@@ -161,12 +159,7 @@ export function AdminCatalogEditor({
   }, [hasLoadedStoredVersions, versions]);
 
   useEffect(() => {
-    if (
-      lastSubmittedDraftSignature &&
-      currentDraftSignature &&
-      currentDraftSignature !== lastSubmittedDraftSignature &&
-      publishBannerState !== "idle"
-    ) {
+    if (lastSubmittedDraftSignature && currentDraftSignature !== lastSubmittedDraftSignature) {
       setPublishBannerState("idle");
     }
   }, [
@@ -209,7 +202,6 @@ export function AdminCatalogEditor({
       return;
     }
 
-    setDraftPublishBaseline(currentDraftSignature);
     setLastSubmittedDraftSignature(currentDraftSignature);
     setPublishBannerState("waiting");
   }
@@ -234,6 +226,7 @@ export function AdminCatalogEditor({
     }
 
     if (status.state === "succeeded") {
+      setLastPublishedDraftSignature(currentDraftSignature);
       setPublishBannerState("idle");
       setLastSubmittedDraftSignature("");
     }
@@ -739,8 +732,8 @@ export function AdminCatalogEditor({
   );
 }
 
-function getDraftPublishSignature(catalog?: CatalogDay): string {
-  if (!catalog || catalog.status !== "draft") {
+function getCatalogPublishSignature(catalog?: CatalogDay): string {
+  if (!catalog) {
     return "";
   }
 
