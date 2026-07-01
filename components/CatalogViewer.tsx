@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogDay } from "@/lib/catalogTypes";
-import { loadActiveAdminCatalog } from "@/lib/adminCatalogPersistence";
+import {
+  getAdminCatalogHistoryStorageKey,
+  loadActiveAdminCatalog
+} from "@/lib/adminCatalogPersistence";
 import { assetPath } from "@/lib/assets";
 import {
   buildSelectionUrl,
@@ -71,7 +74,7 @@ export function CatalogViewer({
 
     function syncCatalogFromAdminStorage(event: StorageEvent) {
       if (
-        event.key !== "terra-viva:admin-catalog-history:v1" &&
+        event.key !== getAdminCatalogHistoryStorageKey() &&
         event.key !== null
       ) {
         return;

@@ -4,11 +4,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { isDriveRefreshTokenRevokedError } from "./lib/driveAuth.mjs";
-import { getFile, updateDriveFileMetadata } from "./lib/driveClient.mjs";
+import {
+  ensureTerraVivaFolderLayout,
+  getFile,
+  listFoldersByQuery,
+  listJsonFilesInFolder,
+  moveDriveItemToFolder,
+  readJsonFile,
+  updateDriveFileMetadata,
+  updateJsonFile,
+  uploadJsonFile
+} from "./lib/driveClient.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const localConfigPath = path.join(projectRoot, "terra-viva.publisher.local.json");
+const ORDER_SCHEMA = "terra-viva-web-publisher-order/v1";
+const STATUS_SCHEMA = "terra-viva-web-publisher-status/v1";
+const MAILBOX_SCHEMA = "terra-viva-web-publisher/v1";
 
 function parseArgs(argv) {
   const args = {};
@@ -43,7 +56,7 @@ function toBoolean(value, defaultValue) {
 
 function getEmptyMailbox() {
   return {
-    schema: "terra-viva-web-publisher/v1",
+    schema: MAILBOX_SCHEMA,
     order: null,
     status: null
   };
@@ -57,18 +70,87 @@ function parseMailbox(description) {
   try {
     const parsed = JSON.parse(description);
 
-    if (parsed.schema !== "terra-viva-web-publisher/v1") {
+    if (parsed.schema !== MAILBOX_SCHEMA) {
       return getEmptyMailbox();
     }
 
     return {
-      schema: "terra-viva-web-publisher/v1",
+      schema: MAILBOX_SCHEMA,
       order: parsed.order ?? null,
       status: parsed.status ?? null
     };
   } catch {
     return getEmptyMailbox();
   }
+}
+
+function normalizeOrder(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const orderId =
+    typeof payload.orderId === "string"
+      ? payload.orderId
+      : typeof payload.id === "string"
+        ? payload.id
+        : "";
+
+  if (
+    !orderId ||
+    typeof payload.action !== "string" ||
+    typeof payload.createdAt !== "string" ||
+    typeof payload.createdBy !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    schema: ORDER_SCHEMA,
+    orderId,
+    action: payload.action,
+    createdAt: payload.createdAt,
+    createdBy: payload.createdBy,
+    catalogDate:
+      typeof payload.catalogDate === "string" ? payload.catalogDate : undefined,
+    approvalCatalog: payload.approvalCatalog || undefined,
+    approvalCatalogSignature:
+      typeof payload.approvalCatalogSignature === "string"
+        ? payload.approvalCatalogSignature
+        : undefined,
+    sourceSessionId:
+      typeof payload.sourceSessionId === "string"
+        ? payload.sourceSessionId
+        : undefined
+  };
+}
+
+function normalizeStatus(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  if (
+    typeof payload.orderId !== "string" ||
+    typeof payload.action !== "string" ||
+    typeof payload.state !== "string" ||
+    typeof payload.createdAt !== "string" ||
+    typeof payload.updatedAt !== "string" ||
+    typeof payload.message !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    schema: STATUS_SCHEMA,
+    orderId: payload.orderId,
+    action: payload.action,
+    state: payload.state,
+    createdAt: payload.createdAt,
+    updatedAt: payload.updatedAt,
+    message: payload.message,
+    result: payload.result || undefined
+  };
 }
 
 async function readLocalConfig() {
@@ -117,7 +199,8 @@ async function runPublisher(args) {
 function buildStatusPayload(order, state, message, result = undefined) {
   const now = new Date().toISOString();
   return {
-    orderId: order.id,
+    schema: STATUS_SCHEMA,
+    orderId: order.orderId,
     action: order.action,
     state,
     createdAt: order.createdAt,
@@ -130,6 +213,46 @@ function buildStatusPayload(order, state, message, result = undefined) {
         }
       : result
   };
+}
+
+function getStatusFileName(orderId) {
+  return `status-${orderId}.json`;
+}
+
+function getStatusMessage(action, state) {
+  if (state === "running") {
+    if (action === "process_draft") {
+      return "Ya se esta preparando el borrador.";
+    }
+
+    if (action === "cancel_draft") {
+      return "Ya se esta cancelando el borrador actual.";
+    }
+
+    return "Ya se esta publicando el catalogo.";
+  }
+
+  if (state === "succeeded") {
+    if (action === "process_draft") {
+      return "El borrador termino bien y ya puede revisarse en linea.";
+    }
+
+    if (action === "cancel_draft") {
+      return "El borrador actual se cancelo y ya no quedo activo.";
+    }
+
+    return "La publicacion local termino bien y la laptop ya envio los cambios a GitHub Pages.";
+  }
+
+  if (action === "process_draft") {
+    return "La preparacion del borrador ya quedo en fila.";
+  }
+
+  if (action === "cancel_draft") {
+    return "La cancelacion del borrador ya quedo en fila.";
+  }
+
+  return "La publicacion del catalogo ya quedo en fila.";
 }
 
 function escapePowerShellSingleQuoted(value) {
@@ -377,7 +500,7 @@ function parseDeploymentResult(stdout) {
   }
 }
 
-async function readMailbox(inboxFolderId) {
+async function readLegacyMailbox(inboxFolderId) {
   const file = await getFile(inboxFolderId);
   return {
     fileId: file.id,
@@ -385,9 +508,128 @@ async function readMailbox(inboxFolderId) {
   };
 }
 
-async function writeMailbox(inboxFolderId, mailbox) {
+async function writeLegacyMailbox(inboxFolderId, mailbox) {
   await updateDriveFileMetadata(inboxFolderId, {
     description: JSON.stringify(mailbox, null, 2)
+  });
+}
+
+async function findStatusFile(statusFolderId, orderId) {
+  const matches = await listFoldersByQuery(
+    `'${statusFolderId}' in parents and trashed = false and mimeType = 'application/json' and name = '${getStatusFileName(
+      orderId
+    )}'`
+  );
+
+  return matches[0] || null;
+}
+
+async function readStatusForOrder(statusFolderId, orderId) {
+  const file = await findStatusFile(statusFolderId, orderId);
+
+  if (!file) {
+    return { file: null, status: null };
+  }
+
+  const status = normalizeStatus(await readJsonFile(file.id));
+  return { file, status };
+}
+
+async function writeStatusForOrder(statusFolderId, order, state, message, result) {
+  const payload = buildStatusPayload(order, state, message, result);
+  const existingFile = await findStatusFile(statusFolderId, order.orderId);
+
+  if (existingFile) {
+    await updateJsonFile(existingFile.id, payload);
+    return { fileId: existingFile.id, status: payload };
+  }
+
+  const createdFile = await uploadJsonFile(
+    statusFolderId,
+    getStatusFileName(order.orderId),
+    payload
+  );
+  return { fileId: createdFile.id, status: payload };
+}
+
+async function archiveOrderFile(orderFileId, processedOrdersFolderId, currentParentId) {
+  await moveDriveItemToFolder(orderFileId, processedOrdersFolderId, currentParentId);
+}
+
+async function loadPendingOrder(ordersFolderId, statusFolderId, processedOrdersFolderId) {
+  const orderFiles = await listJsonFilesInFolder(ordersFolderId, {
+    orderBy: "createdTime",
+    pageSize: 50
+  });
+
+  for (const orderFile of orderFiles) {
+    const order = normalizeOrder(await readJsonFile(orderFile.id));
+
+    if (!order) {
+      console.warn(`Ignoring invalid order payload in ${orderFile.name}.`);
+      await archiveOrderFile(
+        orderFile.id,
+        processedOrdersFolderId,
+        orderFile.parents?.[0] || ordersFolderId
+      );
+      continue;
+    }
+
+    const { status } = await readStatusForOrder(statusFolderId, order.orderId);
+
+    if (
+      status &&
+      (status.state === "succeeded" ||
+        status.state === "failed" ||
+        status.state === "cancelled")
+    ) {
+      await archiveOrderFile(
+        orderFile.id,
+        processedOrdersFolderId,
+        orderFile.parents?.[0] || ordersFolderId
+      );
+      continue;
+    }
+
+    if (status?.state === "running") {
+      continue;
+    }
+
+    return {
+      source: "queue-file",
+      order,
+      orderFileId: orderFile.id,
+      orderFileParentId: orderFile.parents?.[0] || ordersFolderId
+    };
+  }
+
+  return null;
+}
+
+async function loadLegacyOrder(inboxFolderId) {
+  const { mailbox } = await readLegacyMailbox(inboxFolderId);
+  const order = normalizeOrder(mailbox.order);
+
+  if (!order) {
+    return null;
+  }
+
+  return {
+    source: "legacy-mailbox",
+    order
+  };
+}
+
+async function completeLegacyOrder(inboxFolderId) {
+  const { mailbox } = await readLegacyMailbox(inboxFolderId);
+
+  if (!mailbox.order) {
+    return;
+  }
+
+  await writeLegacyMailbox(inboxFolderId, {
+    ...mailbox,
+    order: null
   });
 }
 
@@ -409,16 +651,26 @@ async function main() {
     throw new Error("Missing driveFolderId in terra-viva.publisher.local.json.");
   }
 
-  async function handleQueueCycle() {
-    const { mailbox } = await readMailbox(config.driveFolderId);
-    const order = mailbox.order;
+  const driveLayout = await ensureTerraVivaFolderLayout({
+    inboxFolderId: config.driveFolderId,
+    rootFolderId: config.driveRootFolderId || ""
+  });
 
-    if (!order) {
+  async function handleQueueCycle() {
+    const queueOrder = await loadPendingOrder(
+      driveLayout.ordersFolder.id,
+      driveLayout.statusFolder.id,
+      driveLayout.processedOrdersFolder.id
+    );
+    const pendingOrder = queueOrder || (await loadLegacyOrder(config.driveFolderId));
+
+    if (!pendingOrder) {
       console.log("No website publisher orders found.");
       return false;
     }
 
-    console.log(`Processing website order ${order.id} (${order.action})`);
+    const order = pendingOrder.order;
+    console.log(`Processing website order ${order.orderId} (${order.action})`);
     await notifyLocalOperator(
       "Terra Viva",
       order.action === "process_draft"
@@ -427,36 +679,33 @@ async function main() {
           ? "La laptop ya empezo a cancelar el borrador actual."
           : "La laptop ya empezo a publicar el catalogo."
     );
-    await writeMailbox(config.driveFolderId, {
-      ...mailbox,
+    await writeStatusForOrder(
+      driveLayout.statusFolder.id,
       order,
-      status: buildStatusPayload(
-        order,
-        "running",
-        order.action === "process_draft"
-          ? "Ya se esta preparando el borrador."
-          : order.action === "cancel_draft"
-            ? "Ya se esta cancelando el borrador actual."
-            : "Ya se esta publicando el catalogo."
-      )
-    });
+      "running",
+      getStatusMessage(order.action, "running")
+    );
 
     try {
       const result = await processOrder(order);
-      await writeMailbox(config.driveFolderId, {
-        ...mailbox,
-        order: null,
-        status: buildStatusPayload(
-          order,
-          "succeeded",
-          order.action === "process_draft"
-            ? "El borrador termino bien y ya puede revisarse en linea."
-            : order.action === "cancel_draft"
-              ? "El borrador actual se cancelo y ya no quedo activo."
-              : "La publicacion local termino bien y la laptop ya envio los cambios a GitHub Pages.",
-          result
-        )
-      });
+      await writeStatusForOrder(
+        driveLayout.statusFolder.id,
+        order,
+        "succeeded",
+        getStatusMessage(order.action, "succeeded"),
+        result
+      );
+
+      if (pendingOrder.source === "queue-file") {
+        await archiveOrderFile(
+          pendingOrder.orderFileId,
+          driveLayout.processedOrdersFolder.id,
+          pendingOrder.orderFileParentId
+        );
+      } else {
+        await completeLegacyOrder(config.driveFolderId);
+      }
+
       await notifyLocalOperator(
         "Terra Viva",
         order.action === "process_draft"
@@ -469,11 +718,23 @@ async function main() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown publisher error.";
-      await writeMailbox(config.driveFolderId, {
-        ...mailbox,
-        order: null,
-        status: buildStatusPayload(order, "failed", message)
-      });
+      await writeStatusForOrder(
+        driveLayout.statusFolder.id,
+        order,
+        "failed",
+        message
+      );
+
+      if (pendingOrder.source === "queue-file") {
+        await archiveOrderFile(
+          pendingOrder.orderFileId,
+          driveLayout.processedOrdersFolder.id,
+          pendingOrder.orderFileParentId
+        );
+      } else {
+        await completeLegacyOrder(config.driveFolderId);
+      }
+
       await notifyLocalOperator(
         "Terra Viva",
         `La orden ${order.action} fallo: ${message}`

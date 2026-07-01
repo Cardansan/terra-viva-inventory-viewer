@@ -150,6 +150,10 @@ export function AdminCatalogEditor({
   );
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("terra-viva:admin-catalog-history:v1");
+    }
+
     const storedVersions = loadAdminCatalogVersions(initialVersions);
     const prioritizedVersions = reconcileAdminCatalogVersions({
       storedVersions,
@@ -282,14 +286,28 @@ export function AdminCatalogEditor({
   function handlePublishStatusChange(status: DrivePublisherStatus | null) {
     setLatestSharedPublishStatus(status);
 
-    if (
+    const matchesCurrentDraft = Boolean(
       status?.action === "publish_approved" &&
-      status.state === "succeeded" &&
-      status.result?.approvalCatalogSignature === currentDraftSignature
-    ) {
-      setLastPublishedDraftSignature(currentDraftSignature || "");
+        currentDraftSignature &&
+        status.result?.approvalCatalogSignature === currentDraftSignature
+    );
+
+    if (matchesCurrentDraft && status?.state === "succeeded") {
+      setLastPublishedDraftSignature(currentDraftSignature);
       setPublishBannerState("idle");
       setLastSubmittedDraftSignature("");
+      return;
+    }
+
+    if (matchesCurrentDraft && status?.state === "failed") {
+      setLastSubmittedDraftSignature(currentDraftSignature || "");
+      setPublishBannerState("failed");
+      return;
+    }
+
+    if (matchesCurrentDraft && (status?.state === "queued" || status?.state === "running")) {
+      setLastSubmittedDraftSignature(currentDraftSignature || "");
+      setPublishBannerState("waiting");
       return;
     }
 
@@ -297,22 +315,11 @@ export function AdminCatalogEditor({
       return;
     }
 
-    if (currentDraftSignature !== lastSubmittedDraftSignature || !status) {
+    if (currentDraftSignature !== lastSubmittedDraftSignature) {
       return;
     }
 
-    if (status.state === "queued" || status.state === "running") {
-      setPublishBannerState("waiting");
-      return;
-    }
-
-    if (status.state === "failed") {
-      setPublishBannerState("failed");
-      return;
-    }
-
-    if (status.state === "succeeded") {
-      setLastPublishedDraftSignature(currentDraftSignature);
+    if (!status || !matchesCurrentDraft) {
       setPublishBannerState("idle");
       setLastSubmittedDraftSignature("");
     }
@@ -464,7 +471,9 @@ export function AdminCatalogEditor({
     return `Anterior ${backupIndex}`;
   }
 
-  const publishedClientViewHref = assetPath("/");
+  const publishedClientViewHref = assetPath(
+    `/catalog/${publishedVersion?.catalog.date ?? initialPublishedCatalog.date}/`
+  );
 
   return (
     <main
@@ -662,6 +671,14 @@ export function AdminCatalogEditor({
               <p className="mt-1 text-sm font-bold text-terra-ink/65">
                 Puedes intentar publicarla otra vez desde este mismo navegador.
               </p>
+              {latestSharedPublishStatus?.action === "publish_approved" &&
+              latestSharedPublishStatus.state === "failed" &&
+              latestSharedPublishStatus.result?.approvalCatalogSignature ===
+                currentDraftSignature ? (
+                <p className="mt-2 text-sm font-black text-terra-ink">
+                  Error reportado: {latestSharedPublishStatus.message}
+                </p>
+              ) : null}
             </div>
             <button
               className="inline-flex min-h-12 items-center justify-center rounded-xl bg-terra-clay px-5 text-base font-black text-white shadow-sm transition hover:bg-terra-ink"

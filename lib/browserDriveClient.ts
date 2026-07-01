@@ -3,23 +3,41 @@
 import type {
   DrivePublisherMailbox,
   DrivePublisherOrder,
-  DrivePublisherStatus
+  DrivePublisherStatus,
+  LegacyDrivePublisherStatus,
+  PublisherOrderAction
+} from "./drivePublisherTypes";
+import {
+  DRIVE_PUBLISHER_MAILBOX_SCHEMA,
+  DRIVE_PUBLISHER_ORDER_SCHEMA,
+  DRIVE_PUBLISHER_STATUS_SCHEMA
 } from "./drivePublisherTypes";
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
+const INBOX_FOLDER_NAME = "Inbox - Videos por publicar";
+const WEB_ORDERS_FOLDER_NAME = "Ordenes - Publicador Web";
+const WEB_STATUS_FOLDER_NAME = "Estado - Publicador Web";
 
 type DriveFile = {
   id: string;
   name: string;
+  mimeType?: string;
   parents?: string[];
   description?: string;
+  createdTime?: string;
+  modifiedTime?: string;
   capabilities?: {
     canAddChildren?: boolean;
     canEdit?: boolean;
   };
   size?: string;
   webViewLink?: string;
+};
+
+type WebPublisherFolders = {
+  ordersFolderId: string;
+  statusFolderId: string;
 };
 
 export type DriveSessionProbe = {
@@ -38,10 +56,108 @@ export type DriveUploadResult = {
 
 function getEmptyMailbox(): DrivePublisherMailbox {
   return {
-    schema: "terra-viva-web-publisher/v1",
+    schema: DRIVE_PUBLISHER_MAILBOX_SCHEMA,
     order: null,
     status: null
   };
+}
+
+function escapeDriveQueryValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function sortStatusesByUpdatedAt(statuses: DrivePublisherStatus[]) {
+  return [...statuses].sort((left, right) => {
+    const rightTime = Date.parse(right.updatedAt || right.createdAt || "");
+    const leftTime = Date.parse(left.updatedAt || left.createdAt || "");
+    return (Number.isFinite(rightTime) ? rightTime : 0) -
+      (Number.isFinite(leftTime) ? leftTime : 0);
+  });
+}
+
+function getStatusMessage(action: PublisherOrderAction, state: "queued" | "running") {
+  if (state === "queued") {
+    if (action === "process_draft") {
+      return "La preparacion del borrador ya quedo en fila.";
+    }
+
+    if (action === "cancel_draft") {
+      return "La cancelacion del borrador ya quedo en fila.";
+    }
+
+    return "La publicacion del catalogo ya quedo en fila.";
+  }
+
+  if (action === "process_draft") {
+    return "Ya se esta preparando el borrador.";
+  }
+
+  if (action === "cancel_draft") {
+    return "Ya se esta cancelando el borrador actual.";
+  }
+
+  return "Ya se esta publicando el catalogo.";
+}
+
+function createQueuedStatus(order: DrivePublisherOrder): DrivePublisherStatus {
+  return {
+    schema: DRIVE_PUBLISHER_STATUS_SCHEMA,
+    orderId: order.orderId,
+    action: order.action,
+    state: "queued",
+    createdAt: order.createdAt,
+    updatedAt: new Date().toISOString(),
+    message: getStatusMessage(order.action, "queued"),
+    result: order.approvalCatalogSignature
+      ? {
+          approvalCatalogSignature: order.approvalCatalogSignature
+        }
+      : undefined
+  };
+}
+
+function normalizeLegacyStatus(
+  status: LegacyDrivePublisherStatus | null | undefined
+): DrivePublisherStatus | null {
+  if (!status || typeof status !== "object") {
+    return null;
+  }
+
+  if (
+    typeof status.orderId !== "string" ||
+    typeof status.action !== "string" ||
+    typeof status.state !== "string" ||
+    typeof status.createdAt !== "string" ||
+    typeof status.updatedAt !== "string" ||
+    typeof status.message !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    schema: DRIVE_PUBLISHER_STATUS_SCHEMA,
+    orderId: status.orderId,
+    action: status.action,
+    state: status.state,
+    createdAt: status.createdAt,
+    updatedAt: status.updatedAt,
+    message: status.message,
+    result: status.result
+  };
+}
+
+function normalizeStatus(payload: unknown): DrivePublisherStatus | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const candidate = payload as Partial<DrivePublisherStatus>;
+
+  if (candidate.schema === DRIVE_PUBLISHER_STATUS_SCHEMA) {
+    return normalizeLegacyStatus(candidate);
+  }
+
+  return normalizeLegacyStatus(candidate as LegacyDrivePublisherStatus);
 }
 
 async function driveFetch(
@@ -78,59 +194,197 @@ async function driveFetch(
 async function getDriveFile(
   accessToken: string,
   fileId: string,
-  fields = "id,name,parents,description"
+  fields = "id,name,mimeType,parents,description,createdTime,modifiedTime"
 ): Promise<DriveFile> {
   const response = await driveFetch(
     accessToken,
-    `${DRIVE_API_BASE}/files/${fileId}?fields=${encodeURIComponent(
-      fields
-    )}`
+    `${DRIVE_API_BASE}/files/${fileId}?fields=${encodeURIComponent(fields)}`
   );
   return (await response.json()) as DriveFile;
 }
 
-async function updateDriveFileDescription(
+async function listDriveFiles(
   accessToken: string,
-  fileId: string,
-  description: string
-) {
-  await driveFetch(accessToken, `${DRIVE_API_BASE}/files/${fileId}`, {
-    method: "PATCH",
+  params: {
+    query: string;
+    fields: string;
+    orderBy?: string;
+    pageSize?: number;
+  }
+): Promise<DriveFile[]> {
+  const searchParams = new URLSearchParams({
+    q: params.query,
+    fields: `files(${params.fields})`
+  });
+
+  if (params.orderBy) {
+    searchParams.set("orderBy", params.orderBy);
+  }
+
+  if (params.pageSize) {
+    searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  const response = await driveFetch(
+    accessToken,
+    `${DRIVE_API_BASE}/files?${searchParams.toString()}`
+  );
+  const payload = (await response.json()) as { files?: DriveFile[] };
+  return payload.files || [];
+}
+
+async function createDriveFolder(
+  accessToken: string,
+  parentId: string,
+  name: string
+): Promise<DriveFile> {
+  const response = await driveFetch(accessToken, `${DRIVE_API_BASE}/files`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ description })
+    body: JSON.stringify({
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId]
+    })
   });
+  return (await response.json()) as DriveFile;
 }
 
-async function readMailbox(
+async function findChildFolder(
+  accessToken: string,
+  parentId: string,
+  name: string
+): Promise<DriveFile | null> {
+  const files = await listDriveFiles(accessToken, {
+    query: `'${parentId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder' and name = '${escapeDriveQueryValue(
+      name
+    )}'`,
+    fields: "id,name,mimeType,parents,createdTime,modifiedTime",
+    pageSize: 1
+  });
+
+  return files[0] || null;
+}
+
+async function ensureChildFolder(
+  accessToken: string,
+  parentId: string,
+  name: string
+): Promise<DriveFile> {
+  return (
+    (await findChildFolder(accessToken, parentId, name)) ||
+    createDriveFolder(accessToken, parentId, name)
+  );
+}
+
+async function uploadJsonFile(
+  accessToken: string,
+  parentId: string,
+  name: string,
+  payload: unknown
+): Promise<DriveFile> {
+  const boundary = `terra-viva-${crypto.randomUUID()}`;
+  const metadata = {
+    name,
+    parents: [parentId],
+    mimeType: "application/json"
+  };
+  const response = await driveFetch(
+    accessToken,
+    `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=${encodeURIComponent(
+      "id,name,mimeType,parents,createdTime,modifiedTime"
+    )}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/related; boundary=${boundary}`
+      },
+      body: new Blob([
+        `--${boundary}\r\n`,
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n",
+        JSON.stringify(metadata),
+        "\r\n",
+        `--${boundary}\r\n`,
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n",
+        JSON.stringify(payload, null, 2),
+        "\r\n",
+        `--${boundary}--`
+      ])
+    }
+  );
+
+  return (await response.json()) as DriveFile;
+}
+
+async function readJsonFile<T>(
+  accessToken: string,
+  fileId: string
+): Promise<T | null> {
+  const response = await driveFetch(accessToken, `${DRIVE_API_BASE}/files/${fileId}?alt=media`);
+  return (await response.json()) as T;
+}
+
+async function readLegacyMailbox(
   accessToken: string,
   inboxFolderId: string
-): Promise<{ fileId: string; mailbox: DrivePublisherMailbox }> {
-  const file = await getDriveFile(accessToken, inboxFolderId);
+): Promise<DrivePublisherMailbox> {
+  const file = await getDriveFile(accessToken, inboxFolderId, "id,description");
 
   if (!file.description) {
-    return { fileId: file.id, mailbox: getEmptyMailbox() };
+    return getEmptyMailbox();
   }
 
   try {
     const parsed = JSON.parse(file.description) as Partial<DrivePublisherMailbox>;
 
-    if (parsed.schema !== "terra-viva-web-publisher/v1") {
-      return { fileId: file.id, mailbox: getEmptyMailbox() };
+    if (parsed.schema !== DRIVE_PUBLISHER_MAILBOX_SCHEMA) {
+      return getEmptyMailbox();
     }
 
     return {
-      fileId: file.id,
-      mailbox: {
-        schema: "terra-viva-web-publisher/v1",
-        order: parsed.order ?? null,
-        status: parsed.status ?? null
-      }
+      schema: DRIVE_PUBLISHER_MAILBOX_SCHEMA,
+      order: parsed.order ?? null,
+      status: normalizeLegacyStatus(parsed.status) ?? null
     };
   } catch {
-    return { fileId: file.id, mailbox: getEmptyMailbox() };
+    return getEmptyMailbox();
   }
+}
+
+async function ensureWebPublisherFolders(
+  accessToken: string,
+  inboxFolderId: string
+): Promise<WebPublisherFolders> {
+  const inboxOrRoot = await getDriveFile(accessToken, inboxFolderId, "id,name,parents");
+  const rootFolderId =
+    inboxOrRoot.name === INBOX_FOLDER_NAME && inboxOrRoot.parents?.[0]
+      ? inboxOrRoot.parents[0]
+      : inboxOrRoot.id;
+  const ordersFolder = await ensureChildFolder(
+    accessToken,
+    rootFolderId,
+    WEB_ORDERS_FOLDER_NAME
+  );
+  const statusFolder = await ensureChildFolder(
+    accessToken,
+    rootFolderId,
+    WEB_STATUS_FOLDER_NAME
+  );
+
+  return {
+    ordersFolderId: ordersFolder.id,
+    statusFolderId: statusFolder.id
+  };
+}
+
+function getOrderFileName(order: DrivePublisherOrder): string {
+  return `order-${order.createdAt.replace(/[:.]/g, "-")}-${order.orderId}.json`;
+}
+
+function getStatusFileName(orderId: string): string {
+  return `status-${orderId}.json`;
 }
 
 export async function createDrivePublisherOrder(
@@ -142,34 +396,23 @@ export async function createDrivePublisherOrder(
     throw new Error("Inbox folder ID is required for the website publisher.");
   }
 
-  const { fileId, mailbox } = await readMailbox(accessToken, inboxFolderId);
-  const nextMailbox: DrivePublisherMailbox = {
-    ...mailbox,
-    order,
-    status: {
-      orderId: order.id,
-      action: order.action,
-      state: "queued",
-      createdAt: order.createdAt,
-      updatedAt: new Date().toISOString(),
-      message:
-        order.action === "process_draft"
-          ? "La preparacion del borrador ya quedo en fila."
-          : order.action === "cancel_draft"
-            ? "La cancelacion del borrador ya quedo en fila."
-            : "La publicacion del catalogo ya quedo en fila.",
-      result: order.approvalCatalogSignature
-        ? {
-            approvalCatalogSignature: order.approvalCatalogSignature
-          }
-        : undefined
-    }
+  const normalizedOrder: DrivePublisherOrder = {
+    ...order,
+    schema: DRIVE_PUBLISHER_ORDER_SCHEMA
   };
+  const folders = await ensureWebPublisherFolders(accessToken, inboxFolderId);
 
-  await updateDriveFileDescription(
+  await uploadJsonFile(
     accessToken,
-    fileId,
-    JSON.stringify(nextMailbox, null, 2)
+    folders.ordersFolderId,
+    getOrderFileName(normalizedOrder),
+    normalizedOrder
+  );
+  await uploadJsonFile(
+    accessToken,
+    folders.statusFolderId,
+    getStatusFileName(normalizedOrder.orderId),
+    createQueuedStatus(normalizedOrder)
   );
 }
 
@@ -182,8 +425,27 @@ export async function getLatestDrivePublisherStatuses(
     return [];
   }
 
-  const { mailbox } = await readMailbox(accessToken, inboxFolderId);
-  return mailbox.status ? [mailbox.status].slice(0, limit) : [];
+  const folders = await ensureWebPublisherFolders(accessToken, inboxFolderId);
+  const statusFiles = await listDriveFiles(accessToken, {
+    query: `'${folders.statusFolderId}' in parents and trashed = false and mimeType = 'application/json'`,
+    fields: "id,name,mimeType,createdTime,modifiedTime",
+    orderBy: "modifiedTime desc",
+    pageSize: Math.max(limit * 3, 12)
+  });
+
+  const statusPayloads = await Promise.all(
+    statusFiles.map(async (file) => normalizeStatus(await readJsonFile(accessToken, file.id)))
+  );
+  const statuses = sortStatusesByUpdatedAt(
+    statusPayloads.filter((status): status is DrivePublisherStatus => Boolean(status))
+  ).slice(0, limit);
+
+  if (statuses.length > 0) {
+    return statuses;
+  }
+
+  const legacyMailbox = await readLegacyMailbox(accessToken, inboxFolderId);
+  return legacyMailbox.status ? [legacyMailbox.status].slice(0, limit) : [];
 }
 
 export async function probeDrivePublisherSession(

@@ -1,5 +1,12 @@
 import type { CatalogDay } from "./catalogTypes";
 
+export const DRIVE_PUBLISHER_ORDER_SCHEMA =
+  "terra-viva-web-publisher-order/v1";
+export const DRIVE_PUBLISHER_STATUS_SCHEMA =
+  "terra-viva-web-publisher-status/v1";
+export const DRIVE_PUBLISHER_MAILBOX_SCHEMA =
+  "terra-viva-web-publisher/v1";
+
 export type PublisherOrderAction =
   | "process_draft"
   | "publish_approved"
@@ -13,16 +20,19 @@ export type PublisherOrderState =
   | "cancelled";
 
 export type DrivePublisherOrder = {
-  id: string;
+  schema: typeof DRIVE_PUBLISHER_ORDER_SCHEMA;
+  orderId: string;
   action: PublisherOrderAction;
   createdAt: string;
   createdBy: "admin-web";
   catalogDate?: string;
   approvalCatalog?: CatalogDay;
   approvalCatalogSignature?: string;
+  sourceSessionId?: string;
 };
 
 export type DrivePublisherStatus = {
+  schema: typeof DRIVE_PUBLISHER_STATUS_SCHEMA;
   orderId: string;
   action: PublisherOrderAction;
   state: PublisherOrderState;
@@ -46,7 +56,16 @@ export type DrivePublisherStatus = {
 };
 
 export type DrivePublisherMailbox = {
-  schema: "terra-viva-web-publisher/v1";
+  schema: typeof DRIVE_PUBLISHER_MAILBOX_SCHEMA;
   order: DrivePublisherOrder | null;
   status: DrivePublisherStatus | null;
+};
+
+export type LegacyDrivePublisherOrder = Omit<DrivePublisherOrder, "schema"> & {
+  id?: string;
+  orderId?: string;
+};
+
+export type LegacyDrivePublisherStatus = Partial<DrivePublisherStatus> & {
+  schema?: string;
 };

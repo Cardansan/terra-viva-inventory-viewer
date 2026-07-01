@@ -12,6 +12,7 @@ import type { CatalogDay } from "@/lib/catalogTypes";
 import {
   DRIVE_SESSION_UPDATED_EVENT,
   DRIVE_STATUS_STORAGE_KEY,
+  getOrCreateDrivePublisherSourceSessionId,
   readBrowserDriveSession,
   writeBrowserDriveSession
 } from "@/lib/driveSessionBrowser";
@@ -26,6 +27,10 @@ import type {
   DrivePublisherOrder,
   DrivePublisherStatus,
   PublisherOrderAction
+} from "@/lib/drivePublisherTypes";
+import {
+  DRIVE_PUBLISHER_ORDER_SCHEMA,
+  DRIVE_PUBLISHER_STATUS_SCHEMA
 } from "@/lib/drivePublisherTypes";
 import { AdminVideoUploadPanel } from "./AdminVideoUploadPanel";
 
@@ -58,6 +63,8 @@ export const AdminDriveWorkflowPanel = forwardRef<
   const latestStatusSectionRef = useRef<HTMLElement | null>(null);
 
   const latestStatus = statuses[0];
+  const latestPublishStatus =
+    statuses.find((status) => status.action === "publish_approved") || null;
   const defaultInboxFolderId = getPublicDriveInboxFolderId();
   const latestStatusSignal = latestStatus
     ? getStatusSignal(latestStatus)
@@ -80,6 +87,8 @@ export const AdminDriveWorkflowPanel = forwardRef<
     if (typeof window === "undefined") {
       return;
     }
+
+    window.localStorage.removeItem("terra-viva:drive-publisher-statuses");
 
     const storedSession = readBrowserDriveSession();
     const storedStatuses =
@@ -157,9 +166,9 @@ export const AdminDriveWorkflowPanel = forwardRef<
 
   useEffect(() => {
     onPublishStatusChange?.(
-      latestStatus?.action === "publish_approved" ? latestStatus : null
+      latestPublishStatus
     );
-  }, [latestStatus, onPublishStatusChange]);
+  }, [latestPublishStatus, onPublishStatusChange]);
 
   useEffect(() => {
     if (!canPublishDraft) {
@@ -274,11 +283,13 @@ export const AdminDriveWorkflowPanel = forwardRef<
 
   async function submitOrder(action: PublisherOrderAction): Promise<boolean> {
     const order: DrivePublisherOrder = {
-      id: crypto.randomUUID(),
+      schema: DRIVE_PUBLISHER_ORDER_SCHEMA,
+      orderId: crypto.randomUUID(),
       action,
       createdAt: new Date().toISOString(),
       createdBy: "admin-web",
       catalogDate: activeCatalog.date,
+      sourceSessionId: getOrCreateDrivePublisherSourceSessionId(),
       approvalCatalog: action === "publish_approved" ? activeCatalog : undefined,
       approvalCatalogSignature:
         action === "publish_approved"
@@ -723,6 +734,29 @@ function shouldKeepCachedStatus(
   status: DrivePublisherStatus,
   hasActiveDriveSession: boolean
 ): boolean {
+  if (
+    !status ||
+    status.schema !== DRIVE_PUBLISHER_STATUS_SCHEMA ||
+    !status.orderId ||
+    !status.action ||
+    !status.state ||
+    !status.createdAt ||
+    !status.updatedAt ||
+    !status.message
+  ) {
+    return false;
+  }
+
+  if (
+    status.action === "publish_approved" &&
+    !status.result?.approvalCatalogSignature &&
+    (status.state === "queued" ||
+      status.state === "running" ||
+      status.state === "succeeded")
+  ) {
+    return false;
+  }
+
   if (hasActiveDriveSession) {
     return true;
   }

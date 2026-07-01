@@ -7,9 +7,13 @@ export type AdminCatalogVersion = {
 };
 
 const ADMIN_CATALOG_HISTORY_STORAGE_KEY =
-  "terra-viva:admin-catalog-history:v1";
+  "terra-viva:admin-catalog-history:v2";
 
 const MAX_CATALOG_VERSIONS = 3;
+
+export function getAdminCatalogHistoryStorageKey(): string {
+  return ADMIN_CATALOG_HISTORY_STORAGE_KEY;
+}
 
 export function createInitialAdminCatalogVersions(
   activeCatalog: CatalogDay,

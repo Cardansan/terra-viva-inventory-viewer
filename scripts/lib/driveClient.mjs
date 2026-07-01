@@ -10,6 +10,7 @@ export const INBOX_FOLDER_NAME = "Inbox - Videos por publicar";
 const PROCESSED_ROOT_NAME = "Procesados";
 const WEB_ORDERS_FOLDER_NAME = "Ordenes - Publicador Web";
 const WEB_STATUS_FOLDER_NAME = "Estado - Publicador Web";
+const WEB_ORDERS_PROCESSED_FOLDER_NAME = "processed";
 
 function getAccessToken() {
   return process.env.GOOGLE_DRIVE_ACCESS_TOKEN || "";
@@ -182,6 +183,24 @@ export async function uploadJsonFile(parentId, name, payload) {
   return response.json();
 }
 
+export async function updateJsonFile(fileId, payload) {
+  const response = await driveFetch(
+    `${DRIVE_UPLOAD_BASE}/files/${fileId}?uploadType=media&fields=${encodeURIComponent(
+      "id,name,createdTime,modifiedTime"
+    )}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+        "Content-Type": "application/json; charset=UTF-8"
+      },
+      body: JSON.stringify(payload, null, 2)
+    }
+  );
+
+  return response.json();
+}
+
 export async function ensureProcessedFolder(
   date,
   inboxFolderId,
@@ -199,8 +218,12 @@ export async function ensureWebPublisherFolders(inboxFolderId) {
   const terraVivaRootId = await resolveTerraVivaRootFolderId(inboxFolderId);
   const ordersFolder = await ensureChildFolder(terraVivaRootId, WEB_ORDERS_FOLDER_NAME);
   const statusFolder = await ensureChildFolder(terraVivaRootId, WEB_STATUS_FOLDER_NAME);
+  const processedOrdersFolder = await ensureChildFolder(
+    ordersFolder.id,
+    WEB_ORDERS_PROCESSED_FOLDER_NAME
+  );
 
-  return { ordersFolder, statusFolder };
+  return { ordersFolder, statusFolder, processedOrdersFolder };
 }
 
 export async function resolveTerraVivaRootFolderId(inboxFolderId, configuredRootFolderId = "") {
@@ -235,6 +258,10 @@ export async function ensureTerraVivaFolderLayout({
     terraVivaRootId,
     WEB_ORDERS_FOLDER_NAME
   );
+  const processedOrdersFolder = await ensureChildFolder(
+    ordersFolder.id,
+    WEB_ORDERS_PROCESSED_FOLDER_NAME
+  );
   const statusFolder = await ensureChildFolder(
     terraVivaRootId,
     WEB_STATUS_FOLDER_NAME
@@ -245,6 +272,7 @@ export async function ensureTerraVivaFolderLayout({
     inboxFolder,
     processedRootFolder,
     ordersFolder,
+    processedOrdersFolder,
     statusFolder
   };
 }
@@ -305,12 +333,26 @@ export async function listFilesInProcessedFolder(folderId) {
   return data.files || [];
 }
 
-export async function listJsonFilesInFolder(folderId) {
+export async function listJsonFilesInFolder(
+  folderId,
+  { orderBy = "createdTime desc", pageSize } = {}
+) {
   const query = `'${folderId}' in parents and trashed = false and mimeType = 'application/json'`;
+  const params = new URLSearchParams({
+    q: query,
+    fields: "files(id,name,mimeType,createdTime,modifiedTime,parents)"
+  });
+
+  if (orderBy) {
+    params.set("orderBy", orderBy);
+  }
+
+  if (pageSize) {
+    params.set("pageSize", String(pageSize));
+  }
+
   const response = await driveFetch(
-    `${DRIVE_API_BASE}/files?q=${driveQuery(query)}&fields=${encodeURIComponent(
-      "files(id,name,mimeType,createdTime,modifiedTime)"
-    )}&orderBy=createdTime desc`
+    `${DRIVE_API_BASE}/files?${params.toString()}`
   );
   const data = await response.json();
   return data.files || [];
