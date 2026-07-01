@@ -1,4 +1,5 @@
-import type { CatalogDay } from "./catalogTypes";
+import type { CatalogDay, TreeMoment } from "./catalogTypes";
+import { assetPath } from "./assets";
 
 export type AdminCatalogVersion = {
   catalog: CatalogDay;
@@ -42,9 +43,12 @@ export function reconcileAdminCatalogVersions(params: {
       (version) =>
         version.catalog.status === "draft" &&
         (!initialDraftCatalog || version.catalog.id === initialDraftCatalog.id)
-    )?.catalog ?? initialDraftCatalog;
+    )?.catalog;
+  const activeDraft = initialDraftCatalog
+    ? mergeStoredDraftWithInitialDraft(initialDraftCatalog, storedDraft)
+    : storedDraft;
 
-  const activeCatalog = storedDraft || initialPublishedCatalog;
+  const activeCatalog = activeDraft || initialPublishedCatalog;
   const catalogsById = new Map<string, CatalogDay>();
 
   catalogsById.set(initialPublishedCatalog.id, initialPublishedCatalog);
@@ -87,7 +91,12 @@ export function normalizeAdminCatalogVersions(
       version.role === "backup" && version.catalog.id !== activeVersion.catalog.id
   );
 
-  return [activeVersion, ...backups].slice(0, MAX_CATALOG_VERSIONS);
+  return [activeVersion, ...backups]
+    .map((version) => ({
+      ...version,
+      catalog: normalizeCatalogAssets(version.catalog)
+    }))
+    .slice(0, MAX_CATALOG_VERSIONS);
 }
 
 export function loadAdminCatalogVersions(
@@ -173,4 +182,62 @@ export function getApprovedCatalogDownloadName(catalog: CatalogDay): string {
 
 export function stripUtf8Bom(value: string): string {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
+}
+
+function normalizeCatalogAssets(catalog: CatalogDay): CatalogDay {
+  return {
+    ...catalog,
+    videos: catalog.videos.map((video) => ({
+      ...video,
+      url: normalizeAssetUrl(video.url)
+    })),
+    moments: catalog.moments.map((moment) => ({
+      ...moment,
+      thumbnailUrl: normalizeAssetUrl(moment.thumbnailUrl)
+    }))
+  };
+}
+
+function normalizeAssetUrl(url: string): string {
+  if (!url.startsWith("/") || url.startsWith("//")) {
+    return url;
+  }
+
+  return assetPath(url);
+}
+
+function mergeStoredDraftWithInitialDraft(
+  initialDraftCatalog: CatalogDay,
+  storedDraftCatalog?: CatalogDay
+): CatalogDay {
+  if (!storedDraftCatalog || storedDraftCatalog.id !== initialDraftCatalog.id) {
+    return initialDraftCatalog;
+  }
+
+  const storedMomentsById = new Map(
+    storedDraftCatalog.moments.map((moment) => [moment.id, moment] as const)
+  );
+
+  return {
+    ...initialDraftCatalog,
+    moments: initialDraftCatalog.moments.map((moment) =>
+      mergeEditableMomentFields(moment, storedMomentsById.get(moment.id))
+    )
+  };
+}
+
+function mergeEditableMomentFields(
+  sourceMoment: TreeMoment,
+  storedMoment?: TreeMoment
+): TreeMoment {
+  if (!storedMoment) {
+    return sourceMoment;
+  }
+
+  return {
+    ...sourceMoment,
+    status: storedMoment.status,
+    notes: storedMoment.notes,
+    crop: storedMoment.crop
+  };
 }
