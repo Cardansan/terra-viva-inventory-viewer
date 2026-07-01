@@ -78,6 +78,7 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] La lista de arboles vuelve a ser el centro del admin en celular.
 - [x] La ruta principal del panel es `/edicion-catalogo/`.
 - [x] El gate ligero con Google existe y queda apagado por default.
+- [x] `Ver catalogo como clienta` desde admin abre `/` para mostrar exactamente la vista publica estable.
 
 ## Checks seleccion multiple
 

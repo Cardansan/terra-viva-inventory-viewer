@@ -464,9 +464,7 @@ export function AdminCatalogEditor({
     return `Anterior ${backupIndex}`;
   }
 
-  const publishedClientViewHref = assetPath(
-    `/catalog/${publishedVersion?.catalog.date || initialPublishedCatalog.date}/`
-  );
+  const publishedClientViewHref = assetPath("/");
 
   return (
     <main

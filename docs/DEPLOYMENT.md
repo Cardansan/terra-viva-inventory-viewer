@@ -55,9 +55,10 @@ Todo lo que deba funcionar en produccion debe ser:
 1. abrir `/`,
 2. abrir `/drafts/current/`,
 3. abrir `/edicion-catalogo/`,
-4. confirmar que thumbnails y assets cargan bajo el `basePath`,
-5. confirmar que el flujo OAuth web abre Google cuando hace falta,
-6. confirmar que `/edicion-catalogo/` y `/drafts/*` salgan con `noindex`.
+4. desde `/edicion-catalogo/`, tocar `Ver catalogo como clienta` y confirmar que abre `/`,
+5. confirmar que thumbnails y assets cargan bajo el `basePath`,
+6. confirmar que el flujo OAuth web abre Google cuando hace falta,
+7. confirmar que `/edicion-catalogo/` y `/drafts/*` salgan con `noindex`.
 
 ## Notas operativas
 
