@@ -132,6 +132,48 @@ function buildStatusPayload(order, state, message, result = undefined) {
   };
 }
 
+function escapePowerShellSingleQuoted(value) {
+  return String(value).replace(/'/g, "''");
+}
+
+async function notifyLocalOperator(title, message) {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const psTitle = escapePowerShellSingleQuoted(title);
+  const psMessage = escapePowerShellSingleQuoted(message);
+  const command = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "Add-Type -AssemblyName System.Drawing",
+    "$notifyIcon = New-Object System.Windows.Forms.NotifyIcon",
+    "$notifyIcon.Icon = [System.Drawing.SystemIcons]::Information",
+    "$notifyIcon.Visible = $true",
+    `$notifyIcon.BalloonTipTitle = '${psTitle}'`,
+    `$notifyIcon.BalloonTipText = '${psMessage}'`,
+    "$notifyIcon.ShowBalloonTip(5000)",
+    "Start-Sleep -Seconds 6",
+    "$notifyIcon.Dispose()"
+  ].join("; ");
+
+  await new Promise((resolve) => {
+    const child = spawn("powershell.exe", [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      command
+    ], {
+      cwd: projectRoot,
+      stdio: "ignore",
+      windowsHide: true
+    });
+
+    child.on("error", () => resolve());
+    child.on("close", () => resolve());
+  });
+}
+
 async function readCatalogJson(relativePath) {
   const raw = await readFile(path.join(projectRoot, relativePath), "utf8");
   return JSON.parse(raw);
@@ -377,6 +419,14 @@ async function main() {
     }
 
     console.log(`Processing website order ${order.id} (${order.action})`);
+    await notifyLocalOperator(
+      "Terra Viva",
+      order.action === "process_draft"
+        ? "La laptop ya empezo a preparar un borrador nuevo."
+        : order.action === "cancel_draft"
+          ? "La laptop ya empezo a cancelar el borrador actual."
+          : "La laptop ya empezo a publicar el catalogo."
+    );
     await writeMailbox(config.driveFolderId, {
       ...mailbox,
       order,
@@ -407,6 +457,14 @@ async function main() {
           result
         )
       });
+      await notifyLocalOperator(
+        "Terra Viva",
+        order.action === "process_draft"
+          ? "El borrador termino bien y ya se puede revisar."
+          : order.action === "cancel_draft"
+            ? "El borrador actual ya se cancelo."
+            : "La publicacion local termino bien y ya se mando a GitHub Pages."
+      );
       return true;
     } catch (error) {
       const message =
@@ -416,6 +474,10 @@ async function main() {
         order: null,
         status: buildStatusPayload(order, "failed", message)
       });
+      await notifyLocalOperator(
+        "Terra Viva",
+        `La orden ${order.action} fallo: ${message}`
+      );
       throw error;
     }
   }
