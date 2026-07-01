@@ -20,10 +20,10 @@ export async function ensureDriveBrowserSession(
   options: EnsureDriveBrowserSessionOptions = {}
 ): Promise<BrowserDriveSession> {
   const storedSession = readBrowserDriveSession();
-  const fallbackInboxFolderId =
+  const configuredInboxFolderId =
     options.inboxFolderId?.trim() || getPublicDriveInboxFolderId();
   const inboxFolderId =
-    storedSession.inboxFolderId.trim() || fallbackInboxFolderId;
+    configuredInboxFolderId || storedSession.inboxFolderId.trim();
 
   if (!inboxFolderId) {
     throw new Error(

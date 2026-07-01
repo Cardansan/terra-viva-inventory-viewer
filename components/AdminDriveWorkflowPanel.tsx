@@ -21,6 +21,7 @@ import {
   isDriveTokenExpiredError
 } from "@/lib/browserDriveClient";
 import { ensureDriveBrowserSession } from "@/lib/browserDriveSessionFlow";
+import { getPublicDriveInboxFolderId } from "@/lib/publicDriveConfig";
 import type {
   DrivePublisherOrder,
   DrivePublisherStatus,
@@ -57,6 +58,7 @@ export const AdminDriveWorkflowPanel = forwardRef<
   const latestStatusSectionRef = useRef<HTMLElement | null>(null);
 
   const latestStatus = statuses[0];
+  const defaultInboxFolderId = getPublicDriveInboxFolderId();
   const latestStatusSignal = latestStatus
     ? getStatusSignal(latestStatus)
     : null;
@@ -83,7 +85,7 @@ export const AdminDriveWorkflowPanel = forwardRef<
     const storedStatuses =
       window.localStorage.getItem(DRIVE_STATUS_STORAGE_KEY) || "";
     setAccessToken(storedSession.accessToken);
-    setInboxFolderId(storedSession.inboxFolderId);
+    setInboxFolderId(defaultInboxFolderId || storedSession.inboxFolderId);
 
     if (storedStatuses) {
       try {
@@ -110,7 +112,7 @@ export const AdminDriveWorkflowPanel = forwardRef<
     function handleDriveSessionUpdated() {
       const nextStoredSession = readBrowserDriveSession();
       setAccessToken(nextStoredSession.accessToken);
-      setInboxFolderId(nextStoredSession.inboxFolderId);
+      setInboxFolderId(defaultInboxFolderId || nextStoredSession.inboxFolderId);
     }
 
     window.addEventListener(
@@ -124,7 +126,7 @@ export const AdminDriveWorkflowPanel = forwardRef<
         handleDriveSessionUpdated
       );
     };
-  }, []);
+  }, [defaultInboxFolderId]);
 
   useEffect(() => {
     if (!hasDriveSession) {

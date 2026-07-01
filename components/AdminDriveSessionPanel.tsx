@@ -44,14 +44,14 @@ export function AdminDriveSessionPanel() {
   useEffect(() => {
     const storedSession = readBrowserDriveSession();
     setAccessToken(storedSession.accessToken);
-    setInboxFolderId(storedSession.inboxFolderId || defaultInboxFolderId);
+    setInboxFolderId(defaultInboxFolderId || storedSession.inboxFolderId);
     setExpiresAt(storedSession.expiresAt);
     void validateSession(
       storedSession.accessToken,
-      storedSession.inboxFolderId || defaultInboxFolderId,
+      defaultInboxFolderId || storedSession.inboxFolderId,
       storedSession.expiresAt
     );
-  }, []);
+  }, [defaultInboxFolderId]);
 
   async function validateSession(
     token = accessToken,
