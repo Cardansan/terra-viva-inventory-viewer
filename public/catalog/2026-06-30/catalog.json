@@ -45,7 +45,7 @@
       "timestampSeconds": 26,
       "thumbnailUrl": "/catalog/2026-06-30/thumbnails/tree-003.jpg",
       "sectionLabel": "PXL 20260626 202224192.TS",
-      "status": "available"
+      "status": "hidden"
     },
     {
       "id": "moment-2026-06-30-004",
@@ -65,7 +65,7 @@
       "timestampSeconds": 45,
       "thumbnailUrl": "/catalog/2026-06-30/thumbnails/tree-005.jpg",
       "sectionLabel": "PXL 20260626 202224192.TS",
-      "status": "available"
+      "status": "hidden"
     },
     {
       "id": "moment-2026-06-30-006",
@@ -125,7 +125,7 @@
       "timestampSeconds": 105,
       "thumbnailUrl": "/catalog/2026-06-30/thumbnails/tree-011.jpg",
       "sectionLabel": "PXL 20260626 202224192.TS",
-      "status": "available"
+      "status": "hidden"
     },
     {
       "id": "moment-2026-06-30-012",
@@ -185,7 +185,7 @@
       "timestampSeconds": 164,
       "thumbnailUrl": "/catalog/2026-06-30/thumbnails/tree-017.jpg",
       "sectionLabel": "PXL 20260626 202224192.TS",
-      "status": "available"
+      "status": "hidden"
     },
     {
       "id": "moment-2026-06-30-018",
@@ -215,7 +215,7 @@
       "timestampSeconds": 193,
       "thumbnailUrl": "/catalog/2026-06-30/thumbnails/tree-020.jpg",
       "sectionLabel": "PXL 20260626 202224192.TS",
-      "status": "available"
+      "status": "hidden"
     },
     {
       "id": "moment-2026-06-30-021",
