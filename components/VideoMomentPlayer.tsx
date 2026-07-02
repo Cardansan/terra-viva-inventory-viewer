@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CatalogVideo, TreeMoment } from "@/lib/catalogTypes";
+import { canPlayVideoInline } from "@/lib/videoLinks";
 
 type VideoMomentPlayerProps = {
   video: CatalogVideo | undefined;
@@ -19,6 +20,7 @@ export function VideoMomentPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [hasVideoError, setHasVideoError] = useState(false);
+  const shouldRenderInlineVideo = canPlayVideoInline(video);
 
   useEffect(() => {
     setIsMounted(true);
@@ -99,7 +101,7 @@ export function VideoMomentPlayer({
   return (
     <section className="min-w-0 overflow-hidden rounded-lg bg-terra-ink shadow-soft">
       <div className="relative aspect-[9/16] max-h-[68vh] min-h-[420px] w-full bg-terra-ink sm:aspect-[4/3] sm:max-h-[640px] sm:min-h-0 lg:aspect-video">
-        {isMounted && video && !hasVideoError ? (
+        {isMounted && shouldRenderInlineVideo && video && !hasVideoError ? (
           <video
             aria-label="Pausar o reproducir video de este arbol"
             ref={videoRef}

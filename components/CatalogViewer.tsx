@@ -25,6 +25,7 @@ import {
   getPublicMoments,
   getVideoForMoment
 } from "@/lib/videoMoments";
+import { canPlayVideoInline, getExternalVideoUrl } from "@/lib/videoLinks";
 import { buildWhatsAppUrlForSelection } from "@/lib/whatsapp";
 import { AddToSelectionButton } from "./AddToSelectionButton";
 import { MomentNavigator } from "./MomentNavigator";
@@ -167,6 +168,8 @@ export function CatalogViewer({
   }
 
   const selectedVideo = getVideoForMoment(resolvedCatalog, selectedMoment);
+  const canOpenInlineVideo = canPlayVideoInline(selectedVideo);
+  const externalVideoUrl = getExternalVideoUrl(selectedVideo);
   const selectedMoments = getSelectedMoments(selectedMomentIds, visibleMoments);
   const activeMoments =
     isViewingSharedSelection && selectedMoments.length > 0
@@ -241,6 +244,17 @@ export function CatalogViewer({
     setSelectedMomentId(momentId);
   }
 
+  function viewSelectedMomentVideo() {
+    if (canOpenInlineVideo) {
+      setPlayRequest((current) => current + 1);
+      return;
+    }
+
+    if (externalVideoUrl) {
+      window.open(externalVideoUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
   return (
     <main className="safe-bottom mx-auto min-h-screen w-full max-w-6xl px-4 py-4 sm:px-6 lg:py-8">
       <header className="mb-4 flex items-center justify-between gap-4">
@@ -313,7 +327,8 @@ export function CatalogViewer({
           ) : null}
           <button
             className="min-h-11 w-full rounded-lg border border-terra-moss/30 bg-white/80 px-4 text-base font-black text-terra-ink shadow-sm transition hover:bg-terra-paper"
-            onClick={() => setPlayRequest((current) => current + 1)}
+            disabled={!canOpenInlineVideo && !externalVideoUrl}
+            onClick={viewSelectedMomentVideo}
             type="button"
           >
             Ver video de este &aacute;rbol
