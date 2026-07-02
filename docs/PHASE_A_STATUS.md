@@ -60,7 +60,13 @@ Ya existe una separacion mas clara entre vista publica y herramientas internas:
 - el catalogo publico ya no expone link al panel de edicion,
 - la ruta principal de trabajo cambia a `/edicion-catalogo/`,
 - editor y borradores usan `noindex`,
-- y el gate ligero con Google queda preparado pero apagado por defecto.
+- y el gate ligero con Google queda activo por defecto para los correos permitidos.
+
+Decision operativa vigente en publico:
+
+- la clienta debe poder pedir arboles sin tocar Drive;
+- el CTA principal pasa por seleccion + WhatsApp;
+- la funcion `Ver video de este arbol` queda deprecada hasta nuevo aviso.
 
 ### 5. Validacion real del pipeline
 

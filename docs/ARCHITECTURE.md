@@ -36,6 +36,12 @@ La web no procesa video ni guarda secretos de larga duracion.
 4. `CatalogViewer` filtra momentos no publicos y maneja navegacion + seleccion.
 5. `SendSelectionWhatsAppButton` arma el mensaje de WhatsApp con IDs/numero publico.
 
+Regla vigente del catalogo publicado:
+
+- el flujo principal para clientas es `Quiero este arbol` -> seleccion -> `Enviar seleccion por WhatsApp`;
+- la reproduccion directa de video desde la vista publica queda deprecada hasta nuevo aviso;
+- ninguna accion publica debe pedir acceso a Google Drive.
+
 ## Flujo de borrador
 
 1. `scripts/publish-catalog.mjs --workflow draft` genera `public/catalog-drafts/YYYY-MM-DD/catalog.json`.
@@ -57,7 +63,7 @@ Componentes clave:
 - `AdminDriveWorkflowPanel`: flujo principal de proceso/publicacion.
 - `AdminVideoUploadPanel`: carga de videos al Inbox.
 - `AdminDriveSessionPanel`: diagnostico y soporte de la sesion web.
-- `AdminGoogleGate`: barrera ligera opcional de identidad si despues se activa el gate.
+- `AdminGoogleGate`: barrera ligera de identidad para limitar la edicion a los correos permitidos.
 
 ## Flujo OAuth web
 
@@ -78,7 +84,7 @@ Comportamiento actual:
 
 - La vista publica ya no expone link hacia la pagina de edicion.
 - `/edicion-catalogo/`, `/drafts/current/` y `/drafts/[date]/` salen con `noindex`.
-- El gate ligero con Google queda preparado pero apagado por default.
+- El gate ligero con Google queda activo por default.
 - Ese gate no protege server-side; solo agrega una barrera practica en un sitio estatico.
 
 ## Buzon de ordenes en Drive

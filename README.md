@@ -24,6 +24,12 @@ Ya existe:
 - OAuth web para Drive con activacion just-in-time desde los botones principales,
 - pipeline local con `ffmpeg` para thumbnails reales y catalogos estaticos.
 
+Nota operativa:
+
+- la accion publica `Ver video de este arbol` queda deprecada hasta nuevo aviso,
+- el catalogo publicado debe operar con seleccion de arboles + WhatsApp, sin pedir acceso a Drive a clientas,
+- el CTA principal en publico es `Quiero este arbol`.
+
 Sigue pendiente para cerrar Fase A:
 
 - validar el flujo operativo completo con menos asistencia,
@@ -115,6 +121,11 @@ La web de edicion ya puede pedir acceso a Drive desde el navegador usando Google
   - `Publicar catalogo`
 - El panel de soporte queda como diagnostico manual, no como paso obligatorio.
 
+La vista publica no debe disparar OAuth de Drive.
+
+- Si una funcion publica depende de abrir Drive o pedir permisos, debe considerarse fuera de producto por ahora.
+- La reproduccion directa de video en el catalogo publicado queda deprecada hasta nuevo aviso.
+
 ## Security / Access model
 
 - El catalogo publico ya no expone link al panel de edicion.
@@ -122,8 +133,10 @@ La web de edicion ya puede pedir acceso a Drive desde el navegador usando Google
 - `/edicion-catalogo/`, `/drafts/current/` y `/drafts/[date]/` usan `noindex` para bajar exposicion en buscadores.
 - `noindex` no es autenticacion; solo reduce indexacion accidental.
 - Los borradores pueden seguir siendo visibles si alguien tiene el link, porque no cargan precios ni datos sensibles.
-- El gate ligero con Google queda preparado pero apagado por defecto con `NEXT_PUBLIC_ENABLE_ADMIN_GOOGLE_GATE=false`.
-- Cuando se active, ese gate sera una barrera practica de acceso casual, no seguridad server-side fuerte.
+- El gate ligero con Google queda activado por defecto en `/edicion-catalogo/`.
+- Solo debe pasar `terravivapue@gmail.com` y `carlos.d.san25@gmail.com`, salvo que se cambie la allowlist publica.
+- Si alguna vez hace falta desactivarlo temporalmente, usar `NEXT_PUBLIC_ENABLE_ADMIN_GOOGLE_GATE=false`.
+- Ese gate es una barrera practica de acceso casual, no seguridad server-side fuerte.
 - El JSON publicado y de borrador ya no debe arrastrar notas operativas automaticas innecesarias.
 
 Mientras la app OAuth de Drive siga en modo de prueba, `terravivapue@gmail.com` y `carlos.d.san25@gmail.com` deben seguir autorizadas como test users en Google Cloud.

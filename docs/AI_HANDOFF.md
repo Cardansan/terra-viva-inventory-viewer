@@ -56,7 +56,9 @@ El sistema real es:
 - OAuth web ya se activa desde los botones principales si hace falta,
 - el worker local ya procesa ordenes desde Drive,
 - la ruta operativa es `/edicion-catalogo/`,
-- el gate ligero con Google existe pero sigue apagado por default.
+- el gate ligero con Google debe quedar activo para los correos permitidos.
+- la vista publica debe centrarse en seleccion + WhatsApp.
+- la accion `Ver video de este arbol` esta deprecada hasta nuevo aviso y no debe reintroducir OAuth de Drive para clientas.
 
 ## Riesgos importantes
 

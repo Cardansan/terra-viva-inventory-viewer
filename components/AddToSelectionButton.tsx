@@ -25,7 +25,7 @@ export function AddToSelectionButton({
         onClick={onToggle}
         type="button"
       >
-        {isSelected ? "Quitar de mi selecci\u00f3n" : "Agregar a mi selecci\u00f3n"}
+        {isSelected ? "Quitar de mi selecci\u00f3n" : "Quiero este \u00e1rbol"}
       </button>
     </div>
   );

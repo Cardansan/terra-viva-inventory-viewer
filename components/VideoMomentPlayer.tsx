@@ -7,15 +7,13 @@ import { canPlayVideoInline } from "@/lib/videoLinks";
 type VideoMomentPlayerProps = {
   video: CatalogVideo | undefined;
   moment: TreeMoment;
-  playRequest: number;
 };
 
 const momentClipSeconds = 3;
 
 export function VideoMomentPlayer({
   video,
-  moment,
-  playRequest
+  moment
 }: VideoMomentPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -30,12 +28,6 @@ export function VideoMomentPlayer({
     setHasVideoError(false);
     seekToMoment(moment);
   }, [moment.id, moment.timestampSeconds, video?.id]);
-
-  useEffect(() => {
-    if (playRequest > 0) {
-      void playMomentClip();
-    }
-  }, [isMounted, playRequest, video?.id]);
 
   function seekToMoment(nextMoment: TreeMoment) {
     const element = videoRef.current;

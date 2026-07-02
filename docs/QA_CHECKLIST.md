@@ -56,7 +56,7 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 ## Checks UX publico actuales
 
 - [x] WhatsApp es la accion mas prominente.
-- [x] `Ver video de este arbol` se ve como accion secundaria.
+- [x] `Ver video de este arbol` queda retirado de la vista publica.
 - [x] El boton grande de Play ya no aparece sobre el visor.
 - [x] El catalogo publico no muestra link al panel de edicion.
 - [x] `Catalogo actualizado` aparece en el footer.
@@ -77,12 +77,12 @@ Nota: los momentos siguen siendo timestamps mock distribuidos manualmente. No so
 - [x] Las herramientas manuales de respaldo quedaron relegadas a una seccion secundaria.
 - [x] La lista de arboles vuelve a ser el centro del admin en celular.
 - [x] La ruta principal del panel es `/edicion-catalogo/`.
-- [x] El gate ligero con Google existe y queda apagado por default.
+- [x] El gate ligero con Google existe y queda activo para los correos permitidos.
 - [x] `Ver catalogo como clienta` desde admin abre `/` para mostrar exactamente la vista publica estable.
 
 ## Checks seleccion multiple
 
-- [x] `Agregar a mi seleccion` agrega el arbol actual.
+- [x] `Quiero este arbol` agrega el arbol actual.
 - [x] `Quitar de mi seleccion` remueve el arbol actual.
 - [x] El contador muestra singular y plural correctamente.
 - [x] `Enviar seleccion por WhatsApp` aparece solo con seleccion no vacia.
